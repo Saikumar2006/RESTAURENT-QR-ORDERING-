@@ -1,0 +1,311 @@
+// QR Restaurant Ordering System - Prisma schema
+// Multi-tenant from day one. Every tenant-owned table carries restaurantId.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Supabase Postgres. Two URLs, both from your Supabase project's
+  // Settings > Database page:
+  //   url       — the pooled "Transaction" connection (port 6543). Used for
+  //               all normal app queries; the pooler handles many
+  //               concurrent serverless-style connections efficiently.
+  //   directUrl — the direct connection (port 5432). Used only for
+  //               `prisma db push` — Supabase's pooler (pgbouncer, in
+  //               transaction mode) doesn't support the prepared
+  //               statements Prisma needs for schema changes.
+  // See DATABASE_URL / DIRECT_URL in .env.
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// This schema uses Postgres (via Supabase — see the datasource block
+// above), so it uses Postgres's native enum-friendly String columns for
+// consistency with earlier SQLite-compatible history, though real Postgres
+// enums would work here too if you prefer. Allowed values are enforced at
+// the application layer — see server/src/validators/schemas.js (Zod enums)
+// and the order state machine in server/src/utils/order.js.
+//
+//   User.role         "ADMIN" | "STAFF"
+//   Order.orderType    "DINE_IN" | "TAKEAWAY"
+//   Order.status        "PENDING" | "ACCEPTED" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED"
+//   Order.paymentStatus  "PENDING" | "PAID" | "FAILED" | "REFUNDED"
+//   Payment.status       "PENDING" | "PAID" | "FAILED" | "REFUNDED"
+
+model Restaurant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  status    String   @default("ACTIVE") // ACTIVE | SUSPENDED
+  cuisineType String? // free text, e.g. "North Indian", "Cafe", "Fast Food" — shown/grouped on the platform dashboard
+  taxPercent      Float @default(0)
+  serviceChargePercent Float @default(0)
+  discountPercent Float @default(0) // blanket/default discount applied automatically to every order, unless a coupon is used instead
+  discountEnabled Boolean @default(false) // master on/off for the blanket discount — lets admins keep a percent configured without it silently applying
+  searchEnabled Boolean @default(true) // whether customers see the menu search bar; toggled from Admin > Settings
+
+  // ---- Open / closed ("out of service") ----
+  isOpen Boolean @default(true) // master "open sign" — admin flips this off manually to force Out of Service immediately
+  autoScheduleEnabled Boolean @default(false) // if true, ALSO auto-close outside openTime–closeTime even if isOpen is true
+  openTime  String? // "HH:MM" 24h, in `timezone` below, e.g. "10:00"
+  closeTime String? // "HH:MM" 24h, e.g. "23:00" — closeTime < openTime is treated as spanning midnight
+  timezone  String  @default("Asia/Kolkata")
+
+  // ---- Geofencing ("in-dine only": block orders from outside the premises) ----
+  geofenceEnabled      Boolean @default(false)
+  latitude             Float?
+  longitude            Float?
+  geofenceRadiusMeters Int     @default(200)
+
+  // ---- WhatsApp/SMS: phone OTP verification + order notifications ----
+  phoneVerificationEnabled  Boolean @default(false) // require a verified phone before an order can be placed
+  orderNotificationsEnabled Boolean @default(true)  // send WhatsApp/SMS order confirmation + status updates
+  notificationChannel       String  @default("whatsapp") // "whatsapp" | "sms" — preferred channel; falls back to SMS if WhatsApp send fails
+  currency  String   @default("INR")
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  tables     Table[]
+  categories Category[]
+  menuItems  MenuItem[]
+  orders     Order[]
+  coupons    Coupon[]
+
+  @@index([slug])
+}
+
+model Coupon {
+  id                String    @id @default(uuid())
+  restaurantId      String
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  code              String    // stored uppercased; unique per restaurant
+  type              String    // "PERCENT" | "FLAT"
+  value             Float     // percent (0-100) or flat amount, depending on type
+  isActive          Boolean   @default(true)
+  minOrderAmount    Float     @default(0)
+  maxDiscountAmount Float?    // caps the discount for PERCENT coupons on large orders
+  usageLimit        Int?      // null = unlimited
+  usageCount        Int       @default(0)
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([restaurantId, code])
+  @@index([restaurantId])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  passwordHash String
+  role         String   @default("STAFF") // "ADMIN" | "STAFF"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([restaurantId, email])
+  @@index([restaurantId])
+}
+
+model Table {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tableNumber  String
+  tableToken   String   @unique @default(uuid())
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+
+  @@unique([restaurantId, tableNumber])
+  @@index([restaurantId])
+}
+
+model Category {
+  id            String   @id @default(uuid())
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name          String
+  imageUrl      String?
+  displayOrder  Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  menuItems MenuItem[]
+
+  @@index([restaurantId])
+}
+
+model MenuItem {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  price        Float
+  imageUrl     String?
+  isVeg        Boolean  @default(true)
+  isAvailable  Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+}
+
+model Order {
+  id             String   @id @default(uuid())
+  restaurantId   String
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tableId        String?
+  table          Table?   @relation(fields: [tableId], references: [id])
+  orderType      String   @default("DINE_IN") // "DINE_IN" | "TAKEAWAY"
+  orderNumber    String   @unique
+  status         String   @default("PENDING") // see enum note above
+  paymentStatus  String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
+  subtotal       Float
+  taxAmount      Float  @default(0)
+  serviceCharge  Float  @default(0)
+  discountAmount Float  @default(0)
+  couponCode     String? // snapshot of the coupon code applied, if any (default discount leaves this null)
+  totalAmount    Float
+  customerName   String?
+  customerPhone  String?
+  orderSessionToken String @default(uuid()) // lets guest customer poll/track without an account
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items    OrderItem[]
+  payments Payment[]
+  feedback Feedback?
+
+  @@index([restaurantId])
+  @@index([status, createdAt])
+  @@index([tableId])
+  @@index([orderSessionToken])
+}
+
+model Feedback {
+  id           String   @id @default(uuid())
+  orderId      String   @unique // one review per order
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  restaurantId String   // denormalized for fast admin queries without joining through Order
+  rating       Int      // 1-5, enforced in validators/schemas.js
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  @@index([restaurantId, createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  itemName   String   // snapshot
+  unitPrice  Float   // snapshot
+  quantity   Int
+  instructions String?
+  lineTotal  Float
+
+  @@index([orderId])
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String   @default("razorpay")
+  providerOrderId   String?
+  providerPaymentId String?
+  providerSignature String?
+  amount            Float
+  status            String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
+  failureReason     String?
+  // Kept as a plain string (not Prisma's native Json type) — Postgres
+  // supports Json natively if you want to switch this later, but a string
+  // column needed no migration when this schema moved between SQLite and
+  // Postgres. Written with JSON.stringify(...) and read back with
+  // JSON.parse(...) in paymentService.js.
+  rawWebhookPayload String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([providerOrderId])
+  @@index([providerPaymentId])
+}
+
+// Deliberately NOT a User with some special role — every User row is
+// scoped to exactly one restaurantId and restaurant-side code (requireAuth,
+// every service function) assumes that and filters by it. Bolting
+// cross-tenant visibility onto that model would mean auditing every query
+// in the app for a missed restaurantId filter. A separate model + separate
+// login + separate JWT type keeps the blast radius of a bug in one system
+// from leaking into the other. See server/src/services/platformAuthService.js.
+model PlatformAdmin {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Short-lived OTP codes for phone verification. Not tied to a User/Order —
+// verification happens before an order exists. A successful verify() issues
+// a signed, short-expiry JWT (see utils/auth.js signPhoneVerificationToken)
+// that the client then attaches to order creation; this table is never
+// consulted again after that point.
+model PhoneOtp {
+  id        String   @id @default(uuid())
+  phone     String
+  // SHA-256 of the code (not bcrypt — a 6-digit code has low entropy
+  // regardless of hash cost, so the real protection is the attempt limit +
+  // short expiry below, not the hash function).
+  codeHash  String
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
+
+// Best-effort delivery log for every WhatsApp/SMS send attempt (OTPs and
+// order notifications alike) — lets a restaurant owner or platform admin
+// see whether a message actually went out, without needing to check the
+// server logs. A failed send here never blocks or rolls back the order/OTP
+// flow that triggered it; see messagingService.js.
+model NotificationLog {
+  id           String   @id @default(uuid())
+  restaurantId String?
+  orderId      String?
+  phone        String
+  channel      String // "whatsapp" | "sms"
+  purpose      String // "otp" | "order_confirmation" | "order_status"
+  status       String // "sent" | "failed"
+  providerRef  String?
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([orderId])
+}

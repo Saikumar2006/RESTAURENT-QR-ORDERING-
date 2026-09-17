@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-cream text-charcoal font-body antialiased;
+}
+
+::selection {
+  background: #2563eb33;
+}
+
+/* Visible keyboard focus everywhere, per accessibility requirement */
+:focus-visible {
+  outline: 2px solid theme("colors.marigolddark");
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.btn-primary {
+  @apply bg-clove text-cream font-semibold py-3 px-6 rounded-xl shadow-sm transition active:scale-[0.98] hover:bg-marigolddark disabled:opacity-40 disabled:pointer-events-none;
+}
+
+.btn-secondary {
+  @apply bg-white text-charcoal border border-charcoal/15 font-semibold py-3 px-6 rounded-xl transition hover:border-charcoal/40 active:scale-[0.98] disabled:opacity-40;
+}
+
+.input {
+  @apply w-full rounded-lg border border-charcoal/15 bg-white px-4 py-2.5 text-sm focus:border-clove outline-none;
+}
+
+.card {
+  @apply bg-white rounded-card border border-charcoal/10 shadow-[0_1px_2px_rgba(0,0,0,0.03)];
+}

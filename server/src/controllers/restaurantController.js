@@ -83,14 +83,6 @@ const createStaff = asyncHandler(async (req, res) => {
 const updateStaff = asyncHandler(async (req, res) => {
   const staffMember = await prisma.user.findFirst({ where: { id: req.params.id, restaurantId: req.user.restaurantId } });
   if (!staffMember) throw new ApiError(404, "Staff member not found");
-
-  if (req.body.email && req.body.email !== staffMember.email) {
-    const existing = await prisma.user.findFirst({
-      where: { restaurantId: req.user.restaurantId, email: req.body.email, id: { not: req.params.id } },
-    });
-    if (existing) throw new ApiError(409, "A staff member with this email already exists");
-  }
-
   const updated = await prisma.user.update({
     where: { id: req.params.id },
     data: req.body,

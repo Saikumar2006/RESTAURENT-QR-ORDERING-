@@ -5,18 +5,7 @@ const env = require("../config/env");
 // are allowed through — CORS only governs browser cross-origin requests.
 function isAllowedOrigin(origin) {
   if (!origin) return true;
-
-  const normalized = origin.toLowerCase();
-  if (env.allowedOrigins.includes(normalized)) return true;
-
-  // Vite and other local dev servers often pick a port like 5177, 5178,
-  // etc. when 5173 is already occupied. Accept localhost / 127.0.0.1 in
-  // development without needing a manual ALLOWED_ORIGINS edit each time.
-  if (env.nodeEnv === "development") {
-    return /^(https?:\/\/)(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized);
-  }
-
-  return false;
+  return env.allowedOrigins.includes(origin);
 }
 
 function corsOptions() {

@@ -16,16 +16,8 @@ async function createCoupon(restaurantId, data) {
 async function updateCoupon(restaurantId, couponId, data) {
   const coupon = await prisma.coupon.findFirst({ where: { id: couponId, restaurantId } });
   if (!coupon) throw new ApiError(404, "Coupon not found");
-
   const patch = { ...data };
-  if (patch.code) {
-    patch.code = patch.code.toUpperCase();
-    const duplicate = await prisma.coupon.findFirst({
-      where: { restaurantId, code: patch.code, id: { not: couponId } },
-    });
-    if (duplicate) throw new ApiError(409, "A coupon with this code already exists");
-  }
-
+  if (patch.code) patch.code = patch.code.toUpperCase();
   return prisma.coupon.update({ where: { id: couponId }, data: patch });
 }
 

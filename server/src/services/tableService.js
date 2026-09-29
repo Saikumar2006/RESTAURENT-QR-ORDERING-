@@ -28,15 +28,6 @@ async function createTable(restaurantId, data) {
 async function updateTable(restaurantId, tableId, data) {
   const table = await prisma.table.findFirst({ where: { id: tableId, restaurantId } });
   if (!table) throw new ApiError(404, "Table not found");
-
-  const nextTableNumber = data.tableNumber ?? table.tableNumber;
-  if (nextTableNumber !== table.tableNumber) {
-    const duplicate = await prisma.table.findFirst({
-      where: { restaurantId, tableNumber: nextTableNumber, id: { not: tableId } },
-    });
-    if (duplicate) throw new ApiError(409, "A table with this number already exists");
-  }
-
   return prisma.table.update({ where: { id: tableId }, data });
 }
 

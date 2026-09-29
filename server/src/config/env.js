@@ -7,8 +7,6 @@ function required(name, fallback) {
 
 const nodeEnv = required("NODE_ENV", "development");
 const serverUrl = required("SERVER_URL", "http://localhost:4000");
-const databaseUrl = required("DATABASE_URL", "file:./dev.db");
-const directUrl = required("DIRECT_URL", databaseUrl);
 // In production this app is a single process — Express builds and serves
 // the client itself (see server.js), so CLIENT_URL and SERVER_URL are
 // normally the same deployed domain. If CLIENT_URL isn't explicitly set in
@@ -34,8 +32,7 @@ const allowedOrigins = [
 module.exports = {
   nodeEnv,
   port: parseInt(required("PORT", "4000"), 10),
-  databaseUrl,
-  directUrl,
+  databaseUrl: required("DATABASE_URL", "file:./dev.db"),
   jwtSecret: required("JWT_SECRET", "dev-secret-change-me"),
   jwtExpiresIn: required("JWT_EXPIRES_IN", "8h"),
   paymentProvider: required("PAYMENT_PROVIDER", "mock"), // "mock" | "razorpay"
@@ -48,7 +45,7 @@ module.exports = {
   // Twilio's own format, e.g. "whatsapp:+14155238886" and "+14155550123"
   twilioWhatsappFrom: required("TWILIO_WHATSAPP_FROM", ""),
   twilioSmsFrom: required("TWILIO_SMS_FROM", ""),
-  storageProvider: required("STORAGE_PROVIDER", "supabase"), // "local" | "supabase"
+  storageProvider: required("STORAGE_PROVIDER", "local"), // "local" | "supabase"
   supabaseUrl: required("SUPABASE_URL", ""),
   supabaseServiceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY", ""),
   supabaseStorageBucket: required("SUPABASE_STORAGE_BUCKET", "menu-images"),

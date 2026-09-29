@@ -10,12 +10,6 @@ function assertProductionSafety() {
 
   const problems = [];
 
-  if (!env.databaseUrl || env.databaseUrl === "file:./dev.db" || env.databaseUrl.includes("xxxxxx")) {
-    problems.push("DATABASE_URL is missing or still using a placeholder value in production.");
-  }
-  if (!env.directUrl || env.directUrl === "file:./dev.db" || env.directUrl.includes("xxxxxx")) {
-    problems.push("DIRECT_URL is missing or still using a placeholder value in production.");
-  }
   if (!env.jwtSecret || env.jwtSecret === INSECURE_DEFAULT_JWT_SECRET) {
     problems.push(
       "JWT_SECRET is missing or still set to the insecure default. Generate a real one, " +
@@ -25,20 +19,6 @@ function assertProductionSafety() {
   }
   if (env.jwtSecret && env.jwtSecret.length < 32) {
     problems.push("JWT_SECRET is shorter than 32 characters — use a longer random value.");
-  }
-  if (!env.serverUrl || env.serverUrl.includes("localhost")) {
-    problems.push("SERVER_URL must be a real production URL, not localhost.");
-  }
-  if (!env.clientUrl || env.clientUrl.includes("localhost")) {
-    problems.push("CLIENT_URL must be a real production URL, not localhost.");
-  }
-  if (env.storageProvider === "supabase") {
-    if (!env.supabaseUrl || env.supabaseUrl.includes("xxxxxxxxxxxx")) {
-      problems.push("SUPABASE_URL is missing or still using a placeholder value.");
-    }
-    if (!env.supabaseServiceRoleKey) {
-      problems.push("SUPABASE_SERVICE_ROLE_KEY is required when STORAGE_PROVIDER=supabase.");
-    }
   }
   if (env.paymentProvider === "razorpay" && (!env.razorpayKeyId || !env.razorpayKeySecret)) {
     problems.push("PAYMENT_PROVIDER=razorpay but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET aren't set.");

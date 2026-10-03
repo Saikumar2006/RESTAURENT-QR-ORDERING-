@@ -6,19 +6,11 @@ generator client {
 }
 
 datasource db {
-  // Supabase Postgres. Two URLs, both from your Supabase project's
-  // Settings > Database page:
-  //   url       — the pooled "Transaction" connection (port 6543). Used for
-  //               all normal app queries; the pooler handles many
-  //               concurrent serverless-style connections efficiently.
-  //   directUrl — the direct connection (port 5432). Used only for
-  //               `prisma db push` — Supabase's pooler (pgbouncer, in
-  //               transaction mode) doesn't support the prepared
-  //               statements Prisma needs for schema changes.
-  // See DATABASE_URL / DIRECT_URL in .env.
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // Render/Postgres uses DATABASE_URL for the application connection.
+  // This project does not keep Prisma migration files and uses schema sync
+  // via `prisma db push`, so a separate DIRECT_URL is not required here.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // This schema uses Postgres (via Supabase — see the datasource block

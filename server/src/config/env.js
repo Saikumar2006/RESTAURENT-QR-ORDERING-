@@ -12,13 +12,17 @@ function normalizeOrigin(value) {
 }
 
 const nodeEnv = required("NODE_ENV", "development");
-const serverUrl = required("SERVER_URL", "http://localhost:4000");
+const defaultProductionOrigin = "https://restaurant-qr-ordering.onrender.com";
+const serverUrl = required(
+  "SERVER_URL",
+  nodeEnv === "production" ? defaultProductionOrigin : "http://localhost:4000"
+);
 // In production this app is a single process — Express builds and serves
 // the client itself (see server.js), so CLIENT_URL and SERVER_URL are
 // normally the same deployed domain. If CLIENT_URL isn't explicitly set in
-// production, fall back to SERVER_URL instead of the dev default
-// (localhost:5173) — otherwise every QR code printed encodes an
-// unreachable localhost link with no error anywhere to signal it.
+// production, fall back to the public Render origin instead of the dev
+// localhost URL — otherwise every QR code printed encodes an unreachable
+// localhost link with no error anywhere to signal it.
 const clientUrlFallback = nodeEnv === "production" ? serverUrl : "http://localhost:5173";
 const clientUrl = required("CLIENT_URL", clientUrlFallback);
 

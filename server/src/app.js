@@ -87,8 +87,14 @@ app.use("/api/platform", authLimiter, platformRoutes);
 const clientDistPath = path.join(__dirname, "..", "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
-  app.get(/^(?!\/api|\/health).*/, (req, res) => {
-    res.sendFile(path.join(clientDistPath, "index.html"));
+
+  app.use((req, res, next) => {
+    if (req.method !== "GET") return next();
+    if (req.path === "/api" || req.path.startsWith("/api/")) return next();
+    if (req.path === "/health") return next();
+    if (req.path.startsWith("/uploads/")) return next();
+
+    return res.sendFile(path.join(clientDistPath, "index.html"));
   });
 } else {
   console.warn(

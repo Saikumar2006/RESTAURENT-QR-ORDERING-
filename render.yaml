@@ -31,9 +31,9 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         value: menu-images
       - key: CLIENT_URL
-        value: https://restaurant-qr-ordering.onrender.com
+        value: https://qr-ordering-app.onrender.com
       - key: SERVER_URL
-        value: https://restaurant-qr-ordering.onrender.com
+        value: https://qr-ordering-app.onrender.com
       - key: ALLOWED_ORIGINS
         sync: false
       - key: FORCE_HTTPS

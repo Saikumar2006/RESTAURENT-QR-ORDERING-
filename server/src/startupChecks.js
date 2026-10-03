@@ -20,6 +20,13 @@ function assertProductionSafety() {
   if (env.jwtSecret && env.jwtSecret.length < 32) {
     problems.push("JWT_SECRET is shorter than 32 characters — use a longer random value.");
   }
+  const rawAllowedOrigins = String(process.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (rawAllowedOrigins.includes("*")) {
+    problems.push("ALLOWED_ORIGINS must not contain '*' in production; use explicit origins only.");
+  }
   if (env.paymentProvider === "razorpay" && (!env.razorpayKeyId || !env.razorpayKeySecret)) {
     problems.push("PAYMENT_PROVIDER=razorpay but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET aren't set.");
   }

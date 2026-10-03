@@ -1,8 +1,14 @@
 require("dotenv").config();
 
 function required(name, fallback) {
-  const value = process.env[name] ?? fallback;
-  return value;
+  const value = process.env[name];
+  if (value === undefined || value === null) return fallback;
+  return value.trim();
+}
+
+function normalizeOrigin(value) {
+  if (typeof value !== "string") return "";
+  return value.trim().replace(/\/+$/, "").toLowerCase();
 }
 
 const nodeEnv = required("NODE_ENV", "development");
@@ -21,13 +27,33 @@ const clientUrl = required("CLIENT_URL", clientUrlFallback);
 // Railway/Render) can additionally set ALLOWED_ORIGINS to a comma-separated
 // list — e.g. "https://order.example.com,https://order-preview.pages.dev" —
 // so PR/preview deploys on Pages aren't locked out.
-const allowedOrigins = [
-  clientUrl,
-  ...required("ALLOWED_ORIGINS", "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean),
-];
+const allowedOrigins = (() => {
+  const set = new Set();
+  const localDevOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:4173",
+  ];
+
+  for (const value of [clientUrl, serverUrl, required("ALLOWED_ORIGINS", "")]) {
+    for (const item of String(value).split(",")) {
+      const normalized = normalizeOrigin(item);
+      if (!normalized || normalized === "*") continue;
+      set.add(normalized);
+    }
+  }
+
+  if (nodeEnv !== "production") {
+    for (const origin of localDevOrigins) {
+      set.add(normalizeOrigin(origin));
+    }
+  }
+
+  return [...set].sort();
+})();
 
 module.exports = {
   nodeEnv,
@@ -54,4 +80,5 @@ module.exports = {
   allowedOrigins,
   serverUrl,
   logLevel: required("LOG_LEVEL", "info"),
+  normalizeOrigin,
 };

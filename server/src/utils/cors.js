@@ -5,7 +5,8 @@ const env = require("../config/env");
 // are allowed through — CORS only governs browser cross-origin requests.
 function isAllowedOrigin(origin) {
   if (!origin) return true;
-  return env.allowedOrigins.includes(origin);
+  const normalizedOrigin = env.normalizeOrigin(origin);
+  return env.allowedOrigins.includes(normalizedOrigin);
 }
 
 function corsOptions() {

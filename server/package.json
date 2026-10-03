@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "prestart": "node ./scripts/build-client.js",
+    "prestart": "npx prisma generate && npx prisma db push && node ./scripts/build-client.js",
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",

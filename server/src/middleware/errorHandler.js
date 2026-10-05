@@ -14,7 +14,7 @@ function errorHandler(err, req, res, next) {
     level: "error",
     msg: err.message,
     stack: err.stack,
-    path: req.originalUrl,
+    path: req.path === "/api/auth/google/callback" ? req.path : req.originalUrl,
     method: req.method,
   }));
 

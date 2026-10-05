@@ -8,7 +8,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("qr_ordering_token");
+    const callbackParams = new URLSearchParams(window.location.hash.slice(1));
+    const googleToken = callbackParams.get("google_token");
+    if (googleToken) {
+      localStorage.setItem("qr_ordering_token", googleToken);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}`);
+    }
+
+    const token = googleToken || localStorage.getItem("qr_ordering_token");
     if (!token) {
       setLoading(false);
       return;

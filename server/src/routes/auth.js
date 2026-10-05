@@ -7,6 +7,8 @@ const { loginSchema } = require("../validators/schemas");
 const router = express.Router();
 
 router.post("/login", validateBody(loginSchema), authController.login);
+router.get("/google", authController.googleStart);
+router.get("/google/callback", authController.googleCallback);
 router.get("/me", requireAuth, authController.me);
 
 module.exports = router;

@@ -1,6 +1,25 @@
+const { OAuth2Client } = require("google-auth-library");
 const prisma = require("../config/db");
 const { hashPassword, comparePassword, signToken } = require("../utils/auth");
 const { ApiError } = require("../utils/http");
+const env = require("../config/env");
+
+function createGoogleClient() {
+  if (!env.googleClientId || !env.googleClientSecret || !env.googleCallbackUrl) {
+    throw new ApiError(503, "Google sign-in is not configured.");
+  }
+
+  return new OAuth2Client(env.googleClientId, env.googleClientSecret, env.googleCallbackUrl);
+}
+
+function getGoogleAuthorizationUrl(state) {
+  return createGoogleClient().generateAuthUrl({
+    access_type: "online",
+    scope: ["openid", "email", "profile"],
+    state,
+    prompt: "select_account",
+  });
+}
 
 async function login(email, password) {
   // Email is unique per-restaurant, not globally, so a login attempt must
@@ -11,6 +30,38 @@ async function login(email, password) {
 
   const validPassword = await comparePassword(password, user.passwordHash);
   if (!validPassword) throw new ApiError(401, "Invalid email or password");
+
+  const token = signToken(user);
+  return {
+    token,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId },
+  };
+}
+
+async function googleLoginWithCode(code) {
+  const client = createGoogleClient();
+  const { tokens } = await client.getToken(code);
+  if (!tokens.id_token) throw new ApiError(401, "Google sign-in could not be verified.");
+
+  const ticket = await client.verifyIdToken({ idToken: tokens.id_token, audience: env.googleClientId });
+  const payload = ticket.getPayload();
+  if (!payload?.sub || !payload.email || !payload.name || payload.email_verified !== true) {
+    throw new ApiError(401, "Google sign-in requires a verified Google email address.");
+  }
+
+  const users = await prisma.user.findMany({
+    where: { email: { equals: payload.email, mode: "insensitive" } },
+  });
+  if (users.length > 1) {
+    throw new ApiError(409, "Multiple restaurant accounts use this Google email. Sign in with email and password or contact your administrator.");
+  }
+  const user = users[0];
+  if (!user) {
+    throw new ApiError(404, "No existing restaurant account uses this Google email. Ask your administrator to create an account or sign in with email and password.");
+  }
+  if (!user.isActive) {
+    throw new ApiError(403, "This restaurant account is inactive. Contact your administrator.");
+  }
 
   const token = signToken(user);
   return {
@@ -79,4 +130,4 @@ async function registerRestaurant(input) {
   return restaurant;
 }
 
-module.exports = { login, registerRestaurant };
+module.exports = { login, getGoogleAuthorizationUrl, googleLoginWithCode, registerRestaurant };

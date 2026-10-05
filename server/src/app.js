@@ -42,7 +42,9 @@ if (env.nodeEnv === "production" && env.forceHttps) {
 // block the browser from rendering these images if the client were ever
 // served from a different origin than the API.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));
+app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined", {
+  skip: (req) => req.originalUrl.startsWith("/api/auth/google/callback"),
+}));
 
 // Publicly served menu item / category images. Uploaded files get random
 // UUID names (see middleware/upload.js) so nothing sensitive is exposed by

@@ -12,7 +12,7 @@ function normalizeOrigin(value) {
 }
 
 const nodeEnv = required("NODE_ENV", "development");
-const defaultProductionOrigin = "https://restaurent-qr-ordering.onrender.com";
+const defaultProductionOrigin = "https://restaurant-qr-ordering.onrender.com";
 const serverUrl = required(
   "SERVER_URL",
   nodeEnv === "production" ? defaultProductionOrigin : "http://localhost:4000"
@@ -25,6 +25,13 @@ const serverUrl = required(
 // localhost link with no error anywhere to signal it.
 const clientUrlFallback = nodeEnv === "production" ? serverUrl : "http://localhost:5173";
 const clientUrl = required("CLIENT_URL", clientUrlFallback);
+const googleClientId = required("GOOGLE_CLIENT_ID", "");
+const googleClientSecret = required("GOOGLE_CLIENT_SECRET", "");
+const googleCallbackUrl = required("GOOGLE_CALLBACK_URL", `${serverUrl}/api/auth/google/callback`);
+
+if (nodeEnv === "production" && !googleCallbackUrl.startsWith("https://")) {
+  throw new Error("GOOGLE_CALLBACK_URL must use HTTPS in production");
+}
 
 // CORS/socket.io origins. Same-origin deploys only ever need CLIENT_URL
 // itself. Split deploys (e.g. React on Cloudflare Pages, API on
@@ -70,6 +77,9 @@ module.exports = {
   razorpayKeySecret: required("RAZORPAY_KEY_SECRET", ""),
   razorpayWebhookSecret: required("RAZORPAY_WEBHOOK_SECRET", ""),
   messagingProvider: required("MESSAGING_PROVIDER", "mock"), // "mock" | "twilio"
+  googleClientId,
+  googleClientSecret,
+  googleCallbackUrl,
   twilioAccountSid: required("TWILIO_ACCOUNT_SID", ""),
   twilioAuthToken: required("TWILIO_AUTH_TOKEN", ""),
   // Twilio's own format, e.g. "whatsapp:+14155238886" and "+14155550123"

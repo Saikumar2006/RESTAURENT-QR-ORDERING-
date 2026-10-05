@@ -45,3 +45,36 @@ export function ErrorBanner({ message }) {
     </div>
   );
 }
+
+export function PageHeader({ eyebrow, title, description, actions }) {
+  return (
+    <div className="page-header">
+      <div className="min-w-0">
+        {eyebrow && <p className="section-eyebrow">{eyebrow}</p>}
+        <h1 className="page-title">{title}</h1>
+        {description && <p className="page-description">{description}</p>}
+      </div>
+      {actions && <div className="page-actions">{actions}</div>}
+    </div>
+  );
+}
+
+export function StatCard({ label, value, detail, accent = "teal" }) {
+  return (
+    <div className="stat-card">
+      <div className={`stat-accent stat-accent-${accent}`} />
+      <p className="stat-label">{label}</p>
+      <p className="stat-value">{value}</p>
+      {detail && <p className="stat-detail">{detail}</p>}
+    </div>
+  );
+}
+
+export function SectionHeading({ title, detail, action }) {
+  return (
+    <div className="section-heading">
+      <div><h2>{title}</h2>{detail && <p>{detail}</p>}</div>
+      {action}
+    </div>
+  );
+}

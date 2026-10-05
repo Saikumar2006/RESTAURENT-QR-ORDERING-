@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: qr-ordering-app
+    name: RESTAURENT-QR-ORDERING-
     runtime: node
     region: oregon
     plan: free
+    healthCheckPath: /health
     rootDir: .
     buildCommand: npm install --prefix server && npm install --prefix client
     startCommand: npm start
@@ -31,9 +32,9 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         value: menu-images
       - key: CLIENT_URL
-        value: https://qr-ordering-app.onrender.com
+        value: https://restaurent-qr-ordering.onrender.com
       - key: SERVER_URL
-        value: https://qr-ordering-app.onrender.com
+        value: https://restaurent-qr-ordering.onrender.com
       - key: ALLOWED_ORIGINS
         sync: false
       - key: FORCE_HTTPS

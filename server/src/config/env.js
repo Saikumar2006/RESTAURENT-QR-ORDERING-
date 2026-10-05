@@ -12,7 +12,7 @@ function normalizeOrigin(value) {
 }
 
 const nodeEnv = required("NODE_ENV", "development");
-const defaultProductionOrigin = "https://qr-ordering-app.onrender.com";
+const defaultProductionOrigin = "https://restaurent-qr-ordering.onrender.com";
 const serverUrl = required(
   "SERVER_URL",
   nodeEnv === "production" ? defaultProductionOrigin : "http://localhost:4000"

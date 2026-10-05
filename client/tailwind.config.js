@@ -5,21 +5,19 @@ export default {
     extend: {
       colors: {
         // Modern, minimal, near-monochrome palette with a single accent.
-        charcoal: "#18181B", // primary text — neutral near-black, not warm brown
-        cream: "#FAFAFA", // page background — soft off-white, not warm cream
-        clove: "#2563EB", // primary accent (buttons, active states) — indigo
-        marigold: "#3B82F6", // secondary accent, used at low opacity for tints
-        marigolddark: "#1D4ED8", // focus rings / accent hover
-        sage: "#16A34A", // status green (e.g. "veg" indicator)
+        charcoal: "#202925",
+        cream: "#F4F6F3",
+        clove: "#087F70",
+        marigold: "#D78A4B",
+        marigolddark: "#08685D",
+        sage: "#25845D",
       },
       fontFamily: {
-        // A single modern sans-serif family for both display and body text
-        // reads cleaner/more minimal than mixing a serif display face.
-        display: ["'Manrope'", "sans-serif"],
-        body: ["'Inter'", "sans-serif"],
+        display: ["'Fraunces'", "Georgia", "serif"],
+        body: ["'DM Sans'", "sans-serif"],
       },
       borderRadius: {
-        card: "12px", // crisper corners than a very rounded "friendly" 18px
+        card: "7px",
       },
     },
   },

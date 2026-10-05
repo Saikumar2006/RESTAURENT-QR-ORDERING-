@@ -1,6 +1,7 @@
 const express = require("express");
 const authController = require("../controllers/authController");
 const restaurantController = require("../controllers/restaurantController");
+const insightsController = require("../controllers/restaurantInsightsController");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { validateBody } = require("../middleware/validate");
 const {
@@ -30,6 +31,8 @@ router.post("/:id/tables", requireAuth, requireRole("ADMIN"), validateBody(table
 
 // Orders list for the dashboard
 router.get("/:id/orders", requireAuth, require("../controllers/orderController").listOrders);
+router.get("/:id/analytics", requireAuth, requireRole("ADMIN", "STAFF"), insightsController.getAnalytics);
+router.get("/:id/customers", requireAuth, requireRole("ADMIN"), insightsController.getCustomers);
 
 // Staff
 router.get("/:id/staff", requireAuth, requireRole("ADMIN"), restaurantController.listStaff);

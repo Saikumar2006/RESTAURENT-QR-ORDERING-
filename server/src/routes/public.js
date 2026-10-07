@@ -8,8 +8,8 @@ const { couponValidateSchema, otpSendSchema, otpVerifySchema } = require("../val
 
 const router = express.Router();
 
-// OTP sends cost real money via Twilio and are the classic SMS-bombing
-// abuse target — much tighter than the general auth rate limit.
+// OTP sends have a tighter IP limit; otpService also enforces cooldown and
+// hourly limits per canonical phone number in the database.
 const otpSendLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 const otpVerifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
 

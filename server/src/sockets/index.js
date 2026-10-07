@@ -1,6 +1,8 @@
 const { Server } = require("socket.io");
 const { verifyToken } = require("../utils/auth");
 const { isAllowedOrigin } = require("../utils/cors");
+const { isRedisEnabled, getCacheKey } = require("../services/redisService");
+const { getRedisClient } = require("../config/redis");
 
 let ioInstance = null;
 
@@ -14,6 +16,22 @@ function initSockets(httpServer) {
       credentials: true,
     },
   });
+
+  // If Redis is configured, attach the Redis adapter so multiple server
+  // instances can share socket rooms / events. The adapter initialization
+  // is optional and best-effort: if it fails, startup continues with a
+  // local-only in-memory Socket.IO instance rather than crashing.
+  if (isRedisEnabled()) {
+    try {
+      const { createAdapter } = require("@socket.io/redis-adapter");
+      const redisClient = getRedisClient();
+      const pubClient = redisClient.duplicate();
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+    } catch (err) {
+      console.error("Failed to initialize Socket.IO Redis adapter:", err.message);
+    }
+  }
 
   io.on("connection", (socket) => {
     // Staff/admin dashboards authenticate with their JWT and can only join

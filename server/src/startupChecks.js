@@ -33,6 +33,23 @@ function assertProductionSafety() {
   if (env.messagingProvider === "twilio" && (!env.twilioAccountSid || !env.twilioAuthToken)) {
     problems.push("MESSAGING_PROVIDER=twilio but TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN aren't set.");
   }
+  const whatsappConfig = [
+    env.whatsappPhoneNumberId,
+    env.whatsappBusinessAccountId,
+    env.whatsappAccessToken,
+    env.whatsappOtpTemplateName,
+    env.whatsappApiVersion,
+  ];
+  if (whatsappConfig.some(Boolean) && whatsappConfig.some((value) => !value)) {
+    problems.push(
+      "Platform WhatsApp OTP configuration is incomplete. Set WHATSAPP_PHONE_NUMBER_ID, " +
+        "WHATSAPP_BUSINESS_ACCOUNT_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_OTP_TEMPLATE_NAME, " +
+        "and WHATSAPP_API_VERSION together."
+    );
+  }
+  if (env.whatsappApiVersion && !/^v\d+\.\d+$/.test(env.whatsappApiVersion)) {
+    problems.push("WHATSAPP_API_VERSION must use the Meta Graph API format, for example v22.0.");
+  }
 
   if (problems.length > 0) {
     console.error("\nRefusing to start in production with unsafe configuration:\n");

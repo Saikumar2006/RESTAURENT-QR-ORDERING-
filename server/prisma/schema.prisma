@@ -187,6 +187,9 @@ model Order {
   feedback Feedback?
 
   @@index([restaurantId])
+  @@index([restaurantId, status, createdAt])
+  @@index([restaurantId, paymentStatus])
+  @@index([tableId, createdAt])
   @@index([status, createdAt])
   @@index([tableId])
   @@index([orderSessionToken])
@@ -269,12 +272,13 @@ model PlatformAdmin {
 model PhoneOtp {
   id        String   @id @default(uuid())
   phone     String
-  // SHA-256 of the code (not bcrypt — a 6-digit code has low entropy
-  // regardless of hash cost, so the real protection is the attempt limit +
-  // short expiry below, not the hash function).
+  // HMAC-SHA-256 keyed by the platform JWT secret; raw OTP values are never stored.
   codeHash  String
   attempts  Int      @default(0)
   verified  Boolean  @default(false)
+  verifiedAt DateTime?
+  // Set when a newer code supersedes this one or provider delivery fails.
+  invalidatedAt DateTime?
   expiresAt DateTime
   createdAt DateTime @default(now())
 

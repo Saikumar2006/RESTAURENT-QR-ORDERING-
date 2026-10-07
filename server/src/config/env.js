@@ -12,6 +12,7 @@ function normalizeOrigin(value) {
 }
 
 const nodeEnv = required("NODE_ENV", "development");
+const redisUrl = required("REDIS_URL", "");
 const defaultProductionOrigin = "https://restaurant-qr-ordering.onrender.com";
 const serverUrl = required(
   "SERVER_URL",
@@ -28,6 +29,11 @@ const clientUrl = required("CLIENT_URL", clientUrlFallback);
 const googleClientId = required("GOOGLE_CLIENT_ID", "");
 const googleClientSecret = required("GOOGLE_CLIENT_SECRET", "");
 const googleCallbackUrl = required("GOOGLE_CALLBACK_URL", `${serverUrl}/api/auth/google/callback`);
+const whatsappPhoneNumberId = required("WHATSAPP_PHONE_NUMBER_ID", "");
+const whatsappBusinessAccountId = required("WHATSAPP_BUSINESS_ACCOUNT_ID", "");
+const whatsappAccessToken = required("WHATSAPP_ACCESS_TOKEN", "");
+const whatsappOtpTemplateName = required("WHATSAPP_OTP_TEMPLATE_NAME", "");
+const whatsappApiVersion = required("WHATSAPP_API_VERSION", "");
 
 if (nodeEnv === "production" && !googleCallbackUrl.startsWith("https://")) {
   throw new Error("GOOGLE_CALLBACK_URL must use HTTPS in production");
@@ -80,6 +86,11 @@ module.exports = {
   googleClientId,
   googleClientSecret,
   googleCallbackUrl,
+  whatsappPhoneNumberId,
+  whatsappBusinessAccountId,
+  whatsappAccessToken,
+  whatsappOtpTemplateName,
+  whatsappApiVersion,
   twilioAccountSid: required("TWILIO_ACCOUNT_SID", ""),
   twilioAuthToken: required("TWILIO_AUTH_TOKEN", ""),
   // Twilio's own format, e.g. "whatsapp:+14155238886" and "+14155550123"
@@ -93,6 +104,7 @@ module.exports = {
   clientUrl,
   allowedOrigins,
   serverUrl,
+  redisUrl: redisUrl || undefined,
   logLevel: required("LOG_LEVEL", "info"),
   normalizeOrigin,
 };

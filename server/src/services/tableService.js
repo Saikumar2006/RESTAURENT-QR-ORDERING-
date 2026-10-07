@@ -11,11 +11,17 @@ async function listTables(restaurantId) {
 // Only ever exposes tableNumber + the opaque tableToken — never the raw
 // table id — so this stays consistent with the rest of the public API.
 async function listActiveTablesPublic(restaurantId) {
+  const { getCachedJson, setCachedJson, getCacheKey } = require("./redisService");
+  const cacheKey = getCacheKey("restaurant:public:tables", restaurantId);
+  const cached = await getCachedJson(cacheKey);
+  if (cached) return cached;
+
   const tables = await prisma.table.findMany({
     where: { restaurantId, isActive: true },
     orderBy: { tableNumber: "asc" },
     select: { tableNumber: true, tableToken: true },
   });
+  await setCachedJson(cacheKey, tables, 300);
   return tables;
 }
 

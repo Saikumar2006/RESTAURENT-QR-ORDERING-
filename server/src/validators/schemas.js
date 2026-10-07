@@ -197,9 +197,9 @@ const feedbackCreateSchema = z.object({
   comment: z.string().max(1000).optional(),
 });
 
-// E.164-ish: optional leading +, 8-15 digits. Good enough to catch typos
-// without being so strict it rejects legitimate international numbers.
-const phoneSchema = z.string().regex(/^\+?[0-9]{8,15}$/, "Enter a valid phone number, e.g. +919876543210");
+// Accept E.164 digits with an optional leading plus; the OTP service adds
+// the plus sign before storing or sending the canonical number.
+const phoneSchema = z.string().regex(/^\+?[1-9][0-9]{7,14}$/, "Enter a valid international phone number, e.g. +919876543210");
 
 const otpSendSchema = z.object({
   phone: phoneSchema,
@@ -207,7 +207,7 @@ const otpSendSchema = z.object({
 
 const otpVerifySchema = z.object({
   phone: phoneSchema,
-  code: z.string().length(6, "Enter the 6-digit code"),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 module.exports = {

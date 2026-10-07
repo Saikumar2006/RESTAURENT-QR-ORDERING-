@@ -1,26 +1,139 @@
 const orderService = require("../services/orderService");
 const { ok, created, asyncHandler, ApiError } = require("../utils/http");
+const { getRedisClient, isRedisEnabled } = require("../config/redis");
+const { getCacheKey } = require("../services/redisService");
 
 // Public: customer places an order. Only tableToken + items are trusted
 // input; restaurantId/pricing are derived/recalculated server-side.
+// This handler implements an optional Redis-backed idempotency guard:
+// - Client may send Idempotency-Key header
+// - If configured, the server ensures a single order is created for a key
 const createOrder = asyncHandler(async (req, res) => {
-  const order = await orderService.createOrder(req.body);
-  created(res, {
-    id: order.id,
-    orderNumber: order.orderNumber,
-    orderType: order.orderType,
-    tableNumber: order.table?.tableNumber ?? null,
-    status: order.status,
-    paymentStatus: order.paymentStatus,
-    subtotal: order.subtotal,
-    taxAmount: order.taxAmount,
-    serviceCharge: order.serviceCharge,
-    discountAmount: order.discountAmount,
-    couponCode: order.couponCode,
-    totalAmount: order.totalAmount,
-    orderSessionToken: order.orderSessionToken,
-    items: order.items,
-  });
+  const idempotencyKey = req.get && (req.get('Idempotency-Key') || req.get('idempotency-key') || req.get('x-idempotency-key'));
+
+  // If Redis isn't configured or no key was provided, proceed normally.
+  if (!isRedisEnabled() || !idempotencyKey) {
+    const order = await orderService.createOrder(req.body);
+    created(res, {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      orderType: order.orderType,
+      tableNumber: order.table?.tableNumber ?? null,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      subtotal: order.subtotal,
+      taxAmount: order.taxAmount,
+      serviceCharge: order.serviceCharge,
+      discountAmount: order.discountAmount,
+      couponCode: order.couponCode,
+      totalAmount: order.totalAmount,
+      orderSessionToken: order.orderSessionToken,
+      items: order.items,
+    });
+    return;
+  }
+
+  const redis = getRedisClient();
+  const key = getCacheKey("idempotency:orders", idempotencyKey);
+  const processingTtlSec = 5 * 60; // 5 minutes
+  const resultTtlSec = 24 * 60 * 60; // 24 hours
+
+  try {
+    // Try to claim the idempotency key as "processing" atomically
+    const claimed = await redis.set(key, JSON.stringify({ status: "processing", createdAt: Date.now() }), { NX: true, EX: processingTtlSec });
+    if (!claimed) {
+      // Key exists — inspect it
+      const raw = await redis.get(key);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.orderId) {
+            // Order already created for this key — return the same response
+            const order = await orderService.getOrderForGuest(parsed.orderId, parsed.orderSessionToken || "");
+            // Return 201 with same payload shape
+            created(res, {
+              id: order.id,
+              orderNumber: order.orderNumber,
+              orderType: order.orderType,
+              tableNumber: order.table?.tableNumber ?? null,
+              status: order.status,
+              paymentStatus: order.paymentStatus,
+              subtotal: order.subtotal,
+              taxAmount: order.taxAmount,
+              serviceCharge: order.serviceCharge,
+              discountAmount: order.discountAmount,
+              couponCode: order.couponCode,
+              totalAmount: order.totalAmount,
+              orderSessionToken: order.orderSessionToken,
+              items: order.items,
+            });
+            return;
+          }
+          // If it's processing, return 202 Accepted so client can poll
+          if (parsed && parsed.status === "processing") {
+            return res.status(202).json({ success: true, data: { processing: true } });
+          }
+        } catch (e) {
+          // non-JSON value — fall through to normal processing
+        }
+      }
+      // Key exists but couldn't parse; return 202 to be safe
+      return res.status(202).json({ success: true, data: { processing: true } });
+    }
+
+    // Claimed the key — proceed to create order
+    try {
+      const order = await orderService.createOrder(req.body);
+
+      // Record result for future idempotent requests
+      const value = { orderId: order.id, orderSessionToken: order.orderSessionToken, status: "created", createdAt: Date.now() };
+      await redis.set(key, JSON.stringify(value), { EX: resultTtlSec });
+
+      created(res, {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderType: order.orderType,
+        tableNumber: order.table?.tableNumber ?? null,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        subtotal: order.subtotal,
+        taxAmount: order.taxAmount,
+        serviceCharge: order.serviceCharge,
+        discountAmount: order.discountAmount,
+        couponCode: order.couponCode,
+        totalAmount: order.totalAmount,
+        orderSessionToken: order.orderSessionToken,
+        items: order.items,
+      });
+      return;
+    } catch (err) {
+      // On failure, remove the processing claim so client may retry
+      try {
+        await redis.del(key);
+      } catch (ignore) {}
+      throw err;
+    }
+  } catch (err) {
+    // If Redis errors, log and fall back to normal processing (fail-open)
+    console.error("Idempotency Redis error:", err.message || err);
+    const order = await orderService.createOrder(req.body);
+    created(res, {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      orderType: order.orderType,
+      tableNumber: order.table?.tableNumber ?? null,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      subtotal: order.subtotal,
+      taxAmount: order.taxAmount,
+      serviceCharge: order.serviceCharge,
+      discountAmount: order.discountAmount,
+      couponCode: order.couponCode,
+      totalAmount: order.totalAmount,
+      orderSessionToken: order.orderSessionToken,
+      items: order.items,
+    });
+  }
 });
 
 // Accessible either by the guest session token (query param) or by

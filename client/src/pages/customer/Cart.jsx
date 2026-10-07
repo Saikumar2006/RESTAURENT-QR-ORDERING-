@@ -48,7 +48,8 @@ export default function Cart() {
     setSendingOtp(true);
     setOtpError(null);
     try {
-      await api.post(`/public/restaurants/${slug}/otp/send`, { phone: customerPhone.trim() });
+      const result = await api.post(`/public/restaurants/${slug}/otp/send`, { phone: customerPhone.trim() });
+      setCustomerPhone(result.phone);
       setOtpStep("sent");
     } catch (err) {
       setOtpError(err.message);
@@ -210,7 +211,9 @@ export default function Cart() {
               <div className="flex gap-2">
                 <input
                   className="input"
-                  placeholder="Phone number"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="Phone number (include country code, e.g. +919876543210)"
                   value={customerPhone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   disabled={otpStep === "verified"}

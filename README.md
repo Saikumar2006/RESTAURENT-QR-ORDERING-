@@ -155,7 +155,88 @@ That choice is stored for the rest of their session and sent with their
 order, so the kitchen/dashboard still knows exactly where (or whether) to
 deliver the order — without needing a physical QR code per table.
 
-## 5. Switching on real Razorpay payments
+## 5. Platform WhatsApp OTP
+
+Checkout phone verification uses one WhatsApp Cloud API integration owned by
+the platform. Restaurants do not create Meta apps or provide WhatsApp
+credentials. This OTP delivery path is separate from restaurant order
+notifications, which continue to use the existing messaging configuration.
+
+Configure the platform-owned integration in `server/.env` for local testing
+and in the Render backend service for production:
+
+```env
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_BUSINESS_ACCOUNT_ID=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_OTP_TEMPLATE_NAME=
+WHATSAPP_API_VERSION=
+```
+
+Use a current Graph API version in `WHATSAPP_API_VERSION` (for example,
+`v22.0`). `WHATSAPP_OTP_TEMPLATE_NAME` must exactly match the approved
+authentication template's name. The current flow sends the `en_US`
+translation with the OTP in the body variable `{{1}}` and the matching
+dynamic URL/copy-code button parameter. The approved template must have the
+authentication category and a copy-code OTP button; do not substitute an
+arbitrary free-form text template. Configure a matching language/template
+or update the backend language if your approved template uses another
+locale.
+
+In Meta:
+
+1. Create a Meta Developer app and add the WhatsApp product.
+2. Connect a WhatsApp Business Account and register the platform's WhatsApp
+   phone number. Use its **Phone Number ID** and **Business Account ID** in
+   the corresponding environment variables.
+3. Create a system user in Business Settings, assign it the WhatsApp
+   Business Account and required app assets/permissions, and generate a
+   long-lived system-user access token with `whatsapp_business_messaging`
+   permission. Store it only in `WHATSAPP_ACCESS_TOKEN`.
+4. Create and submit an **Authentication** OTP template, with a body code
+   placeholder `{{1}}` and an OTP **Copy code** button (button index 0), in
+   the `en_US` language. The message request supplies the same code value to
+   the body and button's dynamic parameter. Wait for Meta approval and set
+   its exact template name in
+   `WHATSAPP_OTP_TEMPLATE_NAME`.
+5. Use the Graph API version supported by your Meta app in
+   `WHATSAPP_API_VERSION`.
+
+On Render, open the backend web service's **Environment** settings and add
+all five variable names shown above with the values from your platform Meta
+setup. Keep the access token private; never add it to Vite/client variables,
+source control, restaurant settings, or logs. The `render.yaml` manifest
+declares these as unsynced secrets/configuration so they must be entered in
+the Render dashboard.
+
+For local end-to-end testing, enable **Require phone verification** in a
+restaurant's settings, configure the five platform variables, start the
+server, then create an order using a WhatsApp-reachable number in E.164 form
+(for example `+919876543210`). Request the code, read it from WhatsApp, and
+verify it in checkout before placing the order. The backend applies a
+one-minute resend cooldown, five sends per phone per hour, five code-entry
+attempts, and a five-minute code expiry. IP request throttles apply as well.
+Run automated coverage with `npm test --prefix server`; the WhatsApp HTTP
+request is mocked by tests, so that command never calls Meta or sends a
+real message.
+
+OTP API endpoints:
+
+- `POST /api/public/restaurants/:slug/otp/send` with `{ "phone": "+..." }`
+- `POST /api/public/otp/verify` with `{ "phone": "+...", "code": "123456" }`
+
+The API does not look up user accounts for OTP delivery: this is checkout
+phone verification, not restaurant staff sign-in. It issues the existing
+short-lived phone-verification JWT after success; email/password and Google
+authentication are unchanged.
+
+The OTP table already existed. Two nullable timestamps were added to record
+successful verification and invalidation. This repository uses
+`prisma db push` rather than checked-in Prisma migration files; the normal
+server `prestart` applies this additive schema update. It does not reset or
+drop the production database.
+
+## 6. Switching on real Razorpay payments
 
 By default `PAYMENT_PROVIDER=mock` in `server/.env`, which lets you exercise the
 entire order → pay → verify → webhook flow without live credentials.

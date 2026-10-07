@@ -5,6 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const { redisRateLimit } = require("./middleware/distributedRateLimit");
 
 const env = require("./config/env");
 const { corsOptions } = require("./utils/cors");
@@ -51,9 +52,22 @@ app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined", {
 // making this public. Mounted early, well before the SPA catch-all below.
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-// Global rate limiting; tighter limit specifically on auth to blunt brute force.
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
+// Global rate limiting; prefer a Redis-backed limiter in production so
+// limits are shared across instances. Fall back to in-memory express-rate-limit
+// for development/simple deployments.
+if (env.nodeEnv === "production" && env.redisUrl) {
+  // Very permissive global limiter; more sensitive endpoints use dedicated
+  // per-route limits below via redisRateLimit.
+  app.use((req, res, next) => next());
+} else {
+  app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
+}
+
+// Auth endpoints keep a stricter limit to blunt credential stuffing. In
+// production prefer the Redis-based distributed limiter.
+const authLimiter = env.redisUrl
+  ? redisRateLimit({ prefix: "auth:global", windowMs: 15 * 60 * 1000, limit: 20, keyFn: (req) => req.ip })
+  : rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true, legacyHeaders: false });
 
 // Razorpay webhook needs the raw body for HMAC verification, so it's
 // mounted BEFORE express.json() with its own raw parser.

@@ -82,6 +82,25 @@ export default function AdminOrders() {
     }
   }
 
+  async function printReceipt(orderId) {
+    setError(null);
+    try {
+      const receipt = await api.get(`/orders/${orderId}/receipt`);
+      const printWindow = window.open("", "_blank", "width=900,height=1000");
+      if (!printWindow) {
+        setError("Pop-up blocked. Please allow pop-ups to print a receipt.");
+        return;
+      }
+
+      printWindow.document.write(buildReceiptMarkup(receipt));
+      printWindow.document.close();
+      setTimeout(() => printWindow.focus(), 200);
+      setTimeout(() => printWindow.print(), 400);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div className="space-y-5 p-4 md:p-6">
       <PageHeader title="Orders" description="Triage incoming orders, update kitchen progress, and review payment status." actions={<span className="live-indicator"><span /> Updating from restaurant feed</span>} />
@@ -195,6 +214,9 @@ export default function AdminOrders() {
               </div>
               <div className="flex gap-2 flex-wrap">
                 <StatusBadge status={selected.status} />
+                <button className="btn-primary py-1.5 px-4 text-xs" onClick={() => printReceipt(selected.id)}>
+                  Print Receipt
+                </button>
                 {(NEXT_STATUS[selected.status] || []).map((s) => (
                   <button key={s} className="btn-secondary py-1.5 px-4 text-xs" onClick={() => changeStatus(selected.id, s)}>
                     Mark {s}
@@ -224,6 +246,112 @@ export default function AdminOrders() {
       </div>
     </div>
   );
+}
+
+function buildReceiptMarkup(receipt) {
+  const lines = receipt.items.map((item) => `
+    <tr>
+      <td>${escapeHtml(item.itemName)}</td>
+      <td>${item.quantity}</td>
+      <td>₹${Number(item.unitPrice).toFixed(0)}</td>
+      <td>₹${Number(item.lineTotal).toFixed(0)}</td>
+    </tr>
+  `).join("");
+
+  return `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Receipt - ${escapeHtml(receipt.orderNumber)}</title>
+        <style>
+          @page { size: A4; margin: 18mm; }
+          @media print {
+            body { margin: 0; background: white; }
+            .receipt { box-shadow: none; border: none; }
+          }
+          body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f5f5;
+            color: #111827;
+            margin: 0;
+            padding: 24px;
+          }
+          .receipt {
+            max-width: 780px;
+            margin: 0 auto;
+            background: white;
+            border: 1px solid #d1d5db;
+            padding: 24px 24px 18px;
+            box-shadow: 0 5px 18px rgba(0,0,0,0.04);
+          }
+          h1, h2, p { margin: 0; }
+          .header { text-align: center; margin-bottom: 18px; }
+          .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 12px; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border-bottom: 1px solid #e5e7eb; padding: 7px 4px; vertical-align: top; }
+          th { text-align: left; font-size: 11px; text-transform: uppercase; color: #4b5563; }
+          .totals { margin-top: 14px; width: 260px; margin-left: auto; font-size: 13px; }
+          .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
+          .grand { font-weight: 700; border-top: 1px solid #111827; margin-top: 6px; padding-top: 8px; }
+          .footer { margin-top: 20px; font-size: 11px; color: #4b5563; text-align: center; }
+          @media (max-width: 680px) {
+            .meta { grid-template-columns: 1fr; }
+            .receipt { padding: 18px 14px; }
+            .totals { width: 100%; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="header">
+            <h1>${escapeHtml(receipt.restaurantName)}</h1>
+            <p style="font-size:12px; margin-top:6px;">${receipt.orderTypeLabel} Receipt</p>
+          </div>
+
+          <div class="meta">
+            <div><strong>Order ID:</strong> ${escapeHtml(receipt.orderNumber)}</div>
+            <div><strong>Date:</strong> ${new Date(receipt.orderDate).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</div>
+            <div><strong>Order Type:</strong> ${receipt.orderType === "TAKEAWAY" ? "TAKEAWAY" : "DINE IN"}</div>
+            ${receipt.tableNumber ? `<div><strong>Table:</strong> ${escapeHtml(receipt.tableNumber)}</div>` : ""}
+            ${receipt.customerName ? `<div><strong>Customer:</strong> ${escapeHtml(receipt.customerName)}</div>` : ""}
+            ${receipt.customerPhone ? `<div><strong>Phone:</strong> ${escapeHtml(receipt.customerPhone)}</div>` : ""}
+            <div><strong>Payment:</strong> ${escapeHtml(receipt.paymentStatus)}</div>
+            <div><strong>Status:</strong> ${escapeHtml(receipt.orderStatus)}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>${lines}</tbody>
+          </table>
+
+          <div class="totals">
+            <div class="totals-row"><span>Subtotal</span><span>₹${Number(receipt.subtotal).toFixed(0)}</span></div>
+            <div class="totals-row"><span>Tax</span><span>₹${Number(receipt.tax).toFixed(0)}</span></div>
+            <div class="totals-row"><span>Discount</span><span>₹${Number(receipt.discount).toFixed(0)}</span></div>
+            <div class="totals-row grand"><span>Grand Total</span><span>₹${Number(receipt.grandTotal).toFixed(0)}</span></div>
+          </div>
+
+          <div class="footer">Thank you for visiting ${escapeHtml(receipt.restaurantName)}.</div>
+        </div>
+      </body>
+    </html>`;
+}
+
+function escapeHtml(value) {
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function timeAgo(value) {

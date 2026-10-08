@@ -1,7 +1,9 @@
 const orderService = require("../services/orderService");
+const prisma = require("../config/db");
 const { ok, created, asyncHandler, ApiError } = require("../utils/http");
 const { getRedisClient, isRedisEnabled } = require("../config/redis");
 const { getCacheKey } = require("../services/redisService");
+const { emitOrderUpdated } = require("../sockets");
 
 // Public: customer places an order. Only tableToken + items are trusted
 // input; restaurantId/pricing are derived/recalculated server-side.
@@ -161,6 +163,26 @@ const listOrders = asyncHandler(async (req, res) => {
   ok(res, result.orders, { total: result.total, page: result.page, pageSize: result.pageSize });
 });
 
+const getActiveOrderForTable = asyncHandler(async (req, res) => {
+  const order = await orderService.getActiveOrderForTable(req.user.restaurantId, req.params.id);
+  ok(res, order);
+});
+
+const addItemsToActiveOrder = asyncHandler(async (req, res) => {
+  const order = await orderService.addItemsToActiveOrder(req.user.restaurantId, req.params.id, req.body.items);
+  emitOrderUpdated(req.user.restaurantId, orderService.orderSummary(order));
+  ok(res, order);
+});
+
+const getReceipt = asyncHandler(async (req, res) => {
+  const order = await orderService.getOrderForStaff(req.user.restaurantId, req.params.id);
+  const restaurant = await prisma.restaurant.findUnique({
+    where: { id: req.user.restaurantId },
+    select: { name: true },
+  });
+  ok(res, orderService.buildReceiptData(order, restaurant));
+});
+
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const order = await orderService.updateOrderStatus(req.user.restaurantId, req.params.id, req.body.status);
   ok(res, order);
@@ -177,4 +199,4 @@ const submitFeedback = asyncHandler(async (req, res) => {
   created(res, feedback);
 });
 
-module.exports = { createOrder, getOrder, listOrders, updateOrderStatus, submitFeedback };
+module.exports = { createOrder, getOrder, listOrders, getActiveOrderForTable, addItemsToActiveOrder, getReceipt, updateOrderStatus, submitFeedback };

@@ -156,6 +156,18 @@ const orderStatusSchema = z.object({
   status: z.enum(["ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"]),
 });
 
+const addOrderItemsSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        menuItemId: z.string().uuid(),
+        quantity: z.number().int().positive().max(50),
+        instructions: z.string().max(500).optional(),
+      })
+    )
+    .min(1),
+});
+
 const paymentCreateSchema = z.object({
   orderId: z.string().uuid(),
   orderSessionToken: z.string().uuid(),
@@ -224,6 +236,7 @@ module.exports = {
   staffUpdateSchema,
   orderCreateSchema,
   orderStatusSchema,
+  addOrderItemsSchema,
   paymentCreateSchema,
   paymentVerifySchema,
   couponCreateSchema,

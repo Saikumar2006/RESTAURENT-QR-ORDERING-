@@ -2,6 +2,7 @@ const prisma = require("../config/db");
 const { ApiError } = require("../utils/http");
 const { generateOrderNumber, computeTotals, canTransition } = require("../utils/order");
 const { resolveTableByToken, resolveRestaurantBySlug } = require("./tableService");
+const { round2 } = require("../utils/order");
 const couponService = require("./couponService");
 const { emitNewOrder, emitOrderUpdated, emitOrderStatus } = require("../sockets");
 const { isRestaurantOpenNow } = require("../utils/restaurantStatus");
@@ -264,6 +265,159 @@ async function updateOrderStatus(restaurantId, orderId, newStatus) {
   return updated;
 }
 
+async function getActiveOrderForTable(restaurantId, tableId) {
+  const table = await prisma.table.findFirst({
+    where: { id: tableId, restaurantId },
+    select: { id: true, tableNumber: true },
+  });
+  if (!table) throw new ApiError(404, "Table not found");
+
+  return prisma.order.findFirst({
+    where: {
+      restaurantId,
+      tableId: table.id,
+      orderType: "DINE_IN",
+      status: { notIn: ["COMPLETED", "CANCELLED"] },
+    },
+    orderBy: { createdAt: "desc" },
+    include: { items: true, table: true, payments: true },
+  });
+}
+
+async function addItemsToActiveOrder(restaurantId, tableId, incomingItems) {
+  if (!Array.isArray(incomingItems) || incomingItems.length === 0) {
+    throw new ApiError(400, "At least one menu item is required");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const table = await tx.table.findFirst({ where: { id: tableId, restaurantId }, select: { id: true, tableNumber: true } });
+    if (!table) throw new ApiError(404, "Table not found");
+
+    const activeOrder = await tx.order.findFirst({
+      where: {
+        restaurantId,
+        tableId: table.id,
+        orderType: "DINE_IN",
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+      orderBy: { createdAt: "desc" },
+      include: { items: true },
+    });
+
+    if (!activeOrder) throw new ApiError(404, "No active order for this table");
+
+    const menuItemIds = [...new Set(incomingItems.map((item) => item.menuItemId))];
+    const menuItems = await tx.menuItem.findMany({
+      where: { id: { in: menuItemIds }, restaurantId },
+    });
+    const menuItemMap = new Map(menuItems.map((item) => [item.id, item]));
+
+    const additions = [];
+    for (const item of incomingItems) {
+      const menuItem = menuItemMap.get(item.menuItemId);
+      if (!menuItem || !menuItem.isAvailable) {
+        throw new ApiError(400, "One or more menu items are unavailable");
+      }
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        throw new ApiError(400, "Item quantity must be a positive integer");
+      }
+      additions.push({
+        orderId: activeOrder.id,
+        menuItemId: menuItem.id,
+        itemName: menuItem.name,
+        unitPrice: Number(menuItem.price),
+        quantity,
+        instructions: item.instructions || null,
+        lineTotal: Number(menuItem.price) * quantity,
+      });
+    }
+
+    await tx.orderItem.createMany({ data: additions });
+
+    const refreshedOrder = await tx.order.findUnique({
+      where: { id: activeOrder.id },
+      include: { items: true, table: true },
+    });
+
+    const restaurant = await tx.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { taxPercent: true, serviceChargePercent: true, discountEnabled: true, discountPercent: true },
+    });
+
+    const lineItems = refreshedOrder.items.map((item) => ({
+      unitPrice: Number(item.unitPrice),
+      quantity: item.quantity,
+    }));
+    const subtotal = lineItems.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+
+    let discountAmount = 0;
+    if (activeOrder.couponCode) {
+      try {
+        const validation = await couponService.validateCoupon(restaurantId, activeOrder.couponCode, subtotal);
+        discountAmount = validation.discountAmount;
+      } catch (error) {
+        discountAmount = 0;
+      }
+    } else if (restaurant.discountEnabled && restaurant.discountPercent > 0) {
+      discountAmount = (subtotal * restaurant.discountPercent) / 100;
+    }
+
+    const totals = computeTotals({
+      lineItems,
+      taxPercent: restaurant.taxPercent,
+      serviceChargePercent: restaurant.serviceChargePercent,
+      discountAmount,
+    });
+
+    const updatedOrder = await tx.order.update({
+      where: { id: activeOrder.id },
+      data: {
+        subtotal: round2(totals.subtotal),
+        taxAmount: round2(totals.taxAmount),
+        serviceCharge: round2(totals.serviceCharge),
+        discountAmount: round2(totals.discountAmount),
+        totalAmount: round2(totals.totalAmount),
+      },
+      include: { items: true, table: true },
+    });
+
+    return updatedOrder;
+  });
+}
+
+function buildReceiptData(order, restaurant = {}) {
+  return {
+    restaurantName: restaurant.name || "Restaurant",
+    restaurantContact: restaurant.contact || null,
+    restaurantAddress: restaurant.address || null,
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    orderDate: order.createdAt,
+    orderType: order.orderType,
+    orderTypeLabel: order.orderType === "TAKEAWAY" ? "TAKEAWAY" : "DINE IN",
+    tableNumber: order.orderType === "DINE_IN" ? order.table?.tableNumber ?? null : null,
+    customerName: order.customerName || null,
+    customerPhone: order.customerPhone || null,
+    items: (order.items || []).map((item) => ({
+      itemName: item.itemName,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+      lineTotal: Number(item.lineTotal),
+    })),
+    subtotal: Number(order.subtotal || 0),
+    tax: Number(order.taxAmount || 0),
+    discount: Number(order.discountAmount || 0),
+    grandTotal: Number(order.totalAmount || 0),
+    paymentStatus: order.paymentStatus,
+    orderStatus: order.status,
+  };
+}
+
+function isActiveOrderStatus(status) {
+  return !["COMPLETED", "CANCELLED"].includes(status);
+}
+
 function orderSummary(order) {
   return {
     orderId: order.id,
@@ -307,6 +461,10 @@ module.exports = {
   getOrderForGuest,
   getOrderForStaff,
   listOrdersForRestaurant,
+  getActiveOrderForTable,
+  addItemsToActiveOrder,
+  buildReceiptData,
+  isActiveOrderStatus,
   updateOrderStatus,
   orderSummary,
   submitFeedback,

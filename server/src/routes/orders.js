@@ -17,6 +17,7 @@ router.post("/", orderCreateLimiter, validateBody(orderCreateSchema), orderContr
 
 // Reachable by guest (?orderSessionToken=...) or authenticated staff/admin.
 router.get("/:id", optionalAuth, orderController.getOrder);
+router.get("/:id/receipt", requireAuth, requireRole("ADMIN", "STAFF"), orderController.getReceipt);
 
 // Public: guest rates their own completed order (orderSessionToken in body).
 router.post("/:id/feedback", validateBody(feedbackCreateSchema), orderController.submitFeedback);

@@ -3,6 +3,27 @@ const prisma = require("../config/db");
 const { hashPassword, comparePassword, signToken } = require("../utils/auth");
 const { ApiError } = require("../utils/http");
 const env = require("../config/env");
+const roleService = require("./roleService");
+const { PERMISSIONS_BY_ROLE } = roleService;
+
+function serializeUserAccess(user) {
+  const role = user.roleRecord;
+  const isOwner = role?.name === "OWNER" || (!role && user.role === "ADMIN");
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    roleId: role?.id || null,
+    roleName: role?.name || (user.role === "ADMIN" ? "OWNER" : "STAFF"),
+    permissions: isOwner
+      ? ["*"]
+      : role
+        ? [...new Set(role.permissions.map((entry) => entry.permission.key))]
+        : PERMISSIONS_BY_ROLE.STAFF,
+    restaurantId: user.restaurantId,
+  };
+}
 
 function createGoogleClient() {
   if (!env.googleClientId || !env.googleClientSecret || !env.googleCallbackUrl) {
@@ -22,10 +43,25 @@ function getGoogleAuthorizationUrl(state) {
 }
 
 async function login(email, password) {
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalizedEmail || typeof password !== "string" || !password) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
   // Email is unique per-restaurant, not globally, so a login attempt must
   // check every matching row rather than assuming a single global user.
-  const users = await prisma.user.findMany({ where: { email } });
-  const user = users.find((u) => u.isActive);
+  const users = await prisma.user.findMany({
+    where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    include: {
+      roleRecord: { include: { permissions: { include: { permission: true } } } },
+      restaurant: { select: { status: true } },
+    },
+  });
+  const activeUsers = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
+  if (activeUsers.length > 1) {
+    throw new ApiError(409, "Multiple restaurant accounts match this email. Please contact support.");
+  }
+  const user = activeUsers[0];
   if (!user) throw new ApiError(401, "Invalid email or password");
 
   const validPassword = await comparePassword(password, user.passwordHash);
@@ -34,7 +70,7 @@ async function login(email, password) {
   const token = signToken(user);
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId },
+    user: serializeUserAccess(user),
   };
 }
 
@@ -51,6 +87,10 @@ async function googleLoginWithCode(code) {
 
   const users = await prisma.user.findMany({
     where: { email: { equals: payload.email, mode: "insensitive" } },
+    include: {
+      roleRecord: { include: { permissions: { include: { permission: true } } } },
+      restaurant: { select: { status: true } },
+    },
   });
   if (users.length > 1) {
     throw new ApiError(409, "Multiple restaurant accounts use this Google email. Sign in with email and password or contact your administrator.");
@@ -59,14 +99,14 @@ async function googleLoginWithCode(code) {
   if (!user) {
     throw new ApiError(404, "No existing restaurant account uses this Google email. Ask your administrator to create an account or sign in with email and password.");
   }
-  if (!user.isActive) {
+  if (!user.isActive || user.restaurant?.status !== "ACTIVE") {
     throw new ApiError(403, "This restaurant account is inactive. Contact your administrator.");
   }
 
   const token = signToken(user);
   return {
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId },
+    user: serializeUserAccess(user),
   };
 }
 
@@ -124,6 +164,7 @@ async function registerRestaurant(input) {
         role: "ADMIN",
       },
     });
+    await roleService.ensureRestaurantRoles(created.id, tx);
     return created;
   });
 

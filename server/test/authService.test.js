@@ -25,6 +25,7 @@ beforeEach(() => {
             passwordHash: "stored-hash",
             role: "ADMIN",
             isActive: true,
+            restaurant: { status: "ACTIVE" },
           }];
         },
       },
@@ -53,6 +54,9 @@ test("existing email/password login still issues the tenant JWT response", async
         name: "Restaurant Admin",
         email: "admin@example.test",
         role: "ADMIN",
+        roleId: null,
+        roleName: "OWNER",
+        permissions: ["*"],
         restaurantId: "restaurant-1",
       },
     }

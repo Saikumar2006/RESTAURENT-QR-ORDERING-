@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import "./landing.css";
 
 const salesEmail = import.meta.env.VITE_SALES_EMAIL;
-const salesHref = salesEmail
-  ? `mailto:${salesEmail}?subject=${encodeURIComponent("Svaadya demo request")}`
-  : "/admin/register";
+const salesHref = salesEmail ? `mailto:${salesEmail}?subject=${encodeURIComponent("Svaadya demo request")}` : null;
+const legalUrl = (value) => typeof value === "string" && /^https:\/\//i.test(value) ? value : null;
+const privacyUrl = legalUrl(import.meta.env.VITE_PRIVACY_URL);
+const termsUrl = legalUrl(import.meta.env.VITE_TERMS_URL);
 
 const features = [
-  ["⌗", "QR ordering", "Turn every table into a digital ordering point.", "A table QR, a live order, no waiting."],
+  ["⌗", "QR ordering", "Turn every table into a digital ordering point.", "A table QR, a live order, a clearer service."],
   ["▤", "Digital menu", "Give customers a faster, cleaner way to explore your menu.", "Update dishes and availability from one place."],
   ["↗", "Kitchen operations", "Keep every order moving from new to ready.", "A clear queue for the whole kitchen."],
   ["▦", "Table management", "Know exactly what's happening across your floor.", "See table activity as it happens."],
@@ -16,34 +17,6 @@ const features = [
   ["♙", "Staff & roles", "Give every team member exactly the access they need.", "Keep restaurant operations in the right hands."],
   ["⌁", "Analytics", "Turn restaurant data into better decisions.", "Understand sales, orders and busy hours."],
   ["✳", "Offers & coupons", "Drive more orders with smarter promotions.", "Create offers for your own customers."],
-];
-
-const plans = [
-  {
-    name: "Starter",
-    price: "₹999",
-    description: "The essentials to bring your restaurant online.",
-    features: ["QR ordering", "Digital menu", "Table management", "Order management", "Kitchen workflow", "Online payments", "Basic analytics", "Staff management"],
-  },
-  {
-    name: "Business",
-    price: "₹1,999",
-    description: "More insight and control as your operation grows.",
-    popular: true,
-    features: ["Everything in Starter", "Advanced analytics", "Coupons", "Advanced permissions", "Reports", "Customer insights", "Automation"],
-  },
-  {
-    name: "Pro",
-    price: "₹3,999",
-    description: "More tools for a growing restaurant group.",
-    features: ["Everything in Business", "Advanced reporting", "Multi-location", "Advanced permissions", "API access", "Priority support", "Advanced integrations"],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "A tailored setup for complex operations.",
-    features: ["Multiple locations", "Custom integrations", "Custom workflows", "Dedicated support"],
-  },
 ];
 
 function Icon({ children, className = "" }) {
@@ -96,11 +69,11 @@ function Navbar() {
           <a href="#features" onClick={closeMenu}>Features</a>
           <a href="#how-it-works" onClick={closeMenu}>How it works</a>
           <a href="#analytics" onClick={closeMenu}>Analytics</a>
-          <a href="#pricing" onClick={closeMenu}>Pricing</a>
           <a href="#resources" onClick={closeMenu}>Resources</a>
+          <Link className="landing-super-admin-link" to="/super-admin/login" onClick={closeMenu}>Super Admin</Link>
           <div className="landing-nav-actions">
             <Link className="landing-signin" to="/admin/login" onClick={closeMenu}>Sign in</Link>
-            <Link className="landing-button landing-button-small" to="/admin/register" onClick={closeMenu}>Get started <span aria-hidden="true">↗</span></Link>
+            <Link className="landing-button landing-button-small" to="/admin/register" onClick={closeMenu}>Get Started <span aria-hidden="true">↗</span></Link>
           </div>
         </nav>
       </div>
@@ -137,14 +110,14 @@ function HeroDashboard() {
       <div className="hero-dashboard">
         <aside className="mock-sidebar">
           <div className="mock-logo"><span>S</span> svaadya</div>
-          <div className="mock-restaurant">SPICE &amp; STONE <span>⌄</span></div>
+          <div className="mock-restaurant">SAMPLE RESTAURANT <span>⌄</span></div>
           {["Overview", "Orders", "Menu", "Tables", "Staff", "Analytics", "Payments", "Settings"].map((item, index) => (
             <div className={`mock-nav-item${index === 0 ? " active" : ""}`} key={item}><i>{["⌂", "▤", "▧", "▦", "♙", "⌁", "₹", "⚙"][index]}</i>{item}</div>
           ))}
-          <div className="mock-sidebar-bottom"><span className="mock-avatar">AK</span><span>Arjun Kumar<small>Restaurant admin</small></span><b>···</b></div>
+          <div className="mock-sidebar-bottom"><span className="mock-avatar">SA</span><span>Workspace admin<small>Restaurant admin</small></span><b>···</b></div>
         </aside>
         <div className="mock-main">
-          <div className="mock-topbar"><div><span className="mock-mobile-brand">SVAADYA · </span>Good afternoon, Arjun <span className="mock-wave">✦</span><small>Here&apos;s what&apos;s happening at your restaurant today.</small></div><div className="mock-top-actions"><span className="mock-live"><i /> Live</span><span className="mock-avatar">AK</span></div></div>
+          <div className="mock-topbar"><div><span className="mock-mobile-brand">SVAADYA · </span>Restaurant overview <span className="mock-wave">✦</span><small>Illustrative view of a restaurant workspace.</small></div><div className="mock-top-actions"><span className="mock-live"><i /> Live</span><span className="mock-avatar">SA</span></div></div>
           <div className="mock-overview-heading"><strong>Overview</strong><span>Today, 8 October 2026 ⌄</span></div>
           <div className="mock-stat-grid">
             {[["Today's revenue", "₹48,240", "+12.8%"], ["Orders", "186", "+8.2%"], ["Active tables", "14", "of 20"], ["Average order", "₹742", "+4.6%"]].map(([label, value, delta]) => (
@@ -181,7 +154,7 @@ function Hero() {
           <p className="landing-eyebrow"><span className="eyebrow-dash" /> THE OPERATING SYSTEM FOR MODERN RESTAURANTS</p>
           <h1>Run your restaurant <span>smarter.</span></h1>
           <p className="hero-description">Orders, tables, payments, kitchen operations, staff and analytics — everything your restaurant needs, connected in one powerful platform.</p>
-          <div className="hero-actions"><Link className="landing-button" to="/admin/register">Start free <span>↗</span></Link><a className="landing-button landing-button-ghost" href={salesHref}>Book a demo <span>→</span></a></div>
+          <div className="hero-actions"><Link className="landing-button" to="/admin/register">Get Started <span>↗</span></Link><Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link></div>
           <div className="hero-note"><span className="hero-note-check">✓</span> One connected workspace. Built for the way restaurants run.</div>
           <div className="hero-proof"><div className="hero-proof-avatars"><span>R</span><span>M</span><span>A</span></div><p><strong>Made for restaurant teams</strong><small>From the first order to the end-of-day close.</small></p></div>
         </div>
@@ -355,24 +328,6 @@ function SecuritySection() {
   );
 }
 
-function PricingSection() {
-  return (
-    <section className="pricing-section landing-pad" id="pricing">
-      <div className="landing-container">
-        <SectionHeading eyebrow="SIMPLE, RECURRING PRICING" title="Choose the pace that fits." text="Start with the tools you need now. Explore a plan that fits as your restaurant operation grows." />
-        <div className="pricing-grid">{plans.map((plan) => <article className={`pricing-card${plan.popular ? " is-popular" : ""}`} key={plan.name}>
-          {plan.popular && <div className="popular-ribbon">MOST POPULAR</div>}
-          <p className="pricing-name">{plan.name}</p><p className="pricing-description">{plan.description}</p>
-          <div className="pricing-price">{plan.price}<span>{plan.price === "Custom" ? "tailored" : "/ month"}</span></div>
-          <Link className={`landing-button pricing-button${plan.popular ? "" : " pricing-button-light"}`} to="/admin/register">{plan.name === "Enterprise" ? "Contact sales" : "Start free"} <span>↗</span></Link>
-          <div className="pricing-divider" /><p className="pricing-includes">WHAT&apos;S INCLUDED</p><ul>{plan.features.map((item) => <li key={item}><span>✓</span>{item}</li>)}</ul>
-        </article>)}</div>
-        <p className="pricing-footnote">Pricing displayed for illustration. Confirm current availability and terms with Svaadya. No billing is initiated on this page.</p>
-      </div>
-    </section>
-  );
-}
-
 function FAQSection() {
   const questions = [
     ["What is Svaadya?", "Svaadya is a restaurant operations platform connecting ordering, tables, digital menus, kitchen workflows, payments, staff and analytics."],
@@ -383,7 +338,7 @@ function FAQSection() {
     ["Can I accept online payments?", "The application supports online payment flows where the restaurant has configured an available payment provider. Availability and settlement depend on provider setup."],
     ["Can I update my menu?", "Restaurant admins can manage menu items and availability from the restaurant dashboard."],
     ["Can I see analytics?", "The dashboard includes restaurant reporting and analytics views. The information shown depends on the data recorded in the account."],
-    ["How does pricing work?", "The plans shown are indicative recurring price points. Confirm current plan terms and availability with the Svaadya team."],
+    ["How do I get started?", "Create a restaurant account to see the onboarding options currently available for your workspace."],
     ["Is there a free trial?", "Create an account to see the current onboarding and account options. Trial availability may vary."],
   ];
   return (
@@ -399,7 +354,7 @@ function FinalCTA() {
   return (
     <section className="final-cta" id="contact">
       <div className="landing-container final-cta-inner"><div className="cta-orb cta-orb-left" /><div className="cta-orb cta-orb-right" />
-        <p className="landing-eyebrow">MAKE THE NEXT SHIFT YOURS</p><h2>Ready to run your restaurant <span>smarter?</span></h2><p>Bring ordering, operations, payments, staff and analytics together with Svaadya.</p><div className="hero-actions"><Link className="landing-button" to="/admin/register">Start free <span>↗</span></Link><a className="landing-button landing-button-ghost" href={salesHref}>{salesEmail ? "Contact sales" : "Book a demo"} <span>→</span></a></div><small>Existing restaurant account? <Link to="/admin/login">Sign in here</Link>.</small>
+        <p className="landing-eyebrow">MAKE THE NEXT SHIFT YOURS</p><h2>Ready to run your restaurant <span>smarter?</span></h2><p>Bring ordering, operations, payments, staff and analytics together with Svaadya.</p><div className="hero-actions"><Link className="landing-button" to="/admin/register">Get Started <span>↗</span></Link>{salesHref ? <a className="landing-button landing-button-ghost" href={salesHref}>Contact sales <span>→</span></a> : <Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link>}</div><small>Existing restaurant account? <Link to="/admin/login">Sign in here</Link>.</small>
       </div>
     </section>
   );
@@ -410,9 +365,9 @@ function Footer() {
     <footer className="landing-footer">
       <div className="landing-container">
         <div className="footer-top"><div className="footer-brand"><Link className="landing-wordmark" to="/"><span className="landing-brand-icon">S</span><span>SVAADYA</span></Link><p>The operating system for modern restaurants.</p><span className="footer-platform-note">Restaurant operations, connected.</span></div>
-          <div className="footer-links-group"><b>PRODUCT</b><a href="#product">Product</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#analytics">Analytics</a></div>
+          <div className="footer-links-group"><b>PRODUCT</b><a href="#product">Product</a><a href="#features">Features</a><a href="#analytics">Analytics</a><a href="#how-it-works">How it works</a></div>
           <div className="footer-links-group"><b>EXPLORE</b><a href="#how-it-works">How it works</a><a href="#resources">Resources &amp; FAQ</a><a href="#security">Security</a><a href="#contact">About Svaadya</a></div>
-          <div className="footer-links-group"><b>ACCOUNT</b><Link to="/admin/login">Restaurant sign in</Link><Link to="/admin/register">Get started</Link><Link to="/platform/login">Platform admin</Link><a href="#contact">Contact</a></div>
+          <div className="footer-links-group"><b>ACCOUNT</b><Link to="/admin/login">Restaurant login</Link><Link to="/admin/register">Get Started</Link><Link to="/super-admin/login">Super Admin login</Link><a href={salesHref || "#contact"}>Contact</a>{privacyUrl && <a href={privacyUrl} target="_blank" rel="noreferrer">Privacy</a>}{termsUrl && <a href={termsUrl} target="_blank" rel="noreferrer">Terms</a>}</div>
         </div>
         <div className="footer-bottom"><span>© 2026 Svaadya. All rights reserved.</span><span>Thoughtfully built for restaurant teams.</span></div>
       </div>
@@ -448,7 +403,6 @@ export default function Home() {
       <AnalyticsSection />
       <MultiRestaurantSection />
       <SecuritySection />
-      <PricingSection />
       <FAQSection />
       <FinalCTA />
       <Footer />

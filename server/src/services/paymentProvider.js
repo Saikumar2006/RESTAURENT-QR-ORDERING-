@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const env = require("../config/env");
+const { ApiError } = require("../utils/http");
 
 // Real Razorpay SDK is only required when actually configured, so the app
 // can run and be developed against without live payment credentials.
@@ -69,6 +70,9 @@ const razorpayProvider = {
       .digest("hex");
     return safeCompare(expected, providerSignature);
   },
+  async fetchPayment(providerPaymentId) {
+    return getRazorpayClient().payments.fetch(providerPaymentId);
+  },
   verifyWebhookSignature(rawBody, signatureHeader) {
     const expected = crypto
       .createHmac("sha256", env.razorpayWebhookSecret)
@@ -79,7 +83,9 @@ const razorpayProvider = {
 };
 
 function getPaymentProvider() {
-  return env.paymentProvider === "razorpay" ? razorpayProvider : mockProvider;
+  if (env.paymentProvider === "razorpay") return razorpayProvider;
+  if (env.paymentProvider === "mock" && env.nodeEnv !== "production") return mockProvider;
+  throw new ApiError(503, "Online payment is not configured. Contact the restaurant.");
 }
 
 module.exports = { getPaymentProvider };

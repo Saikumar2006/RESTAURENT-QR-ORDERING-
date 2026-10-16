@@ -1,15 +1,11 @@
 const prisma = require("../config/db");
 const { ApiError } = require("../utils/http");
-const { deletePattern, getCacheKey } = require("./redisService");
+const { deletePattern, getCacheKey, getCachedJson, setCachedJson } = require("./redisService");
 
 // --- Categories ------------------------------------------------------------
 
 async function invalidateRestaurantMenuCache(restaurantId) {
   await deletePattern(`restaurant:menu:${restaurantId}:*`);
-  await deletePattern(`restaurant:context:${restaurantId}:*`);
-  await deletePattern(`restaurant:public:${restaurantId}:*`);
-  await deletePattern(`restaurant:context:slug:*`);
-  await deletePattern(`restaurant:public:slug:*`);
 }
 
 async function createCategory(restaurantId, data) {
@@ -82,6 +78,10 @@ async function getAdminMenu(restaurantId) {
 // --- Public read (only active categories / available items) --------------
 
 async function getPublicMenu(restaurantId) {
+  const cacheKey = getCacheKey("restaurant:menu", `${restaurantId}:public`);
+  const cached = await getCachedJson(cacheKey);
+  if (cached !== null) return cached;
+
   const categories = await prisma.category.findMany({
     where: { restaurantId, isActive: true },
     orderBy: { displayOrder: "asc" },
@@ -93,7 +93,9 @@ async function getPublicMenu(restaurantId) {
     },
   });
   // Don't surface empty categories on the public menu.
-  return categories.filter((c) => c.menuItems.length > 0);
+  const menu = categories.filter((c) => c.menuItems.length > 0);
+  await setCachedJson(cacheKey, menu, 300);
+  return menu;
 }
 
 module.exports = {

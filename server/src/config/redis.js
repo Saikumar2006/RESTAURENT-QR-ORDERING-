@@ -6,9 +6,19 @@ let client = null;
 function getRedisClient() {
   if (!env.redisUrl) return null;
   if (!client) {
-    client = createClient({ url: env.redisUrl });
-    client.on("error", (err) => {
-      console.error("Redis client error:", err.message);
+    client = createClient({
+      url: env.redisUrl,
+      socket: {
+        connectTimeout: env.redisConnectTimeoutMs,
+        ...(env.redisTlsEnabled ? { tls: true } : {}),
+      },
+    });
+    client.on("error", () => {
+      console.error(JSON.stringify({
+        event: "dependency_error",
+        category: "redis",
+        timestamp: new Date().toISOString(),
+      }));
     });
     // do not connect automatically here; caller should call connectRedis
   }

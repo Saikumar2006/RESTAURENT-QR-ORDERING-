@@ -8,10 +8,15 @@ const prisma = require("../config/db");
 // credentials or a real phone bill.
 const mockProvider = {
   name: "mock",
-  async send({ to, body }) {
-    console.log(`[mock messaging] -> ${to}: ${body}`);
+  async send() {
+    console.log(JSON.stringify({ event: "mock_message_sent", provider: "mock" }));
     return { success: true, providerRef: "mock_" + Date.now() };
   },
+};
+
+const unavailableProvider = {
+  name: "unconfigured",
+  async send() { throw new Error("Messaging provider is not configured"); },
 };
 
 // --- Twilio provider ---------------------------------------------------------
@@ -38,17 +43,20 @@ const twilioProvider = {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: params,
+      signal: AbortSignal.timeout(10000),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.message || `Twilio send failed with status ${res.status}`);
+      throw new Error(`Twilio send failed with status ${res.status}`);
     }
     return { success: true, providerRef: data.sid };
   },
 };
 
 function getProvider() {
-  return env.messagingProvider === "twilio" ? twilioProvider : mockProvider;
+  if (env.messagingProvider === "twilio") return twilioProvider;
+  if (env.messagingProvider === "mock" && env.nodeEnv !== "production") return mockProvider;
+  return unavailableProvider;
 }
 
 async function logAttempt({ restaurantId, orderId, phone, channel, purpose, status, providerRef, errorMessage }) {
@@ -80,12 +88,12 @@ async function sendMessage({ restaurantId, orderId, phone, body, purpose, prefer
       return { success: true, channel };
     } catch (err) {
       lastError = err;
-      await logAttempt({ restaurantId, orderId, phone, channel, purpose, status: "failed", errorMessage: err.message });
+      await logAttempt({ restaurantId, orderId, phone, channel, purpose, status: "failed", errorMessage: "Provider delivery failed" });
       // Only fall through to SMS if WhatsApp was the one that failed AND
       // there's another channel to try.
     }
   }
-  console.error(`Messaging failed for ${phone} (${purpose}):`, lastError?.message);
+  console.error(JSON.stringify({ event: "message_delivery_failed", purpose, reason: "provider_unavailable" }));
   return { success: false, error: lastError?.message };
 }
 

@@ -13,12 +13,21 @@ async function start() {
       await connectRedis();
       console.log("Connected to Redis");
     } catch (err) {
-      console.error("Failed to connect to Redis:", err.message);
+      if (env.nodeEnv === "production") {
+        console.error(JSON.stringify({
+          event: "dependency_connection_failed",
+          version: require("../package.json").version,
+          timestamp: new Date().toISOString(),
+          category: "redis",
+        }));
+      } else {
+        console.error("Failed to connect to Redis:", err);
+      }
     }
   }
 
   const server = http.createServer(app);
-  initSockets(server);
+  await initSockets(server);
 
   server.listen(env.port, () => {
     console.log(`QR Ordering API listening on port ${env.port} (${env.nodeEnv})`);
@@ -29,5 +38,14 @@ async function start() {
 start();
 
 process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled rejection:", reason);
+  if (env.nodeEnv === "production") {
+    console.error(JSON.stringify({
+      event: "unhandled_rejection",
+      version: require("../package.json").version,
+      timestamp: new Date().toISOString(),
+      category: "process",
+    }));
+  } else {
+    console.error("Unhandled rejection:", reason);
+  }
 });

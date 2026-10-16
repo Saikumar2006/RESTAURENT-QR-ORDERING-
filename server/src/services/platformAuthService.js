@@ -3,7 +3,8 @@ const { comparePassword, signPlatformToken } = require("../utils/auth");
 const { ApiError } = require("../utils/http");
 
 async function login(email, password) {
-  const admin = await prisma.platformAdmin.findUnique({ where: { email } });
+  const normalizedEmail = email.trim().toLowerCase();
+  const admin = await prisma.platformAdmin.findUnique({ where: { email: normalizedEmail } });
   if (!admin || !admin.isActive) throw new ApiError(401, "Invalid email or password");
 
   const valid = await comparePassword(password, admin.passwordHash);

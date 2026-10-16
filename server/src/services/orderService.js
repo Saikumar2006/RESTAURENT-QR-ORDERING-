@@ -30,6 +30,8 @@ async function createOrder({
   couponCode,
   latitude,
   longitude,
+  idempotencyKey,
+  idempotencyFingerprint,
 }) {
   let restaurant;
   let table = null;
@@ -43,6 +45,19 @@ async function createOrder({
     // the table's own restaurant rather than trusting it blindly.
     if (slug && restaurant.slug !== slug) {
       throw new ApiError(400, "Table does not belong to this restaurant");
+    }
+  }
+
+  if (idempotencyKey) {
+    const previous = await prisma.order.findFirst({
+      where: { restaurantId: restaurant.id, idempotencyKey },
+      include: { items: true, table: true },
+    });
+    if (previous) {
+      if (previous.idempotencyFingerprint !== idempotencyFingerprint) {
+        throw new ApiError(409, "This idempotency key was already used for another order");
+      }
+      return previous;
     }
   }
 
@@ -136,11 +151,17 @@ async function createOrder({
     discountAmount,
   });
 
-  const order = await prisma.order.create({
+  let order;
+  try {
+    order = await prisma.order.create({
     data: {
       restaurantId: restaurant.id,
       tableId: table ? table.id : null,
       orderType,
+      source: "SVAADYA_QR",
+      idempotencyKey: idempotencyKey || null,
+      idempotencyFingerprint: idempotencyFingerprint || null,
+      paymentMethod: "ONLINE",
       orderNumber: generateOrderNumber(),
       status: "PENDING",
       paymentStatus: "PENDING",
@@ -153,7 +174,18 @@ async function createOrder({
       })) },
     },
     include: { items: true, table: true },
-  });
+    });
+  } catch (error) {
+    if (idempotencyKey && error.code === "P2002") {
+      const previous = await prisma.order.findFirst({
+        where: { restaurantId: restaurant.id, idempotencyKey },
+        include: { items: true, table: true },
+      });
+      if (previous?.idempotencyFingerprint === idempotencyFingerprint) return previous;
+      if (previous) throw new ApiError(409, "This idempotency key was already used for another order");
+    }
+    throw error;
+  }
 
   // Only counts toward the coupon's usage limit once the order is actually
   // created — a failed order (e.g. an item went unavailable) shouldn't burn
@@ -190,7 +222,7 @@ async function getOrderForGuest(orderId, orderSessionToken) {
     include: { items: true, table: true, payments: true, feedback: true },
   });
   if (!order) throw new ApiError(404, "Order not found");
-  return order;
+  return sanitizeOrderPayments(order);
 }
 
 async function getOrderForStaff(restaurantId, orderId) {
@@ -199,13 +231,28 @@ async function getOrderForStaff(restaurantId, orderId) {
     include: { items: true, table: true, payments: true, feedback: true },
   });
   if (!order) throw new ApiError(404, "Order not found");
-  return order;
+  return sanitizeOrderPayments(order);
 }
 
-async function listOrdersForRestaurant(restaurantId, { status, from, to, page = 1, pageSize = 20 }) {
+function sanitizeOrderPayments(order) {
+  return {
+    ...order,
+    payments: (order.payments || []).map(({ id, provider, amount, currency, status, createdAt }) => ({
+      id, provider, amount, currency, status, createdAt,
+    })),
+  };
+}
+
+async function listOrdersForRestaurant(restaurantId, { status, source, search, from, to, page = 1, pageSize = 20 }) {
   const where = {
     restaurantId,
     ...(status ? { status } : {}),
+    ...(source ? { source } : {}),
+    ...(search ? { OR: [
+      { orderNumber: { contains: search, mode: "insensitive" } },
+      { customerName: { contains: search, mode: "insensitive" } },
+      { customerPhone: { contains: search } },
+    ] } : {}),
     ...(from || to
       ? { createdAt: { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) } }
       : {}),
@@ -223,9 +270,58 @@ async function listOrdersForRestaurant(restaurantId, { status, from, to, page = 
   return { orders, total, page, pageSize };
 }
 
+async function createManualOrder(restaurantId, actorId, { orderType, tableId, customerName, customerPhone, items }) {
+  const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+  if (!restaurant || restaurant.status !== "ACTIVE") throw new ApiError(404, "Restaurant not found");
+  let table = null;
+  if (orderType === "DINE_IN") {
+    table = await prisma.table.findFirst({ where: { id: tableId, restaurantId, isActive: true } });
+    if (!table) throw new ApiError(400, "Choose an active table in this restaurant");
+  }
+  const ids = [...new Set(items.map((item) => item.menuItemId))];
+  const menuItems = await prisma.menuItem.findMany({ where: { id: { in: ids }, restaurantId, isAvailable: true } });
+  const byId = new Map(menuItems.map((item) => [item.id, item]));
+  if (items.some((item) => !byId.has(item.menuItemId))) throw new ApiError(400, "One or more items are unavailable");
+  const lines = items.map((item) => {
+    const menuItem = byId.get(item.menuItemId);
+    return {
+      menuItemId: menuItem.id, itemName: menuItem.name, unitPrice: Number(menuItem.price),
+      quantity: item.quantity, instructions: item.instructions || null,
+      lineTotal: round2(Number(menuItem.price) * item.quantity),
+    };
+  });
+  const totals = computeTotals({
+    lineItems: lines,
+    taxPercent: restaurant.taxPercent,
+    serviceChargePercent: restaurant.serviceChargePercent,
+    discountAmount: restaurant.discountEnabled ? (lines.reduce((sum, line) => sum + line.lineTotal, 0) * restaurant.discountPercent) / 100 : 0,
+  });
+  const createdOrder = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        restaurantId, tableId: table?.id || null, orderType, source: "MANUAL", paymentMethod: "MANUAL",
+        orderNumber: generateOrderNumber(), status: "PENDING", paymentStatus: "PENDING",
+        customerName: customerName || null, customerPhone: customerPhone || null, ...totals,
+        items: { create: lines },
+      },
+      include: { items: true, table: true },
+    });
+    await tx.auditLog.create({ data: {
+      restaurantId, userId: actorId, action: "order.manual_created", resource: "order", resourceId: order.id,
+      metadata: JSON.stringify({ orderNumber: order.orderNumber }),
+    } });
+    return order;
+  });
+  emitNewOrder(restaurantId, orderSummary(createdOrder));
+  return createdOrder;
+}
+
 async function updateOrderStatus(restaurantId, orderId, newStatus) {
   const order = await prisma.order.findFirst({ where: { id: orderId, restaurantId } });
   if (!order) throw new ApiError(404, "Order not found");
+  if (["SWIGGY", "ZOMATO"].includes(order.source)) {
+    throw new ApiError(409, "Marketplace order status updates require an authorized provider connection.");
+  }
 
   if (!canTransition(order.status, newStatus)) {
     throw new ApiError(400, `Cannot move order from ${order.status} to ${newStatus}`);
@@ -305,6 +401,9 @@ async function addItemsToActiveOrder(restaurantId, tableId, incomingItems) {
     });
 
     if (!activeOrder) throw new ApiError(404, "No active order for this table");
+
+    const openPayment = await tx.payment.findFirst({ where: { orderId: activeOrder.id, status: "PENDING" }, select: { id: true } });
+    if (openPayment) throw new ApiError(409, "This order has an open payment attempt. Complete or abandon payment before changing items.");
 
     const menuItemIds = [...new Set(incomingItems.map((item) => item.menuItemId))];
     const menuItems = await tx.menuItem.findMany({
@@ -410,6 +509,10 @@ function buildReceiptData(order, restaurant = {}) {
     discount: Number(order.discountAmount || 0),
     grandTotal: Number(order.totalAmount || 0),
     paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    settlementStatus: order.settlementStatus,
+    source: order.source || "SVAADYA_QR",
+    externalOrderId: order.externalOrderId || null,
     orderStatus: order.status,
   };
 }
@@ -459,6 +562,8 @@ async function submitFeedback(orderId, orderSessionToken, { rating, comment }) {
 module.exports = {
   createOrder,
   getOrderForGuest,
+  sanitizeOrderPayments,
+  createManualOrder,
   getOrderForStaff,
   listOrdersForRestaurant,
   getActiveOrderForTable,

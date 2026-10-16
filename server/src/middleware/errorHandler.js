@@ -10,13 +10,24 @@ function errorHandler(err, req, res, next) {
     return fail(res, err.status, err.message, err.details);
   }
 
-  console.error(JSON.stringify({
-    level: "error",
-    msg: err.message,
-    stack: err.stack,
-    path: req.path === "/api/auth/google/callback" ? req.path : req.originalUrl,
-    method: req.method,
-  }));
+  if (process.env.NODE_ENV === "production") {
+    console.error(JSON.stringify({
+      event: "api_request_failed",
+      version: require("../../package.json").version,
+      timestamp: new Date().toISOString(),
+      category: "internal",
+      status: 500,
+      requestId: req.requestId || "unknown",
+    }));
+  } else {
+    console.error("API request failed", {
+      name: err.name,
+      code: err.code,
+      method: req.method,
+      requestId: req.requestId || "unknown",
+      stack: err.stack,
+    });
+  }
 
   return fail(res, 500, "Something went wrong. Please try again.");
 }

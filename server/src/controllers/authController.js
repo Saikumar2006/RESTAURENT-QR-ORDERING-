@@ -1,5 +1,4 @@
 const authService = require("../services/authService");
-const prisma = require("../config/db");
 const { ok, created, asyncHandler } = require("../utils/http");
 const { randomBytes, timingSafeEqual } = require("crypto");
 const env = require("../config/env");
@@ -87,8 +86,7 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const me = asyncHandler(async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  ok(res, { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId });
+  ok(res, req.user);
 });
 
 const registerRestaurant = asyncHandler(async (req, res) => {

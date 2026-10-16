@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import Home from "./pages/Home.jsx";
 import RestaurantLanding from "./pages/customer/RestaurantLanding.jsx";
@@ -30,6 +30,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/login" element={<AdminLogin />} />
+      <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
 
       {/* Customer flow — public, driven by ONE QR per restaurant. The
           customer picks a dine-in table or takeaway on the landing page. */}
@@ -52,22 +54,32 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AdminDashboard />} />
-        <Route path="orders" element={<AdminOrders />} />
-        <Route path="menu" element={<AdminMenu />} />
-        <Route path="tables" element={<AdminTables />} />
-        <Route path="staff" element={<ProtectedRoute roles={["ADMIN"]}><AdminStaff /></ProtectedRoute>} />
-        <Route path="coupons" element={<ProtectedRoute roles={["ADMIN"]}><AdminCoupons /></ProtectedRoute>} />
-        <Route path="settings" element={<ProtectedRoute roles={["ADMIN"]}><AdminSettings /></ProtectedRoute>} />
-        <Route path="reports" element={<AdminReports />} />
+        <Route index element={<ProtectedRoute allPermissions={["orders.view", "analytics.view", "tables.view"]}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="dashboard" element={<ProtectedRoute allPermissions={["orders.view", "analytics.view", "tables.view"]}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="orders" element={<ProtectedRoute permissions={["orders.view"]}><AdminOrders /></ProtectedRoute>} />
+        <Route path="menu" element={<ProtectedRoute permissions={["menu.view"]}><AdminMenu /></ProtectedRoute>} />
+        <Route path="tables" element={<ProtectedRoute permissions={["tables.view"]}><AdminTables /></ProtectedRoute>} />
+        <Route path="staff" element={<ProtectedRoute permissions={["staff.view"]}><AdminStaff /></ProtectedRoute>} />
+        <Route path="coupons" element={<ProtectedRoute permissions={["coupons.view"]}><AdminCoupons /></ProtectedRoute>} />
+        <Route path="settings" element={<ProtectedRoute permissions={["settings.view"]}><AdminSettings /></ProtectedRoute>} />
+        <Route path="reports" element={<ProtectedRoute permissions={["analytics.view"]}><AdminReports /></ProtectedRoute>} />
       </Route>
 
       {/* Platform owner flow — cross-restaurant dashboard. Fully separate
           auth from the restaurant admin flow above; intentionally not
           linked from anywhere else in the app. */}
       <Route path="/platform/login" element={<PlatformLogin />} />
+      <Route path="/super-admin/login" element={<PlatformLogin />} />
       <Route
         path="/platform/dashboard"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformDashboard />
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/super-admin/dashboard"
         element={
           <PlatformProtectedRoute>
             <PlatformDashboard />

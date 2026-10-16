@@ -4,8 +4,11 @@ const { validateBody } = require("../middleware/validate");
 const { paymentCreateSchema, paymentVerifySchema } = require("../validators/schemas");
 const env = require("../config/env");
 const { redisRateLimit } = require("../middleware/distributedRateLimit");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 
 const router = express.Router();
+
+router.get("/provider-status", requireAuth, requirePermission("payments.view"), paymentController.providerStatus);
 
 const paymentCreateLimiter = env.redisUrl ? redisRateLimit({ prefix: "payments:create", windowMs: 60 * 1000, limit: 5, keyFn: (req) => req.ip }) : (req, res, next) => next();
 

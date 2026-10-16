@@ -1,0 +1,52 @@
+.platform-login-page {
+  --platform-ink: #252923;
+  --platform-muted: #72766d;
+  --platform-line: #e7e4dc;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 26px clamp(22px, 5vw, 72px) 20px;
+  background: #f5f3ed;
+  color: var(--platform-ink);
+  font-family: "DM Sans", sans-serif;
+}
+.platform-login-brand { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; color: #252923; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-decoration: none; }
+.platform-login-brand > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px 10px 10px 3px; background: #e99c5a; color: #2a2824; font-family: "Fraunces", Georgia, serif; font-size: 20px; letter-spacing: -.06em; }
+.platform-login-layout { display: grid; width: min(1100px, 100%); flex: 1; align-items: center; grid-template-columns: 1fr minmax(360px, 470px); gap: clamp(50px, 8vw, 120px); margin: 0 auto; padding: 45px 0; }
+.platform-login-story { max-width: 480px; }
+.platform-login-eyebrow, .platform-login-card-eyebrow { color: #a8673c; font-size: 10px; font-weight: 700; letter-spacing: .18em; }
+.platform-login-story h1 { margin: 23px 0 18px; font-family: "Fraunces", Georgia, serif; font-size: clamp(44px, 6vw, 72px); font-weight: 500; letter-spacing: -.055em; line-height: 1.01; }
+.platform-login-story > p:not(.platform-login-eyebrow) { max-width: 390px; color: var(--platform-muted); font-size: 15px; line-height: 1.8; }
+.platform-login-rule { display: flex; align-items: center; gap: 12px; margin-top: 51px; color: #96968d; font-size: 9px; font-weight: 700; letter-spacing: .16em; }
+.platform-login-rule span { width: 40px; height: 1px; background: #dbb184; }
+.platform-login-card { border: 1px solid var(--platform-line); background: #fffefa; padding: clamp(27px, 4vw, 42px); box-shadow: 0 25px 70px #3430210d; }
+.platform-login-card-eyebrow { margin: 0 0 13px; font-size: 9px; }
+.platform-login-card h2 { margin: 0; font-family: "Fraunces", Georgia, serif; font-size: 31px; font-weight: 500; letter-spacing: -.035em; }
+.platform-login-copy { margin: 10px 0 28px; color: var(--platform-muted); font-size: 13px; line-height: 1.6; }
+.platform-login-card form { display: grid; gap: 9px; }
+.platform-login-card label { margin-top: 8px; color: #43473f; font-size: 11px; font-weight: 600; }
+.platform-login-card input { width: 100%; height: 47px; border: 1px solid #dcd9d1; border-radius: 3px; outline: none; background: #fff; padding: 0 13px; color: #232720; font: inherit; font-size: 14px; }
+.platform-login-card input:focus { border-color: #a9693b; box-shadow: 0 0 0 3px #c5834820; }
+.platform-password-wrap { position: relative; }
+.platform-password-wrap input { padding-right: 62px; }
+.platform-password-toggle { position: absolute; top: 50%; right: 11px; transform: translateY(-50%); border: 0; background: none; padding: 7px; color: #885b3e; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; }
+.platform-login-submit { display: flex; height: 48px; align-items: center; justify-content: space-between; margin-top: 15px; border: 0; border-radius: 3px; background: #292d28; padding: 0 16px; color: #fff; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
+.platform-login-submit:hover { background: #41453e; }
+.platform-login-submit:disabled { cursor: wait; opacity: .65; }
+.platform-login-submit span { color: #efb477; font-size: 18px; }
+.platform-login-footnote { margin: 22px 0 0; color: #7d8079; font-size: 10px; line-height: 1.7; }
+.platform-login-footnote a, .platform-login-footer a { color: #935d37; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.platform-login-footer { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid #e5e2da; padding-top: 15px; color: #898b83; font-size: 10px; }
+.platform-login-footer a { text-decoration: none; }
+@media (max-width: 760px) {
+  .platform-login-page { padding: 19px 20px 15px; }
+  .platform-login-layout { max-width: 470px; grid-template-columns: 1fr; gap: 24px; padding: 44px 0; }
+  .platform-login-story { text-align: center; }
+  .platform-login-story h1 { max-width: 420px; margin: 14px auto 10px; font-size: clamp(37px, 10vw, 52px); }
+  .platform-login-story > p:not(.platform-login-eyebrow) { margin: auto; font-size: 13px; }
+  .platform-login-rule { justify-content: center; margin-top: 19px; }
+  .platform-login-card { padding: 26px 22px; }
+  .platform-login-footer { flex-wrap: wrap; justify-content: center; font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { .platform-login-page *, .platform-login-page *::before, .platform-login-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }

@@ -1,13 +1,16 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
+import "./platform.css";
 
 export default function PlatformLogin() {
   const { login } = usePlatformAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -17,7 +20,7 @@ export default function PlatformLogin() {
     setError(null);
     try {
       await login(email, password);
-      navigate("/platform/dashboard", { replace: true });
+      navigate("/super-admin/dashboard", { replace: true });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
@@ -25,37 +28,34 @@ export default function PlatformLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-charcoal px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <p className="text-marigold text-xs uppercase tracking-widest mb-2">Platform Owner</p>
-          <h1 className="font-display text-3xl text-cream">Cross-restaurant dashboard</h1>
-        </div>
-        <form onSubmit={handleSubmit} className="card p-6 space-y-3">
-          {error && <ErrorBanner message={error} />}
-          <div>
-            <label className="text-xs font-medium text-charcoal/60 mb-1 block">Email</label>
-            <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-charcoal/60 mb-1 block">Password</label>
-            <input
-              className="input"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
-          <button className="btn-primary w-full mt-2" type="submit" disabled={submitting}>
-            {submitting ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-        <p className="text-center text-xs text-cream/40 mt-4">
-          No account? Create one from the server: <code>npm run create-platform-admin --prefix server -- "Your Name" you@example.com yourpassword</code>
-        </p>
+    <main className="platform-login-page">
+      <Link className="platform-login-brand" to="/" aria-label="Svaadya home"><span>S</span>SVAADYA</Link>
+      <div className="platform-login-layout">
+        <section className="platform-login-story" aria-label="Platform administration">
+          <p className="platform-login-eyebrow">SVAADYA · PLATFORM ACCESS</p>
+          <h1>One thoughtful view of every restaurant.</h1>
+          <p>Secure access for the people responsible for the Svaadya platform.</p>
+          <div className="platform-login-rule"><span /> PLATFORM ADMINISTRATION <span /></div>
+        </section>
+        <section className="platform-login-card">
+          <p className="platform-login-card-eyebrow">RESTRICTED ACCESS</p>
+          <h2>Platform Administration</h2>
+          <p className="platform-login-copy">Sign in with your provisioned platform administrator account.</p>
+          <form onSubmit={handleSubmit}>
+            {error && <div role="alert" aria-live="assertive"><ErrorBanner message={error} /></div>}
+            <label htmlFor="platform-email">Email address</label>
+            <input id="platform-email" name="email" type="email" required maxLength={254} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="platform-password">Password</label>
+            <div className="platform-password-wrap">
+              <input id="platform-password" name="password" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button type="button" className="platform-password-toggle" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? "Hide" : "Show"}</button>
+            </div>
+            <button className="platform-login-submit" type="submit" disabled={submitting}>{submitting ? "Verifying access…" : "Sign in securely"}<span aria-hidden="true">→</span></button>
+          </form>
+          <p className="platform-login-footnote">Platform access is managed separately from restaurant accounts. <Link to="/admin/login">Restaurant login</Link></p>
+        </section>
       </div>
-    </div>
+      <footer className="platform-login-footer"><span>© {new Date().getFullYear()} Svaadya</span><Link to="/">Back to Svaadya</Link><span>Secure platform session</span></footer>
+    </main>
   );
 }

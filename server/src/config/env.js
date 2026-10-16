@@ -13,6 +13,14 @@ function normalizeOrigin(value) {
 
 const nodeEnv = required("NODE_ENV", "development");
 const redisUrl = required("REDIS_URL", "");
+const redisKeyPrefix = required("REDIS_KEY_PREFIX", "svaadya:v1").replace(/:+$/, "");
+const redisOperationTimeoutMs = Math.max(100, Math.min(10000, Number(required("REDIS_OPERATION_TIMEOUT_MS", "1500")) || 1500));
+const redisConnectTimeoutMs = Math.max(100, Math.min(30000, Number(required("REDIS_CONNECT_TIMEOUT_MS", "5000")) || 5000));
+const redisTlsEnabled = required("REDIS_TLS_ENABLED", "false") === "true";
+const jwtSecret = required("JWT_SECRET", "");
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET is required. Set it in server/.env or your host environment before starting the app.");
+}
 const defaultProductionOrigin = "https://restaurant-qr-ordering.onrender.com";
 const serverUrl = required(
   "SERVER_URL",
@@ -76,13 +84,13 @@ module.exports = {
   nodeEnv,
   port: parseInt(required("PORT", "4000"), 10),
   databaseUrl: required("DATABASE_URL", "file:./dev.db"),
-  jwtSecret: required("JWT_SECRET", "dev-secret-change-me"),
+  jwtSecret,
   jwtExpiresIn: required("JWT_EXPIRES_IN", "8h"),
-  paymentProvider: required("PAYMENT_PROVIDER", "mock"), // "mock" | "razorpay"
+  paymentProvider: required("PAYMENT_PROVIDER", "unconfigured"), // "unconfigured" | development "mock" | "razorpay"
   razorpayKeyId: required("RAZORPAY_KEY_ID", ""),
   razorpayKeySecret: required("RAZORPAY_KEY_SECRET", ""),
   razorpayWebhookSecret: required("RAZORPAY_WEBHOOK_SECRET", ""),
-  messagingProvider: required("MESSAGING_PROVIDER", "mock"), // "mock" | "twilio"
+  messagingProvider: required("MESSAGING_PROVIDER", "unconfigured"), // "unconfigured" | development "mock" | "twilio"
   googleClientId,
   googleClientSecret,
   googleCallbackUrl,
@@ -105,6 +113,10 @@ module.exports = {
   allowedOrigins,
   serverUrl,
   redisUrl: redisUrl || undefined,
+  redisKeyPrefix,
+  redisOperationTimeoutMs,
+  redisConnectTimeoutMs,
+  redisTlsEnabled,
   logLevel: required("LOG_LEVEL", "info"),
   normalizeOrigin,
 };

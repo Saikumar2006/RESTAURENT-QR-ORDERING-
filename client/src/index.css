@@ -172,6 +172,42 @@ body {
   @apply w-full rounded-md border border-charcoal/15 bg-white px-3 py-2.5 text-sm focus:border-clove outline-none;
 }
 
+/* Tenant website themes are presentation-only and are applied only beneath
+   the public restaurant route layout. Admin controls keep the Svaadya palette. */
+.customer-site-theme {
+  font-family: var(--site-font);
+}
+.customer-site-theme .font-display {
+  font-family: var(--site-font) !important;
+}
+.customer-site-theme .btn-primary {
+  background-color: var(--site-primary) !important;
+  color: var(--site-button-text) !important;
+}
+.customer-site-theme .btn-primary:hover {
+  filter: brightness(0.94);
+}
+.customer-site-theme .bg-clove {
+  background-color: var(--site-primary) !important;
+}
+.customer-site-theme .text-clove {
+  color: var(--site-primary) !important;
+}
+.customer-site-theme .border-clove {
+  border-color: var(--site-primary) !important;
+}
+.customer-site-theme .bg-cream {
+  background-color: var(--site-background) !important;
+}
+.customer-site-theme[data-layout="compact"] main.space-y-8 {
+  row-gap: 1.25rem;
+}
+.customer-site-theme[data-layout="centered"] main > section {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 56rem;
+}
+
 .card {
   @apply bg-white rounded-card border border-charcoal/10 shadow-[0_1px_2px_rgba(20,35,29,0.035)];
 }

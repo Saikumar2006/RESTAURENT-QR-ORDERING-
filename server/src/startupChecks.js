@@ -30,8 +30,17 @@ function assertProductionSafety() {
   if (env.paymentProvider === "razorpay" && (!env.razorpayKeyId || !env.razorpayKeySecret)) {
     problems.push("PAYMENT_PROVIDER=razorpay but RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET aren't set.");
   }
+  if (env.paymentProvider === "razorpay" && !env.razorpayWebhookSecret) {
+    problems.push("PAYMENT_PROVIDER=razorpay but RAZORPAY_WEBHOOK_SECRET isn't set.");
+  }
+  if (env.paymentProvider === "mock") {
+    problems.push("PAYMENT_PROVIDER=mock is development-only and cannot be used in production.");
+  }
   if (env.messagingProvider === "twilio" && (!env.twilioAccountSid || !env.twilioAuthToken)) {
     problems.push("MESSAGING_PROVIDER=twilio but TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN aren't set.");
+  }
+  if (env.messagingProvider === "mock") {
+    problems.push("MESSAGING_PROVIDER=mock is development-only and cannot be used in production.");
   }
   const whatsappConfig = [
     env.whatsappPhoneNumberId,

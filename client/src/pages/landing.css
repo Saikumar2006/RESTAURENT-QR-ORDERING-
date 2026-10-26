@@ -38,6 +38,8 @@
 .landing-nav-links { display: flex; height: 100%; align-items: center; gap: clamp(15px, 2.1vw, 30px); }
 .landing-nav-links > a { color: inherit; font-size: 11px; font-weight: 500; opacity: .78; transition: opacity .2s ease; }
 .landing-nav-links > a:hover { opacity: 1; }
+.landing-nav-links > .landing-super-admin-link { border-bottom: 1px solid #efa45f; padding: 7px 0; color: #f2bd87; font-weight: 700; opacity: 1; }
+.landing-nav.is-scrolled .landing-nav-links > .landing-super-admin-link { color: #9b5c31; }
 .landing-nav-actions { display: flex; align-items: center; gap: 18px; margin-left: 8px; }
 .landing-signin { color: inherit; font-size: 11px; font-weight: 600; }
 .landing-button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 20px; border: 1px solid #f4b371; border-radius: 5px; background: #efa45f; padding: 0 21px; color: #201e22 !important; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; box-shadow: 0 7px 18px #e3924926; transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
@@ -513,7 +515,8 @@
   .landing-container { width: min(100% - 48px, 980px); }
   .landing-nav-inner { width: calc(100% - 48px); }
   .landing-nav-links { gap: 14px; }
-  .landing-nav-links > a { font-size: 10px; }
+  .landing-nav-links > a { font-size: 9px; }
+  .landing-nav-actions { gap: 10px; }
   .hero-layout { grid-template-columns: .72fr 1.28fr; gap: 2px; }
   .hero-copy h1 { font-size: clamp(47px, 6vw, 66px); }
   .hero-dashboard { grid-template-columns: 125px minmax(0,1fr); }
@@ -538,6 +541,7 @@
   .landing-nav-links { position: absolute; top: calc(100% - 1px); right: 0; left: 0; display: none; height: auto; flex-direction: column; align-items: stretch; gap: 0; border-bottom: 1px solid #252b3512; background: #fbfaf7; padding: 11px 21px 18px; color: #282f3c; box-shadow: 0 14px 28px #11182715; }
   .landing-nav-links.is-open { display: flex; }
   .landing-nav-links > a { border-bottom: 1px solid #252b350d; padding: 13px 2px; color: inherit; font-size: 12px; }
+  .landing-nav-links > .landing-super-admin-link { border-bottom: 1px solid #252b350d; padding: 13px 2px; color: #9b5c31; }
   .landing-nav-actions { justify-content: space-between; margin: 14px 0 0; }
   .landing-nav-actions .landing-signin { padding: 10px; }
   .landing-hero { min-height: 0; }

@@ -4,6 +4,17 @@ const { ok, created, asyncHandler, ApiError } = require("../utils/http");
 const { getRedisClient, isRedisEnabled } = require("../config/redis");
 const { getCacheKey } = require("../services/redisService");
 const { emitOrderUpdated } = require("../sockets");
+const crypto = require("crypto");
+
+function customerOrderPayload(order) {
+  return {
+    id: order.id, orderNumber: order.orderNumber, orderType: order.orderType,
+    tableNumber: order.table?.tableNumber ?? null, status: order.status, paymentStatus: order.paymentStatus,
+    subtotal: order.subtotal, taxAmount: order.taxAmount, serviceCharge: order.serviceCharge,
+    discountAmount: order.discountAmount, couponCode: order.couponCode, totalAmount: order.totalAmount,
+    orderSessionToken: order.orderSessionToken, items: order.items,
+  };
+}
 
 // Public: customer places an order. Only tableToken + items are trusted
 // input; restaurantId/pricing are derived/recalculated server-side.
@@ -12,10 +23,17 @@ const { emitOrderUpdated } = require("../sockets");
 // - If configured, the server ensures a single order is created for a key
 const createOrder = asyncHandler(async (req, res) => {
   const idempotencyKey = req.get && (req.get('Idempotency-Key') || req.get('idempotency-key') || req.get('x-idempotency-key'));
+  if (idempotencyKey && !/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) throw new ApiError(400, "Invalid idempotency key");
+  const idempotencyFingerprint = crypto.createHash("sha256").update(JSON.stringify(req.body)).digest("hex");
+  const createInput = {
+    ...req.body,
+    idempotencyKey: idempotencyKey ? crypto.createHash("sha256").update(idempotencyKey).digest("hex") : undefined,
+    idempotencyFingerprint,
+  };
 
   // If Redis isn't configured or no key was provided, proceed normally.
   if (!isRedisEnabled() || !idempotencyKey) {
-    const order = await orderService.createOrder(req.body);
+    const order = await orderService.createOrder(createInput);
     created(res, {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -39,16 +57,19 @@ const createOrder = asyncHandler(async (req, res) => {
   const key = getCacheKey("idempotency:orders", idempotencyKey);
   const processingTtlSec = 5 * 60; // 5 minutes
   const resultTtlSec = 24 * 60 * 60; // 24 hours
+  let creatingOrder = false;
+  let completedOrder = null;
 
   try {
     // Try to claim the idempotency key as "processing" atomically
-    const claimed = await redis.set(key, JSON.stringify({ status: "processing", createdAt: Date.now() }), { NX: true, EX: processingTtlSec });
+    const claimed = await redis.set(key, JSON.stringify({ status: "processing", fingerprint: idempotencyFingerprint, createdAt: Date.now() }), { NX: true, EX: processingTtlSec });
     if (!claimed) {
       // Key exists — inspect it
       const raw = await redis.get(key);
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
+          if (parsed?.fingerprint && parsed.fingerprint !== idempotencyFingerprint) throw new ApiError(409, "This idempotency key was already used for a different order");
           if (parsed && parsed.orderId) {
             // Order already created for this key — return the same response
             const order = await orderService.getOrderForGuest(parsed.orderId, parsed.orderSessionToken || "");
@@ -73,22 +94,31 @@ const createOrder = asyncHandler(async (req, res) => {
           }
           // If it's processing, return 202 Accepted so client can poll
           if (parsed && parsed.status === "processing") {
-            return res.status(202).json({ success: true, data: { processing: true } });
+            creatingOrder = true;
+            const order = await orderService.createOrder(createInput);
+            completedOrder = order;
+            return created(res, customerOrderPayload(order));
           }
-        } catch (e) {
+      } catch (e) {
+          if (e instanceof ApiError) throw e;
           // non-JSON value — fall through to normal processing
         }
       }
       // Key exists but couldn't parse; return 202 to be safe
-      return res.status(202).json({ success: true, data: { processing: true } });
+      creatingOrder = true;
+      const order = await orderService.createOrder(createInput);
+      completedOrder = order;
+      return created(res, customerOrderPayload(order));
     }
 
     // Claimed the key — proceed to create order
     try {
-      const order = await orderService.createOrder(req.body);
+      creatingOrder = true;
+      const order = await orderService.createOrder(createInput);
+      completedOrder = order;
 
       // Record result for future idempotent requests
-      const value = { orderId: order.id, orderSessionToken: order.orderSessionToken, status: "created", createdAt: Date.now() };
+      const value = { orderId: order.id, orderSessionToken: order.orderSessionToken, fingerprint: idempotencyFingerprint, status: "created", createdAt: Date.now() };
       await redis.set(key, JSON.stringify(value), { EX: resultTtlSec });
 
       created(res, {
@@ -110,15 +140,18 @@ const createOrder = asyncHandler(async (req, res) => {
       return;
     } catch (err) {
       // On failure, remove the processing claim so client may retry
-      try {
-        await redis.del(key);
-      } catch (ignore) {}
+      // Keep the processing claim until its short TTL. If the DB committed
+      // before a follow-up operation failed, removing it could duplicate.
       throw err;
     }
   } catch (err) {
+    if (completedOrder) return created(res, customerOrderPayload(completedOrder));
+    // Do not retry order creation if the service may already have committed
+    // before failing in a follow-up step (for example coupon accounting).
+    if (creatingOrder) throw err;
     // If Redis errors, log and fall back to normal processing (fail-open)
-    console.error("Idempotency Redis error:", err.message || err);
-    const order = await orderService.createOrder(req.body);
+    console.error(JSON.stringify({ event: "dependency_operation_failed", category: "redis_idempotency", timestamp: new Date().toISOString() }));
+    const order = await orderService.createOrder(createInput);
     created(res, {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -142,6 +175,9 @@ const createOrder = asyncHandler(async (req, res) => {
 // authenticated staff/admin for their own restaurant.
 const getOrder = asyncHandler(async (req, res) => {
   if (req.user) {
+    if (!req.user.permissions?.includes("*") && !req.user.permissions?.includes("orders.view")) {
+      throw new ApiError(403, "You do not have permission to view orders");
+    }
     const order = await orderService.getOrderForStaff(req.user.restaurantId, req.params.id);
     return ok(res, order);
   }
@@ -152,15 +188,36 @@ const getOrder = asyncHandler(async (req, res) => {
 });
 
 const listOrders = asyncHandler(async (req, res) => {
-  const { status, from, to, page, pageSize } = req.query;
+  const { status, source, search, from, to, page, pageSize } = req.query;
+  const sources = new Set(["SVAADYA_QR", "SVAADYA_WEBSITE", "SWIGGY", "ZOMATO", "MANUAL"]);
+  if (source && !sources.has(source)) throw new ApiError(400, "Invalid order source filter");
+  if (status && !["PENDING", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"].includes(status)) {
+    throw new ApiError(400, "Invalid order status filter");
+  }
+  for (const value of [from, to]) {
+    if (value && !Number.isFinite(Date.parse(value))) throw new ApiError(400, "Invalid order date filter");
+  }
+  const pageNumber = page === undefined ? 1 : Number(page);
+  const pageSizeNumber = pageSize === undefined ? 20 : Number(pageSize);
+  if (!Number.isInteger(pageNumber) || pageNumber < 1 || !Number.isInteger(pageSizeNumber) || pageSizeNumber < 1) {
+    throw new ApiError(400, "Invalid pagination values");
+  }
   const result = await orderService.listOrdersForRestaurant(req.user.restaurantId, {
     status,
+    source,
+    search: typeof search === "string" ? search.trim().slice(0, 100) : undefined,
     from,
     to,
-    page: page ? parseInt(page, 10) : undefined,
-    pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
+    page: pageNumber,
+    pageSize: Math.min(pageSizeNumber, 100),
   });
   ok(res, result.orders, { total: result.total, page: result.page, pageSize: result.pageSize });
+});
+
+const createManualOrder = asyncHandler(async (req, res) => {
+  if (req.params.id !== req.user.restaurantId) throw new ApiError(403, "Forbidden");
+  const order = await orderService.createManualOrder(req.user.restaurantId, req.user.id, req.body);
+  created(res, order);
 });
 
 const getActiveOrderForTable = asyncHandler(async (req, res) => {
@@ -184,6 +241,14 @@ const getReceipt = asyncHandler(async (req, res) => {
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
+  const requiredPermission = req.body.status === "CANCELLED"
+    ? "orders.cancel"
+    : req.body.status === "COMPLETED"
+      ? "orders.complete"
+      : "orders.update";
+  if (!req.user.permissions?.includes("*") && !req.user.permissions?.includes(requiredPermission)) {
+    throw new ApiError(403, "You do not have permission to perform this action");
+  }
   const order = await orderService.updateOrderStatus(req.user.restaurantId, req.params.id, req.body.status);
   ok(res, order);
 });
@@ -199,4 +264,4 @@ const submitFeedback = asyncHandler(async (req, res) => {
   created(res, feedback);
 });
 
-module.exports = { createOrder, getOrder, listOrders, getActiveOrderForTable, addItemsToActiveOrder, getReceipt, updateOrderStatus, submitFeedback };
+module.exports = { createOrder, getOrder, listOrders, createManualOrder, getActiveOrderForTable, addItemsToActiveOrder, getReceipt, updateOrderStatus, submitFeedback };

@@ -30,6 +30,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState(null);
+  const [paymentProvider, setPaymentProvider] = useState(null);
 
   useEffect(() => {
     api.get(`/restaurants/${user.restaurantId}`).then((r) => {
@@ -56,6 +57,10 @@ export default function AdminSettings() {
         notificationChannel: r.notificationChannel || "whatsapp",
       });
     });
+  }, []);
+
+  useEffect(() => {
+    api.get("/payments/provider-status").then(setPaymentProvider).catch(() => setPaymentProvider(null));
   }, []);
 
   function useMyLocation() {
@@ -135,6 +140,8 @@ export default function AdminSettings() {
       </p>
 
       {error && <ErrorBanner message={error} />}
+
+      {paymentProvider && <section className="card mb-4 p-5"><h2 className="text-sm font-semibold">Food payment gateway</h2><p className="mt-2 text-xs text-charcoal/60">{paymentProvider.available ? `${paymentProvider.provider} is available using platform-configured credentials.` : "Online payments are not configured."} {paymentProvider.mode === "development_test_only" ? "Test mode is development-only." : ""}</p><p className="mt-2 text-xs text-charcoal/50">This restaurant does not have a linked gateway account in the current setup. Do not use this configuration for marketplace settlement or assume funds route directly to this restaurant.</p></section>}
 
       <div className={`card p-6 mb-4 border-l-4 ${form.isOpen ? "border-emerald-500" : "border-red-500"}`}>
         <div className="flex items-center justify-between">

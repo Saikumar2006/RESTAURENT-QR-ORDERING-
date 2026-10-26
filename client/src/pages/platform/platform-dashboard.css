@@ -1,0 +1,15 @@
+.platform-dashboard { color: #242a24; font-family: "DM Sans", sans-serif; }
+.platform-dashboard > header { min-height: 112px; border-bottom: 1px solid #ffffff18; padding-right: max(24px, calc((100vw - 1320px) / 2)); padding-left: max(24px, calc((100vw - 1320px) / 2)); }
+.platform-dashboard .card { border: 1px solid #e7e5de; border-radius: 6px; background: #fffefa; box-shadow: 0 7px 24px #292a2410; }
+.platform-dashboard .card > p:first-child { letter-spacing: .015em; }
+.platform-dashboard input:focus, .platform-dashboard select:focus { border-color: #ae7144; outline: 3px solid #d69b6524; outline-offset: 1px; }
+.platform-dashboard table { border-collapse: collapse; }
+.platform-dashboard thead { background: #f7f6f1; }
+.platform-dashboard th { white-space: nowrap; }
+.platform-dashboard tbody tr:hover { background: #faf8f2; }
+.platform-dashboard button:focus-visible, .platform-dashboard a:focus-visible { outline: 3px solid #e2a66f; outline-offset: 3px; }
+@media (max-width: 640px) {
+  .platform-dashboard > header { min-height: 100px; align-items: flex-start; gap: 15px; padding: 20px; }
+  .platform-dashboard > header h1 { font-size: 21px; }
+  .platform-dashboard > header > div:last-child { padding-top: 3px; }
+}

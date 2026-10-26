@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { getSocket } from "../../sockets/socket";
@@ -16,28 +16,45 @@ export default function AdminOrders() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [selectedId, setSelectedId] = useState(searchParams.get("orderId"));
   const [error, setError] = useState(null);
   const [insights, setInsights] = useState(null);
+  const [integrationStatus, setIntegrationStatus] = useState([]);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualMenu, setManualMenu] = useState([]);
+  const [manualTables, setManualTables] = useState([]);
+  const [manualType, setManualType] = useState("TAKEAWAY");
+  const [manualTableId, setManualTableId] = useState("");
+  const [manualItems, setManualItems] = useState({});
+  const [manualSaving, setManualSaving] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
   const refresh = useCallback(async () => {
     setError(null);
     try {
       const data = await api.get(`/restaurants/${user.restaurantId}/orders`, {
         params: {
+          page: 1,
           pageSize: 100,
           ...(statusFilter ? { status: statusFilter } : {}),
+          ...(sourceFilter ? { source: sourceFilter } : {}),
+          ...(search.trim() ? { search: search.trim() } : {}),
           ...(fromDate ? { from: new Date(`${fromDate}T00:00:00`).toISOString() } : {}),
           ...(toDate ? { to: new Date(`${toDate}T23:59:59.999`).toISOString() } : {}),
         },
       });
       setOrders(data);
+      setPage(1);
+      setHasMore(data.length === 100);
     } catch (err) {
       setError(err.message);
     }
@@ -46,29 +63,95 @@ export default function AdminOrders() {
     } catch {
       setInsights(null);
     }
-  }, [user.restaurantId, statusFilter, fromDate, toDate]);
+  }, [user.restaurantId, statusFilter, sourceFilter, fromDate, toDate, search]);
+
+  async function loadMoreOrders() {
+    try {
+      const nextPage = page + 1;
+      const data = await api.get(`/restaurants/${user.restaurantId}/orders`, { params: { page: nextPage, pageSize: 100, ...(statusFilter ? { status: statusFilter } : {}), ...(sourceFilter ? { source: sourceFilter } : {}), ...(search.trim() ? { search: search.trim() } : {}), ...(fromDate ? { from: new Date(`${fromDate}T00:00:00`).toISOString() } : {}), ...(toDate ? { to: new Date(`${toDate}T23:59:59.999`).toISOString() } : {}) } });
+      setOrders((current) => [...(current || []), ...data]);
+      setPage(nextPage);
+      setHasMore(data.length === 100);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => {
+    api.get(`/restaurants/${user.restaurantId}/integrations/status`).then(setIntegrationStatus).catch(() => setIntegrationStatus([]));
+  }, [user.restaurantId]);
+
+  async function openManualOrder() {
+    setError(null);
+    try {
+      const [categories, tables] = await Promise.all([
+        api.get(`/restaurants/${user.restaurantId}/menu`),
+        api.get(`/restaurants/${user.restaurantId}/tables`),
+      ]);
+      setManualMenu(categories.flatMap((category) => category.menuItems.filter((item) => item.isAvailable)));
+      setManualTables(tables.filter((table) => table.isActive));
+      setManualOpen(true);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function createManualOrder() {
+    const items = Object.entries(manualItems).filter(([, quantity]) => quantity > 0)
+      .map(([menuItemId, quantity]) => ({ menuItemId, quantity: Number(quantity) }));
+    if (!items.length) return setError("Add at least one available menu item.");
+    if (manualType === "DINE_IN" && !manualTableId) return setError("Choose an active table.");
+    setManualSaving(true);
+    try {
+      await api.post(`/restaurants/${user.restaurantId}/orders/manual`, {
+        orderType: manualType,
+        ...(manualType === "DINE_IN" ? { tableId: manualTableId } : {}),
+        items,
+      });
+      setManualOpen(false);
+      setManualItems({});
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setManualSaving(false);
+    }
+  }
 
   useEffect(() => {
     refresh();
     const socket = getSocket();
-    socket.on("order:new", refresh);
+    const onNewOrder = () => {
+      refresh();
+      if (!soundEnabled) return;
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const context = new AudioContextClass();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = 880;
+        gain.gain.value = 0.08;
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.12);
+        oscillator.onended = () => context.close();
+      } catch { /* Sound is optional when audio is unavailable. */ }
+    };
+    socket.on("order:new", onNewOrder);
     socket.on("order:updated", refresh);
     return () => {
-      socket.off("order:new", refresh);
+      socket.off("order:new", onNewOrder);
       socket.off("order:updated", refresh);
     };
-  }, [refresh]);
+  }, [refresh, soundEnabled]);
 
   const visibleOrders = useMemo(() => (orders || []).filter((order) => {
     if (paymentFilter && order.paymentStatus !== paymentFilter) return false;
     if (typeFilter && order.orderType !== typeFilter) return false;
-    if (search) {
-      const query = search.toLowerCase();
-      const haystack = `${order.orderNumber} ${order.customerName || ""} ${order.customerPhone || ""} ${order.table?.tableNumber || ""}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
+    if (sourceFilter && order.source !== sourceFilter) return false;
     return true;
-  }), [orders, paymentFilter, typeFilter, search]);
+  }), [orders, paymentFilter, typeFilter, sourceFilter]);
   const selected = orders?.find((o) => o.id === selectedId) || visibleOrders[0] || null;
   const activeOrders = (orders || []).filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status));
 
@@ -103,8 +186,13 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-5 p-4 md:p-6">
-      <PageHeader title="Orders" description="Triage incoming orders, update kitchen progress, and review payment status." actions={<span className="live-indicator"><span /> Updating from restaurant feed</span>} />
+      <PageHeader title="Orders" description="One queue for Svaadya and staff-entered orders." actions={<div className="flex items-center gap-3"><span className="live-indicator"><span /> Live feed</span><button className="btn-secondary py-2 px-3 text-xs" onClick={() => setSoundEnabled((enabled) => !enabled)}>{soundEnabled ? "Sound on" : "Sound off"}</button>{user?.permissions?.includes("orders.create") || user?.permissions?.includes("*") ? <button className="btn-primary py-2 px-3 text-xs" onClick={openManualOrder}>New manual order</button> : null}</div>} />
       {error && <ErrorBanner message={error} />}
+
+      <section className="orders-panel p-4">
+        <SectionHeading title="Order channels" detail="Marketplace partners require approved credentials before live sync can be enabled." action={<Link to="/admin/integrations" className="text-xs font-semibold text-clove">Integration setup →</Link>} />
+        <div className="flex flex-wrap gap-2 text-xs">{integrationStatus.map((integration) => <span key={integration.provider} title={integration.reason || ""} className="rounded-full border border-charcoal/10 px-3 py-1.5"><b>{integration.provider.replaceAll("_", " ")}</b> · {integration.status === "NOT_CONFIGURED" ? "Not connected" : integration.status}</span>)}</div>
+      </section>
 
       <div className="grid gap-4 2xl:grid-cols-[minmax(250px,0.8fr)_minmax(360px,1.2fr)_minmax(250px,0.72fr)]">
         <section className="orders-panel flex min-h-[620px] min-w-0 flex-col overflow-hidden">
@@ -126,6 +214,9 @@ export default function AdminOrders() {
               </div>
               <select className="input" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filter by order type">
                 <option value="">Dine-in and takeaway</option><option value="DINE_IN">Dine In</option><option value="TAKEAWAY">Takeaway</option>
+              </select>
+              <select className="input" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} aria-label="Filter by order source">
+                <option value="">All sources</option><option value="SVAADYA_QR">Svaadya QR</option><option value="SVAADYA_WEBSITE">Svaadya website</option><option value="SWIGGY">Swiggy</option><option value="ZOMATO">Zomato</option><option value="MANUAL">Manual</option>
               </select>
             </div>
           </div>
@@ -154,10 +245,12 @@ export default function AdminOrders() {
                     <StatusBadge status={o.status} />
                   </div>
                   <p className="mt-1 text-xs text-charcoal/50">{o.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${o.table?.tableNumber || "—"}`} · ₹{Number(o.totalAmount).toFixed(0)}</p>
+                  <p className="mt-1 text-[10px] text-clove/70">{(o.source || "SVAADYA_QR").replaceAll("_", " ")}{o.externalOrderId ? ` · ${o.externalOrderId}` : ""}</p>
                   <p className="mt-1 truncate text-[10px] text-charcoal/40">{o.customerName || o.customerPhone || "Guest"} · {timeAgo(o.createdAt)}</p>
                 </button>
               ))
             )}
+            {orders && hasMore && <div className="p-3 text-center"><button className="btn-secondary px-4 py-2 text-xs" onClick={loadMoreOrders}>Load more orders</button></div>}
           </div>
         </section>
 
@@ -174,6 +267,13 @@ export default function AdminOrders() {
               {selected.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${selected.table?.tableNumber}`}{" "}
               {selected.customerName ? `· ${selected.customerName}` : ""} {selected.customerPhone ? `· ${selected.customerPhone}` : ""}
             </p>
+            <div className="mb-4 rounded-md border border-charcoal/10 bg-[#fafbf9] px-3 py-2 text-xs text-charcoal/60">
+              <span>Source: <strong>{(selected.source || "SVAADYA_QR").replaceAll("_", " ")}</strong></span>
+              {selected.externalOrderId && <span> · Provider order: <strong>{selected.externalOrderId}</strong></span>}
+              {selected.sourceStatus && <span> · Provider status: <strong>{selected.sourceStatus}</strong></span>}
+              {selected.syncStatus && selected.syncStatus !== "NOT_REQUIRED" && <span> · Sync: <strong>{selected.syncStatus}</strong></span>}
+              {selected.syncError && <p role="alert" className="mt-2 text-red-700">Synchronization issue: {selected.syncError}</p>}
+            </div>
 
             <div className="orders-panel p-5 mb-4">
               <SectionHeading title="Items" detail={`${selected.items?.length || 0} line items`} />
@@ -244,6 +344,7 @@ export default function AdminOrders() {
           </div>
         </aside>
       </div>
+      {manualOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/50 p-4" role="dialog" aria-modal="true" aria-labelledby="manual-order-title"><div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-5 shadow-xl"><div className="mb-4 flex items-center justify-between"><h2 id="manual-order-title" className="font-display text-xl">New manual order</h2><button className="text-sm text-charcoal/60" onClick={() => setManualOpen(false)}>Close</button></div><p className="mb-4 text-xs text-charcoal/55">Prices and availability are verified by the server. Payment remains pending for staff reconciliation.</p><div className="mb-4 grid gap-3 sm:grid-cols-2"><select className="input" value={manualType} onChange={(event) => setManualType(event.target.value)}><option value="TAKEAWAY">Takeaway</option><option value="DINE_IN">Dine in</option></select>{manualType === "DINE_IN" && <select className="input" value={manualTableId} onChange={(event) => setManualTableId(event.target.value)}><option value="">Choose table</option>{manualTables.map((table) => <option key={table.id} value={table.id}>{table.tableNumber}</option>)}</select>}</div><div className="max-h-72 space-y-2 overflow-auto">{manualMenu.map((item) => <label key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-charcoal/10 p-3 text-sm"><span>{item.name} · ₹{Number(item.price).toFixed(2)}</span><input className="input w-20" type="number" min="0" max="50" value={manualItems[item.id] || 0} onChange={(event) => setManualItems((state) => ({ ...state, [item.id]: Math.max(0, Math.min(50, Number(event.target.value) || 0)) }))} aria-label={`Quantity for ${item.name}`} /></label>)}</div><div className="mt-5 flex justify-end gap-2"><button className="btn-secondary" onClick={() => setManualOpen(false)}>Cancel</button><button className="btn-primary" disabled={manualSaving} onClick={createManualOrder}>{manualSaving ? "Creating…" : "Create order"}</button></div></div></div>}
     </div>
   );
 }

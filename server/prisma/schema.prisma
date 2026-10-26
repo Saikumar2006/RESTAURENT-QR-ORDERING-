@@ -20,7 +20,8 @@ datasource db {
 // the application layer — see server/src/validators/schemas.js (Zod enums)
 // and the order state machine in server/src/utils/order.js.
 //
-//   User.role         "ADMIN" | "STAFF"
+//   User.role         legacy-compatible display name; effective capabilities
+//                     are read from the tenant-scoped Role/Permission relations.
 //   Order.orderType    "DINE_IN" | "TAKEAWAY"
 //   Order.status        "PENDING" | "ACCEPTED" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED"
 //   Order.paymentStatus  "PENDING" | "PAID" | "FAILED" | "REFUNDED"
@@ -57,15 +58,20 @@ model Restaurant {
   notificationChannel       String  @default("whatsapp") // "whatsapp" | "sms" — preferred channel; falls back to SMS if WhatsApp send fails
   currency  String   @default("INR")
   logoUrl   String?
+  websiteThemeVersion Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   users      User[]
+  roles      Role[]
+  auditLogs  AuditLog[]
   tables     Table[]
   categories Category[]
   menuItems  MenuItem[]
   orders     Order[]
   coupons    Coupon[]
+  websiteThemeVersions WebsiteThemeVersion[]
+  marketplaceEvents MarketplaceWebhookEvent[]
 
   @@index([slug])
 }
@@ -98,12 +104,69 @@ model User {
   email        String
   passwordHash String
   role         String   @default("STAFF") // "ADMIN" | "STAFF"
+  roleId       String?
+  roleRecord   Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  phone        String?
+  lastLoginAt  DateTime?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@unique([restaurantId, email])
   @@index([restaurantId])
+  @@index([restaurantId, roleId])
+}
+
+model Role {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  description  String   @default("")
+  isSystem     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([restaurantId, name])
+  @@index([restaurantId, isSystem])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  group       String
+  label       String
+  description String   @default("")
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId       String?
+  action       String
+  resource     String
+  resourceId   String?
+  metadata     String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([restaurantId, resource, resourceId])
 }
 
 model Table {
@@ -167,6 +230,18 @@ model Order {
   tableId        String?
   table          Table?   @relation(fields: [tableId], references: [id])
   orderType      String   @default("DINE_IN") // "DINE_IN" | "TAKEAWAY"
+  source         String   @default("SVAADYA_QR") // SVAADYA_QR | SVAADYA_WEBSITE | SWIGGY | ZOMATO | MANUAL
+  externalOrderId String?
+  idempotencyKey String?
+  idempotencyFingerprint String?
+  settlementStatus String @default("NOT_APPLICABLE") // NOT_APPLICABLE | PENDING | SETTLED | FAILED
+  paymentMethod  String   @default("ONLINE") // ONLINE | CASH | MARKETPLACE | MANUAL
+  sourceStatus   String? // original provider status when an authorized adapter is enabled
+  syncStatus     String   @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | SYNCED | FAILED | TEST_ONLY
+  syncError      String?
+  sourceUpdatedAt DateTime?
+  syncedAt       DateTime?
+  sourceMetadata String? // sanitized JSON only; never credentials or raw webhook bodies
   orderNumber    String   @unique
   status         String   @default("PENDING") // see enum note above
   paymentStatus  String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
@@ -185,10 +260,14 @@ model Order {
   items    OrderItem[]
   payments Payment[]
   feedback Feedback?
+  marketplaceEvents MarketplaceWebhookEvent[]
 
   @@index([restaurantId])
   @@index([restaurantId, status, createdAt])
   @@index([restaurantId, paymentStatus])
+  @@index([restaurantId, source, createdAt])
+  @@unique([restaurantId, source, externalOrderId])
+  @@unique([restaurantId, idempotencyKey])
   @@index([tableId, createdAt])
   @@index([status, createdAt])
   @@index([tableId])
@@ -231,6 +310,7 @@ model Payment {
   providerPaymentId String?
   providerSignature String?
   amount            Float
+  currency          String   @default("INR")
   status            String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
   failureReason     String?
   // Kept as a plain string (not Prisma's native Json type) — Postgres
@@ -245,6 +325,7 @@ model Payment {
   @@index([orderId])
   @@index([providerOrderId])
   @@index([providerPaymentId])
+  @@unique([provider, providerPaymentId])
 }
 
 // Deliberately NOT a User with some special role — every User row is
@@ -303,5 +384,43 @@ model NotificationLog {
   createdAt    DateTime @default(now())
 
   @@index([restaurantId, createdAt])
+  @@index([orderId])
+}
+
+// Immutable-by-convention theme revisions; editing and rollback create new versions.
+model WebsiteThemeVersion {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  version      Int
+  status       String   @default("DRAFT") // DRAFT | PUBLISHED
+  config       String   // validated presentation-only JSON
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  publishedAt DateTime?
+
+  @@unique([restaurantId, version])
+  @@index([restaurantId, status, version])
+}
+
+// Dedupe record for authorized provider webhook events. Raw payloads and
+// signatures are not retained here.
+model MarketplaceWebhookEvent {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  source           String // SWIGGY | ZOMATO
+  eventId          String
+  externalOrderId  String?
+  orderId          String?
+  order             Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  sourceUpdatedAt  DateTime?
+  processingStatus String   @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | STALE
+  errorCode        String?
+  receivedAt       DateTime @default(now())
+  processedAt      DateTime?
+
+  @@unique([restaurantId, source, eventId])
+  @@index([restaurantId, source, receivedAt])
   @@index([orderId])
 }

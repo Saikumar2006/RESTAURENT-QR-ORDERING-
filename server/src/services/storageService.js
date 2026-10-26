@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const env = require("../config/env");
 const { safeExtension } = require("../middleware/upload");
+const { ApiError } = require("../utils/http");
 
 // Uploads req.file (populated by middleware/upload.js — memoryStorage for
 // supabase, diskStorage for local) and returns the public URL to store as
@@ -15,11 +16,18 @@ async function uploadFile(file) {
   return { url: `/uploads/menu-items/${file.filename}` };
 }
 
-async function uploadToSupabase(file) {
+async function uploadThemeFile(file, restaurantId) {
+  if (env.storageProvider !== "supabase") {
+    throw new ApiError(503, "Website theme images require configured Supabase object storage.");
+  }
+  return uploadToSupabase(file, `themes/${restaurantId}`);
+}
+
+async function uploadToSupabase(file, folder = "menu-items") {
   if (!env.supabaseUrl || !env.supabaseServiceRoleKey) {
     throw new Error("Supabase Storage is not configured (missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)");
   }
-  const objectPath = `menu-items/${crypto.randomUUID()}${safeExtension(file.originalname)}`;
+  const objectPath = `${folder}/${crypto.randomUUID()}${safeExtension(file.originalname)}`;
   const uploadUrl = `${env.supabaseUrl}/storage/v1/object/${env.supabaseStorageBucket}/${objectPath}`;
 
   const res = await fetch(uploadUrl, {
@@ -44,4 +52,4 @@ async function uploadToSupabase(file) {
   return { url: publicUrl };
 }
 
-module.exports = { uploadFile };
+module.exports = { uploadFile, uploadThemeFile };

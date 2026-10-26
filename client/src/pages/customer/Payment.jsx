@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
+import { getStoredOrder } from "../../utils/orderHistory.js";
 
 function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -17,19 +18,25 @@ function loadRazorpayScript() {
 export default function Payment() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const order = state?.order;
+  const location = useLocation();
+  const orderIdFromUrl = new URLSearchParams(location.search).get("orderId");
+  const order = location.state?.order || (orderIdFromUrl ? getStoredOrder(slug, orderIdFromUrl) : null);
   const [paymentOrder, setPaymentOrder] = useState(null);
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(Boolean(order));
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!order) return;
+    setLoading(true);
+    setError(null);
     api
       .post("/payments/create-order", { orderId: order.id, orderSessionToken: order.orderSessionToken })
       .then(setPaymentOrder)
-      .catch((err) => setError(err.message));
-  }, [order]);
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [order, attempt]);
 
   if (!order) {
     return (
@@ -107,15 +114,17 @@ export default function Payment() {
 
       {error && <ErrorBanner message={error} />}
 
-      {!paymentOrder ? (
+      {loading ? (
         <Spinner label="Preparing checkout..." />
+      ) : !paymentOrder ? (
+        <div className="w-full max-w-sm space-y-3"><p className="text-sm text-charcoal/65">{error || "Payment is unavailable."}</p><button className="btn-secondary w-full" onClick={() => setAttempt((value) => value + 1)}>Retry</button><button className="text-sm underline" onClick={() => navigate(`/r/${slug}/order/${order.id}?t=${encodeURIComponent(order.orderSessionToken)}`)}>View order status</button></div>
       ) : processing ? (
         <Spinner label="Verifying payment..." />
       ) : paymentOrder.provider === "razorpay" ? (
         <button className="btn-primary w-full max-w-xs" onClick={payWithRazorpay}>
           Pay Now
         </button>
-      ) : (
+      ) : paymentOrder.provider === "mock" && import.meta.env.DEV ? (
         <div className="w-full max-w-xs space-y-3">
           <p className="text-xs text-charcoal/40 mb-2">Test mode — simulate a payment outcome</p>
           <button className="btn-primary w-full" onClick={payMockSuccess}>
@@ -125,7 +134,8 @@ export default function Payment() {
             Simulate Failed Payment
           </button>
         </div>
-      )}
+      ) : null}
+      {paymentOrder?.provider === "mock" && !import.meta.env.DEV && <p className="text-sm text-red-700">Test payment mode is disabled outside development.</p>}
     </div>
   );
 }

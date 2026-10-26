@@ -17,10 +17,9 @@ function redisRateLimit(opts) {
         return fail(res, 429, "Rate limit exceeded. Try again later.");
       }
       next();
-    } catch (err) {
+    } catch {
       // Fail open on Redis errors — don't block legitimate traffic if
       // Redis is temporarily unavailable. Log and continue.
-      console.error("Rate limiter error:", err.message);
       return next();
     }
   };

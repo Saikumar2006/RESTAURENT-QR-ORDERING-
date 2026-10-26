@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../../store/CartContext.jsx";
 import { EmptyState, ErrorBanner } from "../../components/Ui.jsx";
@@ -26,6 +26,7 @@ export default function Cart() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [phoneVerificationToken, setPhoneVerificationToken] = useState(null);
+  const idempotencyAttemptRef = useRef(null);
 
   function handlePhoneChange(value) {
     setCustomerPhone(value);
@@ -116,7 +117,7 @@ export default function Cart() {
     setSubmitting(true);
     setError(null);
     try {
-      const order = await api.post("/orders", {
+      const orderBody = {
         slug,
         orderType: session.orderType,
         tableToken: session.orderType === "DINE_IN" ? session.tableToken : undefined,
@@ -131,10 +132,29 @@ export default function Cart() {
           quantity: i.quantity,
           instructions: i.instructions || undefined,
         })),
-      });
+      };
+      const attemptStoreKey = `order-attempt:${slug}`;
+      const fingerprint = JSON.stringify(orderBody);
+      let attempt = idempotencyAttemptRef.current;
+      try { attempt = JSON.parse(sessionStorage.getItem(attemptStoreKey) || "null") || attempt; } catch { /* Keep the in-memory retry key. */ }
+      if (!attempt || attempt.fingerprint !== fingerprint || !attempt.key) {
+        const key = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        attempt = { fingerprint, key };
+        try { sessionStorage.setItem(attemptStoreKey, JSON.stringify(attempt)); } catch { /* Request still uses the in-memory key. */ }
+      }
+      idempotencyAttemptRef.current = attempt;
+      let order;
+      for (let retry = 0; retry < 12; retry += 1) {
+        order = await api.post("/orders", orderBody, { headers: { "Idempotency-Key": attempt.key } });
+        if (!order?.processing) break;
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
+      if (order?.processing || !order?.id) throw new Error("Your order is still being processed. Wait a moment before trying again.");
+      try { sessionStorage.removeItem(attemptStoreKey); } catch { /* Order creation succeeded. */ }
+      idempotencyAttemptRef.current = null;
       clearCart();
-      saveOrderToHistory(slug, order);
-      navigate(`/r/${slug}/pay`, { state: { order } });
+      try { saveOrderToHistory(slug, order); } catch { /* Local history is optional; the server order already exists. */ }
+      navigate(`/r/${slug}/pay?orderId=${encodeURIComponent(order.id)}`, { state: { order } });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);

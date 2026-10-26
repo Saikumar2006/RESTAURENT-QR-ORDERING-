@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const { randomUUID } = require("crypto");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -11,6 +12,8 @@ const env = require("./config/env");
 const { corsOptions } = require("./utils/cors");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const paymentController = require("./controllers/paymentController");
+const prisma = require("./config/db");
+const { getRedisClient, isRedisEnabled } = require("./config/redis");
 
 const authRoutes = require("./routes/auth");
 const restaurantRoutes = require("./routes/restaurants");
@@ -43,8 +46,18 @@ if (env.nodeEnv === "production" && env.forceHttps) {
 // block the browser from rendering these images if the client were ever
 // served from a different origin than the API.
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined", {
-  skip: (req) => req.originalUrl.startsWith("/api/auth/google/callback"),
+app.use((req, res, next) => {
+  req.requestId = randomUUID();
+  res.setHeader("X-Request-Id", req.requestId);
+  next();
+});
+app.use(morgan((tokens, req, res) => JSON.stringify({
+  method: tokens.method(req, res),
+  status: Number(tokens.status(req, res)),
+  durationMs: Number(tokens["response-time"](req, res)),
+  requestId: req.requestId,
+}), {
+  skip: (req) => req.path === "/api/auth/google/callback",
 }));
 
 // Publicly served menu item / category images. Uploaded files get random
@@ -56,9 +69,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // limits are shared across instances. Fall back to in-memory express-rate-limit
 // for development/simple deployments.
 if (env.nodeEnv === "production" && env.redisUrl) {
-  // Very permissive global limiter; more sensitive endpoints use dedicated
-  // per-route limits below via redisRateLimit.
-  app.use((req, res, next) => next());
+  app.use(redisRateLimit({ prefix: "global", windowMs: 15 * 60 * 1000, limit: 300, keyFn: (req) => req.ip }));
 } else {
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
 }
@@ -82,6 +93,35 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), pay
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+app.get("/health/ready", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    const redis = getRedisClient();
+    let cache = "disabled";
+    if (isRedisEnabled()) {
+      try {
+        let timer;
+        try {
+          await Promise.race([
+            redis.ping(),
+            new Promise((_, reject) => {
+              timer = setTimeout(() => reject(new Error("timeout")), env.redisOperationTimeoutMs);
+              timer.unref?.();
+            }),
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
+        cache = "ok";
+      } catch {
+        cache = "degraded";
+      }
+    }
+    res.json({ status: "ok", database: "ok", cache, time: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: "not_ready", database: "error", time: new Date().toISOString() });
+  }
+});
 
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/restaurants", restaurantRoutes);
@@ -102,7 +142,15 @@ app.use("/api/platform", authLimiter, platformRoutes);
 // (react-router) works on a hard refresh/deep link too.
 const clientDistPath = path.join(__dirname, "..", "..", "client", "dist");
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(express.static(clientDistPath, {
+    setHeaders(res, filePath) {
+      if (path.basename(filePath) === "index.html") {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+      } else if (/-[A-Za-z0-9_-]{8,}\./.test(path.basename(filePath))) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
+  }));
 
   app.use((req, res, next) => {
     if (req.method !== "GET") return next();
@@ -110,7 +158,15 @@ if (fs.existsSync(clientDistPath)) {
     if (req.path === "/health") return next();
     if (req.path.startsWith("/uploads/")) return next();
 
-    return res.sendFile(path.join(clientDistPath, "index.html"));
+    // Missing JS/CSS/image files must stay 404s. Returning index.html here
+    // makes browsers parse HTML as JavaScript after deploys with stale HTML.
+    if (req.path.startsWith("/assets/") || path.extname(req.path)) {
+      return res.status(404).type("text/plain").send("Asset not found");
+    }
+
+    return res.sendFile(path.join(clientDistPath, "index.html"), {
+      headers: { "Cache-Control": "no-cache, must-revalidate" },
+    });
   });
 } else {
   console.warn(

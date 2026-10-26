@@ -2,6 +2,11 @@ const QRCode = require("qrcode");
 const prisma = require("../config/db");
 const { ApiError } = require("../utils/http");
 const env = require("../config/env");
+const { deleteCachedKey, getCacheKey, getCachedJson, setCachedJson } = require("./redisService");
+
+async function invalidatePublicTables(restaurantId) {
+  await deleteCachedKey(getCacheKey("restaurant:public:tables", restaurantId));
+}
 
 async function listTables(restaurantId) {
   return prisma.table.findMany({ where: { restaurantId }, orderBy: { tableNumber: "asc" } });
@@ -11,7 +16,6 @@ async function listTables(restaurantId) {
 // Only ever exposes tableNumber + the opaque tableToken — never the raw
 // table id — so this stays consistent with the rest of the public API.
 async function listActiveTablesPublic(restaurantId) {
-  const { getCachedJson, setCachedJson, getCacheKey } = require("./redisService");
   const cacheKey = getCacheKey("restaurant:public:tables", restaurantId);
   const cached = await getCachedJson(cacheKey);
   if (cached) return cached;
@@ -28,19 +32,25 @@ async function listActiveTablesPublic(restaurantId) {
 async function createTable(restaurantId, data) {
   const existing = await prisma.table.findFirst({ where: { restaurantId, tableNumber: data.tableNumber } });
   if (existing) throw new ApiError(409, "A table with this number already exists");
-  return prisma.table.create({ data: { ...data, restaurantId } });
+  const table = await prisma.table.create({ data: { ...data, restaurantId } });
+  await invalidatePublicTables(restaurantId);
+  return table;
 }
 
 async function updateTable(restaurantId, tableId, data) {
   const table = await prisma.table.findFirst({ where: { id: tableId, restaurantId } });
   if (!table) throw new ApiError(404, "Table not found");
-  return prisma.table.update({ where: { id: tableId }, data });
+  const updated = await prisma.table.update({ where: { id: tableId }, data });
+  await invalidatePublicTables(restaurantId);
+  return updated;
 }
 
 async function disableTable(restaurantId, tableId) {
   const table = await prisma.table.findFirst({ where: { id: tableId, restaurantId } });
   if (!table) throw new ApiError(404, "Table not found");
-  return prisma.table.update({ where: { id: tableId }, data: { isActive: false } });
+  const updated = await prisma.table.update({ where: { id: tableId }, data: { isActive: false } });
+  await invalidatePublicTables(restaurantId);
+  return updated;
 }
 
 // Public ordering URL encoded into the single restaurant QR. It carries only

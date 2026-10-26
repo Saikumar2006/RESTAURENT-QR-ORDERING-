@@ -9,14 +9,17 @@ Key changes made
 - Added Redis-backed distributed rate limiter middleware (server/src/middleware/distributedRateLimit.js) and wired auth rate limits in app.js
 - Added cache invalidation hooks for menu/table public endpoints (menuService/tableService)
 - Made server start connect to Redis if configured (server/src/server.js)
-- Documented REDIS_URL env var in config and README guidance pending
+- Added `REDIS_URL` to the server env example and Render manifest.
+- Added tenant-scoped public menu caching and kept public table caching coherent with edits.
+- Uses bounded TTLs, Redis `SCAN` invalidation, atomic Lua fixed-window counters, and local rate-limit fallback when Redis is unavailable.
+- Added tenant-scoped RBAC roles, permissions, staff assignment, and audit records; startup backfills existing tenants after the additive schema sync.
 - Prepared safe Prisma index additions for Order queries (see notes below)
 
 Next steps and operational guidance
 - Set REDIS_URL in production (e.g. redis://:password@host:6379)
 - Use managed Redis with network ACLs and TLS where available
 - Tune Prisma and Postgres pool sizes in DATABASE_URL and host settings (Supabase / Render recommendations)
-- Consider using a managed distributed rate-limiter library or an in-process fallback
+- Confirm the Redis TLS endpoint and network ACLs from the managed Redis provider.
 
 Database indexing (recommended safe plan)
 - Proposed indexes were added to server/prisma/schema.prisma to speed common queries. They are additive only (non-destructive):
@@ -33,5 +36,5 @@ Database indexing (recommended safe plan)
 
 Migration & safety notes
 - Index additions are non-destructive but building them on very large tables can take time; plan accordingly.
-- No application-level code that mutates business logic was changed; behavior is preserved when REDIS_URL is unset.
+- `REDIS_URL` remains optional; when unset, public data is read from PostgreSQL and the existing process-local global rate limit remains active.
 

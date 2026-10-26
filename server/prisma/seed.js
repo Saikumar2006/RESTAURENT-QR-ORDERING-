@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+const { ensureRestaurantRoles } = require("../src/services/roleService");
 
 const prisma = new PrismaClient();
 
@@ -41,6 +42,8 @@ async function main() {
       role: "STAFF",
     },
   });
+
+  await ensureRestaurantRoles(restaurant.id);
 
   const tableNumbers = ["1", "2", "3", "4", "5"];
   const tables = [];

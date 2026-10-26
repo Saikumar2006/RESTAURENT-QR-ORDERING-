@@ -6,7 +6,7 @@ const { getRedisClient } = require("../config/redis");
 
 let ioInstance = null;
 
-function initSockets(httpServer) {
+async function initSockets(httpServer) {
   const io = new Server(httpServer, {
     cors: {
       origin(origin, callback) {
@@ -22,14 +22,21 @@ function initSockets(httpServer) {
   // is optional and best-effort: if it fails, startup continues with a
   // local-only in-memory Socket.IO instance rather than crashing.
   if (isRedisEnabled()) {
+    let pubClient;
+    let subClient;
     try {
       const { createAdapter } = require("@socket.io/redis-adapter");
       const redisClient = getRedisClient();
-      const pubClient = redisClient.duplicate();
-      const subClient = pubClient.duplicate();
+      pubClient = redisClient.duplicate();
+      subClient = redisClient.duplicate();
+      const logRedisError = () => console.error(JSON.stringify({ event: "dependency_error", category: "redis", timestamp: new Date().toISOString() }));
+      pubClient.on("error", logRedisError);
+      subClient.on("error", logRedisError);
+      await Promise.all([pubClient.connect(), subClient.connect()]);
       io.adapter(createAdapter(pubClient, subClient));
-    } catch (err) {
-      console.error("Failed to initialize Socket.IO Redis adapter:", err.message);
+    } catch {
+      await Promise.all([pubClient?.quit().catch(() => {}), subClient?.quit().catch(() => {})]);
+      console.error(JSON.stringify({ event: "dependency_initialization_failed", category: "redis_socket_adapter", timestamp: new Date().toISOString() }));
     }
   }
 

@@ -112,14 +112,25 @@ const staffCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["ADMIN", "STAFF"]).default("STAFF"),
+  roleId: z.string().uuid().optional(),
 });
 
 const staffUpdateSchema = z.object({
   name: z.string().min(2).optional(),
-  role: z.enum(["ADMIN", "STAFF"]).optional(),
+  roleId: z.string().uuid().nullable().optional(),
   isActive: z.boolean().optional(),
 });
+
+const roleCreateSchema = z.object({
+  name: z.string().trim().min(2).max(40),
+  description: z.string().trim().max(200).optional(),
+  permissions: z.array(z.string().min(1)).max(100).default([]),
+});
+const roleUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(40).optional(),
+  description: z.string().trim().max(200).optional(),
+});
+const rolePermissionsSchema = z.object({ permissions: z.array(z.string().min(1)).max(100) });
 
 const orderCreateSchema = z
   .object({
@@ -154,6 +165,21 @@ const orderCreateSchema = z
 
 const orderStatusSchema = z.object({
   status: z.enum(["ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"]),
+});
+
+const manualOrderCreateSchema = z.object({
+  orderType: z.enum(["DINE_IN", "TAKEAWAY"]),
+  tableId: z.string().uuid().optional(),
+  customerName: z.string().trim().max(120).optional(),
+  customerPhone: z.string().trim().max(30).optional(),
+  items: z.array(z.object({
+    menuItemId: z.string().uuid(),
+    quantity: z.number().int().positive().max(50),
+    instructions: z.string().max(500).optional(),
+  })).min(1).max(100),
+}).refine((data) => data.orderType !== "DINE_IN" || Boolean(data.tableId), {
+  message: "An active table is required for dine-in manual orders",
+  path: ["tableId"],
 });
 
 const addOrderItemsSchema = z.object({
@@ -211,7 +237,13 @@ const feedbackCreateSchema = z.object({
 
 // Accept E.164 digits with an optional leading plus; the OTP service adds
 // the plus sign before storing or sending the canonical number.
-const phoneSchema = z.string().regex(/^\+?[1-9][0-9]{7,14}$/, "Enter a valid international phone number, e.g. +919876543210");
+const phoneSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const digits = value.replace(/[^\d]/g, "");
+  if (!digits) return value;
+  const normalizedDigits = digits.startsWith("00") ? digits.slice(2) : digits;
+  return `+${normalizedDigits}`;
+}, z.string().regex(/^\+[1-9][0-9]{7,14}$/, "Enter a valid international phone number, e.g. +919876543210"));
 
 const otpSendSchema = z.object({
   phone: phoneSchema,
@@ -219,7 +251,7 @@ const otpSendSchema = z.object({
 
 const otpVerifySchema = z.object({
   phone: phoneSchema,
-  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 module.exports = {
@@ -234,8 +266,12 @@ module.exports = {
   menuItemUpdateSchema,
   staffCreateSchema,
   staffUpdateSchema,
+  roleCreateSchema,
+  roleUpdateSchema,
+  rolePermissionsSchema,
   orderCreateSchema,
   orderStatusSchema,
+  manualOrderCreateSchema,
   addOrderItemsSchema,
   paymentCreateSchema,
   paymentVerifySchema,

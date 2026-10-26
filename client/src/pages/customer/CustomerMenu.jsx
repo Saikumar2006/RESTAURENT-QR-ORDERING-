@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { useCart } from "../../store/CartContext.jsx";
 import MenuItemCard from "../../components/MenuItemCard.jsx";
@@ -8,6 +8,7 @@ import { Spinner, ErrorBanner, EmptyState } from "../../components/Ui.jsx";
 
 export default function CustomerMenu() {
   const { slug } = useParams();
+  const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
   const { itemCount, subtotal, session } = useCart();
   const [categories, setCategories] = useState(null);
@@ -50,6 +51,8 @@ export default function CustomerMenu() {
   if (!session || !categories) return <Spinner label="Loading menu..." />;
 
   const searchEnabled = session.restaurant?.searchEnabled !== false;
+  const featuredItems = categories.flatMap((category) => category.menuItems).slice(0, 3);
+  const featuredSections = theme?.featuredSections || [];
 
   return (
     <div className="min-h-screen pb-28">
@@ -92,6 +95,25 @@ export default function CustomerMenu() {
           </div>
         )}
       </header>
+
+      {featuredSections.includes("featured") && featuredItems.length > 0 && (
+        <section className="px-5 pt-5" aria-labelledby="featured-menu-heading">
+          <h2 id="featured-menu-heading" className="mb-3 font-display text-xl">Featured dishes</h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{featuredItems.map((item) => <MenuItemCard key={`featured-${item.id}`} item={item} />)}</div>
+        </section>
+      )}
+      {featuredSections.includes("about") && (
+        <section className="mx-5 mt-5 rounded-lg border border-charcoal/10 bg-white/60 p-4" aria-labelledby="restaurant-about-heading">
+          <h2 id="restaurant-about-heading" className="font-display text-lg">About {session.restaurant?.name}</h2>
+          <p className="mt-1 text-sm text-charcoal/60">{session.restaurant?.cuisineType || "Explore the menu and order directly from the restaurant."}</p>
+        </section>
+      )}
+      {featuredSections.includes("hours") && session.restaurant?.businessHours && (
+        <section className="mx-5 mt-5 rounded-lg border border-charcoal/10 bg-white/60 p-4" aria-labelledby="restaurant-hours-heading">
+          <h2 id="restaurant-hours-heading" className="font-display text-lg">Business hours</h2>
+          <p className="mt-1 text-sm text-charcoal/60">{session.restaurant.businessHours.openTime} – {session.restaurant.businessHours.closeTime} <span className="text-xs">({session.restaurant.businessHours.timezone})</span></p>
+        </section>
+      )}
 
       <main className="px-5 py-4 space-y-8">
         {filtered.length === 0 && <EmptyState title="No items found" subtitle="Try a different search." />}

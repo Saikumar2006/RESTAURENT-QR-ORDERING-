@@ -26,6 +26,7 @@ api.interceptors.response.use(
     const wrapped = new Error(message);
     wrapped.details = details;
     wrapped.status = error.response?.status;
+    wrapped.code = error.code;
     return Promise.reject(wrapped);
   }
 );

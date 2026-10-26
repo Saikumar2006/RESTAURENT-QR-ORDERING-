@@ -17,8 +17,13 @@ function generateCode() {
 }
 
 function normalizePhone(phone) {
-  const digits = phone.replace(/^\+/, "");
-  return `+${digits}`;
+  if (typeof phone !== "string") return null;
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+  const digits = trimmed.replace(/[^\d]/g, "");
+  const normalizedDigits = digits.startsWith("00") ? digits.slice(2) : digits;
+  const normalized = `+${normalizedDigits}`;
+  return /^\+[1-9]\d{7,14}$/.test(normalized) ? normalized : null;
 }
 
 function hashCode(code, phone) {
@@ -27,7 +32,11 @@ function hashCode(code, phone) {
 
 async function sendOtp(slug, phone) {
   await tableService.resolveRestaurantBySlug(slug);
-  phone = normalizePhone(phone);
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
+    throw new ApiError(400, "A valid international phone number is required.");
+  }
+  phone = normalizedPhone;
   whatsappService.assertConfigured();
 
   const now = new Date();
@@ -82,7 +91,18 @@ async function sendOtp(slug, phone) {
 }
 
 async function verifyOtp(phone, code) {
-  phone = normalizePhone(phone);
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
+    throw new ApiError(400, "A valid international phone number is required.");
+  }
+  phone = normalizedPhone;
+  if (typeof code !== "string") {
+    throw new ApiError(400, "Enter the 6-digit code");
+  }
+  code = code.trim();
+  if (!/^\d{6}$/.test(code)) {
+    throw new ApiError(400, "Enter the 6-digit code");
+  }
   const now = new Date();
   const otp = await prisma.phoneOtp.findFirst({
     where: { phone, verified: false, invalidatedAt: null },

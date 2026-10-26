@@ -30,6 +30,8 @@ export function saveOrderToHistory(slug, order) {
   const entry = {
     id: order.id,
     orderNumber: order.orderNumber,
+    orderType: order.orderType,
+    paymentStatus: order.paymentStatus,
     orderSessionToken: order.orderSessionToken,
     totalAmount: order.totalAmount,
     items: (order.items || []).map((i) => ({

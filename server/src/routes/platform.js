@@ -7,6 +7,7 @@ const { loginSchema } = require("../validators/schemas");
 const router = express.Router();
 
 router.post("/login", validateBody(loginSchema), platformController.login);
+router.post("/logout", platformController.logout);
 router.get("/me", requirePlatformAuth, platformController.me);
 router.get("/overview", requirePlatformAuth, platformController.getOverview);
 router.get("/restaurants", requirePlatformAuth, platformController.listRestaurants);

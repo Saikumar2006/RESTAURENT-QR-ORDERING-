@@ -78,7 +78,7 @@ export function CartProvider({ children }) {
 
   function clearCart() {
     setItems([]);
-    sessionStorage.removeItem("qr_cart_items");
+    try { sessionStorage.removeItem("qr_cart_items"); } catch { /* In-memory cart still clears. */ }
   }
 
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items]);

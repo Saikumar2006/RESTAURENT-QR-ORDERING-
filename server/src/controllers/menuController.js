@@ -64,6 +64,12 @@ const getPublicRestaurantContext = asyncHandler(async (req, res) => {
     restaurant: {
       name: restaurant.name,
       slug: restaurant.slug,
+      cuisineType: restaurant.cuisineType,
+      businessHours: restaurant.autoScheduleEnabled ? {
+        openTime: restaurant.openTime,
+        closeTime: restaurant.closeTime,
+        timezone: restaurant.timezone,
+      } : null,
       logoUrl: restaurant.logoUrl,
       currency: restaurant.currency,
       searchEnabled: restaurant.searchEnabled,

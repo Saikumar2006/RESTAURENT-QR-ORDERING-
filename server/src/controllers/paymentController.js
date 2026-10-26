@@ -1,5 +1,18 @@
 const paymentService = require("../services/paymentService");
 const { ok, asyncHandler } = require("../utils/http");
+const env = require("../config/env");
+
+const providerStatus = asyncHandler(async (req, res) => {
+  const isRazorpayConfigured = Boolean(env.razorpayKeyId && env.razorpayKeySecret && env.razorpayWebhookSecret);
+  const available = env.paymentProvider === "razorpay" ? isRazorpayConfigured
+    : env.paymentProvider === "mock" && env.nodeEnv !== "production";
+  ok(res, {
+    provider: available ? env.paymentProvider : null,
+    available,
+    mode: env.paymentProvider === "mock" ? "development_test_only" : available ? "platform_configured" : "unconfigured",
+    restaurantLinkedAccount: false,
+  });
+});
 
 const createPaymentOrder = asyncHandler(async (req, res) => {
   const result = await paymentService.createPaymentOrder(req.body.orderId, req.body.orderSessionToken);
@@ -22,4 +35,4 @@ const webhook = asyncHandler(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
-module.exports = { createPaymentOrder, verifyPayment, webhook };
+module.exports = { createPaymentOrder, verifyPayment, webhook, providerStatus };

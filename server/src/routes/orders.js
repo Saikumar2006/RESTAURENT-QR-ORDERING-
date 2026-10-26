@@ -1,6 +1,6 @@
 const express = require("express");
 const orderController = require("../controllers/orderController");
-const { requireAuth, requireRole, optionalAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission, optionalAuth } = require("../middleware/auth");
 const { validateBody } = require("../middleware/validate");
 const { orderCreateSchema, orderStatusSchema, feedbackCreateSchema } = require("../validators/schemas");
 const env = require("../config/env");
@@ -17,11 +17,11 @@ router.post("/", orderCreateLimiter, validateBody(orderCreateSchema), orderContr
 
 // Reachable by guest (?orderSessionToken=...) or authenticated staff/admin.
 router.get("/:id", optionalAuth, orderController.getOrder);
-router.get("/:id/receipt", requireAuth, requireRole("ADMIN", "STAFF"), orderController.getReceipt);
+router.get("/:id/receipt", requireAuth, requirePermission("orders.view"), orderController.getReceipt);
 
 // Public: guest rates their own completed order (orderSessionToken in body).
 router.post("/:id/feedback", validateBody(feedbackCreateSchema), orderController.submitFeedback);
 
-router.put("/:id/status", requireAuth, requireRole("ADMIN", "STAFF"), validateBody(orderStatusSchema), orderController.updateOrderStatus);
+router.put("/:id/status", requireAuth, validateBody(orderStatusSchema), orderController.updateOrderStatus);
 
 module.exports = router;

@@ -1,27 +1,82 @@
 const prisma = require("../config/db");
+const { ApiError } = require("../utils/http");
+const { getDateKeyInTimezone, getHourInTimezone, getZonedDayBounds, isValidTimeZone, nextCalendarDate, startOfZonedDay } = require("../utils/timezone");
 
-function startOfUtcDay(date) {
-  const start = new Date(date);
-  start.setUTCHours(0, 0, 0, 0);
-  return start;
+async function getTodayOperations(restaurantId, now = new Date(), database = prisma) {
+  const restaurant = await database.restaurant.findUnique({ where: { id: restaurantId }, select: { timezone: true } });
+  if (!restaurant) throw new ApiError(404, "Restaurant not found");
+
+  const timeZone = restaurant.timezone || "Asia/Kolkata";
+  const { dateKey, start, end } = getZonedDayBounds(now, timeZone);
+  const where = { restaurantId, createdAt: { gte: start, lt: end } };
+  const [orderCount, paidTotals, recentOrders] = await Promise.all([
+    database.order.count({ where }),
+    database.order.aggregate({ where: { ...where, paymentStatus: "PAID" }, _sum: { totalAmount: true } }),
+    database.order.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 5,
+      select: {
+        id: true,
+        orderNumber: true,
+        orderType: true,
+        status: true,
+        totalAmount: true,
+        createdAt: true,
+        items: { select: { id: true } },
+        table: { select: { tableNumber: true } },
+      },
+    }),
+  ]);
+
+  return { businessDate: dateKey, timeZone, summary: { orderCount, paidRevenue: Number(paidTotals._sum.totalAmount || 0) }, recentOrders };
 }
 
-async function getAnalytics(restaurantId, rawDays = 7) {
-  const days = Math.min(90, Math.max(1, Number.parseInt(rawDays, 10) || 7));
-  const today = startOfUtcDay(new Date());
-  const start = new Date(today);
-  start.setUTCDate(start.getUTCDate() - days + 1);
+function isDateKey(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
 
-  const orders = await prisma.order.findMany({
-    where: { restaurantId, createdAt: { gte: start } },
+function shiftDateKey(dateKey, days) {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function getAnalytics(restaurantId, rawDays = 7, range = {}, database = prisma, now = new Date()) {
+  const restaurant = await database.restaurant.findUnique({ where: { id: restaurantId }, select: { timezone: true } });
+  if (!restaurant) throw new ApiError(404, "Restaurant not found");
+  const timeZone = restaurant.timezone || "Asia/Kolkata";
+  if (!isValidTimeZone(timeZone)) throw new ApiError(409, "Restaurant time zone is invalid; update it in settings");
+
+  let days = Math.min(90, Math.max(1, Number.parseInt(rawDays, 10) || 7));
+  const todayKey = getDateKeyInTimezone(now, timeZone);
+  let fromKey;
+  let toKey;
+  if (range.from || range.to) {
+    if (!isDateKey(range.from) || !isDateKey(range.to) || range.from > range.to || range.to > todayKey) {
+      throw new ApiError(400, "Choose a valid date range ending no later than today");
+    }
+    fromKey = range.from;
+    toKey = range.to;
+    days = (Date.parse(`${toKey}T00:00:00.000Z`) - Date.parse(`${fromKey}T00:00:00.000Z`)) / 86_400_000 + 1;
+    if (days > 90) throw new ApiError(400, "Date range cannot exceed 90 days");
+  } else {
+    toKey = todayKey;
+    fromKey = shiftDateKey(toKey, -days + 1);
+  }
+  const start = startOfZonedDay(fromKey, timeZone);
+  const end = startOfZonedDay(nextCalendarDate(toKey), timeZone);
+
+  const orders = await database.order.findMany({
+    where: { restaurantId, createdAt: { gte: start, lt: end } },
     orderBy: { createdAt: "asc" },
     include: { items: { include: { menuItem: { include: { category: true } } } } },
   });
 
   const daily = Array.from({ length: days }, (_, index) => {
-    const date = new Date(start);
-    date.setUTCDate(date.getUTCDate() + index);
-    return { date: date.toISOString().slice(0, 10), orders: 0, revenue: 0 };
+    return { date: shiftDateKey(fromKey, index), orders: 0, revenue: 0 };
   });
   const dailyMap = new Map(daily.map((entry) => [entry.date, entry]));
   const itemMap = new Map();
@@ -36,12 +91,12 @@ async function getAnalytics(restaurantId, rawDays = 7) {
   let activeCount = 0;
 
   for (const order of orders) {
-    const day = dailyMap.get(order.createdAt.toISOString().slice(0, 10));
+    const day = dailyMap.get(getDateKeyInTimezone(order.createdAt, timeZone));
     if (day) {
       day.orders += 1;
       if (order.paymentStatus === "PAID") day.revenue += Number(order.totalAmount);
     }
-    peakHours[order.createdAt.getUTCHours()].orders += 1;
+    peakHours[getHourInTimezone(order.createdAt, timeZone)].orders += 1;
     if (order.paymentStatus === "PAID") {
       paidOrderCount += 1;
       paidRevenue += Number(order.totalAmount);
@@ -134,8 +189,8 @@ async function getCustomers(restaurantId) {
     customersByPhone.set(phone, customer);
   }
 
-  const monthStart = startOfUtcDay(new Date());
-  monthStart.setUTCDate(1);
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const customers = [...customersByPhone.values()].map((customer) => ({
     phone: customer.phone,
     name: customer.name,
@@ -163,4 +218,4 @@ async function getCustomers(restaurantId) {
   };
 }
 
-module.exports = { getAnalytics, getCustomers };
+module.exports = { getAnalytics, getCustomers, getTodayOperations };

@@ -153,7 +153,8 @@ async function createOrder({
 
   let order;
   try {
-    order = await prisma.order.create({
+    order = await prisma.$transaction(async (tx) => {
+      const createdOrder = await tx.order.create({
     data: {
       restaurantId: restaurant.id,
       tableId: table ? table.id : null,
@@ -174,6 +175,9 @@ async function createOrder({
       })) },
     },
     include: { items: true, table: true },
+      });
+      if (appliedCoupon) await couponService.incrementUsage(appliedCoupon.id, tx);
+      return createdOrder;
     });
   } catch (error) {
     if (idempotencyKey && error.code === "P2002") {
@@ -190,10 +194,6 @@ async function createOrder({
   // Only counts toward the coupon's usage limit once the order is actually
   // created — a failed order (e.g. an item went unavailable) shouldn't burn
   // a redemption.
-  if (appliedCoupon) {
-    await couponService.incrementUsage(appliedCoupon.id);
-  }
-
   emitNewOrder(restaurant.id, orderSummary(order));
 
   if (customerPhone && restaurant.orderNotificationsEnabled) {

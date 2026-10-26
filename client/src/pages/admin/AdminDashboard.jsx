@@ -10,20 +10,23 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [rangeDraft, setRangeDraft] = useState({ from: "", to: "" });
+  const [rangeApplied, setRangeApplied] = useState({ from: "", to: "" });
 
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      const [orders, analytics, tables] = await Promise.all([
+      const [orders, analytics, tables, todayOperations] = await Promise.all([
         api.get(`/restaurants/${user.restaurantId}/orders`, { params: { pageSize: 25 } }),
-        api.get(`/restaurants/${user.restaurantId}/analytics`, { params: { days: 7 } }),
+        api.get(`/restaurants/${user.restaurantId}/analytics`, { params: rangeApplied.from ? rangeApplied : { days: 7 } }),
         api.get(`/restaurants/${user.restaurantId}/tables`),
+        api.get(`/restaurants/${user.restaurantId}/analytics/today`),
       ]);
-      setData({ orders, analytics, tables });
+      setData({ orders, analytics, tables, todayOperations });
     } catch (err) {
       setError(err.message);
     }
-  }, [user.restaurantId]);
+  }, [user.restaurantId, rangeApplied]);
 
   useEffect(() => {
     refresh();
@@ -40,15 +43,30 @@ export default function AdminDashboard() {
 
   if (!data) return <div className="p-5 md:p-8"><ErrorBanner message={error} /><button className="btn-secondary" onClick={refresh}>Retry</button></div>;
 
-  const { orders, analytics, tables } = data;
+  const { orders, analytics, tables, todayOperations } = data;
   const activeOrders = orders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status));
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const today = analytics.daily.find((day) => day.date === todayKey);
+  const today = { revenue: todayOperations.summary.paidRevenue, orders: todayOperations.summary.orderCount };
   const activeTableIds = new Set(activeOrders.map((order) => order.tableId).filter(Boolean));
   const activeTables = tables.filter((table) => table.isActive);
   const occupiedTables = activeTables.filter((table) => activeTableIds.has(table.id)).length;
   const maxRevenue = Math.max(...analytics.daily.map((day) => day.revenue), 1);
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
+
+  function applyDateRange(event) {
+    event.preventDefault();
+    if (!rangeDraft.from || !rangeDraft.to) {
+      setError("Choose both a start date and an end date.");
+      return;
+    }
+    setError(null);
+    setRangeApplied({ ...rangeDraft });
+  }
+
+  function resetDateRange() {
+    setRangeDraft({ from: "", to: "" });
+    setRangeApplied({ from: "", to: "" });
+    setError(null);
+  }
 
   return (
     <div className="space-y-6 p-5 md:p-8">
@@ -69,7 +87,17 @@ export default function AdminDashboard() {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
         <div className="card p-5 md:p-6">
-          <SectionHeading title="Revenue overview" detail="Paid order revenue · last 7 days" action={<span className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Live data</span>} />
+          <SectionHeading title="Revenue overview" detail={`Paid restaurant orders · ${analytics.daily[0]?.date} to ${analytics.daily.at(-1)?.date}`} action={<span className="text-[10px] font-semibold uppercase tracking-wider text-charcoal/40">Live data</span>} />
+          <form onSubmit={applyDateRange} className="mt-4 flex flex-wrap items-end gap-2">
+            <label className="text-[11px] font-medium text-charcoal/55">From
+              <input className="input mt-1 min-w-36 py-2 text-xs" type="date" value={rangeDraft.from} onChange={(event) => setRangeDraft({ ...rangeDraft, from: event.target.value })} />
+            </label>
+            <label className="text-[11px] font-medium text-charcoal/55">To
+              <input className="input mt-1 min-w-36 py-2 text-xs" type="date" value={rangeDraft.to} onChange={(event) => setRangeDraft({ ...rangeDraft, to: event.target.value })} />
+            </label>
+            <button type="submit" className="btn-secondary text-xs">Apply range</button>
+            {rangeApplied.from && <button type="button" className="text-xs font-medium text-clove underline" onClick={resetDateRange}>Last 7 days</button>}
+          </form>
           {analytics.summary.paidOrderCount === 0 ? (
             <EmptyState title="No paid orders in this period" subtitle="Revenue will appear here when customer payments are recorded." />
           ) : (
@@ -99,6 +127,31 @@ export default function AdminDashboard() {
           </div>
           <button className="btn-secondary mt-4 w-full" onClick={() => navigate("/admin/orders")}>Open order queue</button>
         </div>
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="border-b border-charcoal/10 px-5 py-4">
+          <SectionHeading
+            title="Today's 5 recent orders"
+            detail={`Restaurant business day · ${todayOperations.businessDate} · ${todayOperations.timeZone}`}
+            action={<button className="text-xs font-semibold text-clove" onClick={() => navigate("/admin/orders")}>View all orders</button>}
+          />
+        </div>
+        {todayOperations.recentOrders.length === 0 ? (
+          <EmptyState title="No orders today" subtitle="Orders from this restaurant's business day will appear here." />
+        ) : (
+          <div className="divide-y divide-charcoal/10">
+            {todayOperations.recentOrders.map((order) => (
+              <button key={order.id} className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left transition hover:bg-[#f8faf8]" onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{order.orderNumber} <span className="font-normal text-charcoal/50">· {order.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${order.table?.tableNumber || "—"}`}</span></p>
+                  <p className="mt-1 text-xs text-charcoal/45">{order.items?.length || 0} line items · ₹{Number(order.totalAmount).toFixed(0)} · {timeAgo(order.createdAt)}</p>
+                </div>
+                <StatusBadge status={order.status} />
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(300px,0.7fr)]">

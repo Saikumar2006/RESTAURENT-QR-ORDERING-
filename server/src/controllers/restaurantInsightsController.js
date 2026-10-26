@@ -7,7 +7,7 @@ function assertOwnRestaurant(req) {
 
 const getAnalytics = asyncHandler(async (req, res) => {
   assertOwnRestaurant(req);
-  ok(res, await insightsService.getAnalytics(req.user.restaurantId, req.query.days));
+  ok(res, await insightsService.getAnalytics(req.user.restaurantId, req.query.days, { from: req.query.from, to: req.query.to }));
 });
 
 const getCustomers = asyncHandler(async (req, res) => {
@@ -15,4 +15,9 @@ const getCustomers = asyncHandler(async (req, res) => {
   ok(res, await insightsService.getCustomers(req.user.restaurantId));
 });
 
-module.exports = { getAnalytics, getCustomers };
+const getTodayOperations = asyncHandler(async (req, res) => {
+  assertOwnRestaurant(req);
+  ok(res, await insightsService.getTodayOperations(req.user.restaurantId));
+});
+
+module.exports = { getAnalytics, getCustomers, getTodayOperations };

@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const { isValidTimeZone } = require("../utils/timezone");
 
 // z.string().url() rejects the relative "/uploads/menu-items/xyz.jpg" paths
 // returned by our own image upload endpoint (it requires a full absolute
@@ -59,7 +60,7 @@ const restaurantUpdateSchema = z.object({
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Use 24h HH:MM, e.g. 23:00")
     .optional()
     .nullable(),
-  timezone: z.string().optional(),
+  timezone: z.string().min(1).refine(isValidTimeZone, "Use a valid IANA time zone").optional(),
 
   // Geofencing
   geofenceEnabled: z.boolean().optional(),
@@ -207,9 +208,9 @@ const paymentVerifySchema = z.object({
   razorpay_signature: z.string().trim().min(1),
 });
 
-const couponCreateSchema = z.object({
+const couponFieldsSchema = z.object({
   code: z
-    .string()
+    .string().trim()
     .min(2)
     .max(30)
     .regex(/^[A-Za-z0-9_-]+$/, "code must be letters, numbers, hyphens or underscores only"),
@@ -222,7 +223,17 @@ const couponCreateSchema = z.object({
   expiresAt: z.string().datetime().optional().nullable(),
 });
 
-const couponUpdateSchema = couponCreateSchema.partial();
+function validateCouponDiscount(data, context) {
+  if (data.type === "PERCENT" && data.value !== undefined && data.value > 100) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["value"], message: "Percentage discount cannot exceed 100%" });
+  }
+  if (data.type === "FLAT" && data.maxDiscountAmount != null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["maxDiscountAmount"], message: "A maximum discount cap only applies to percentage coupons" });
+  }
+}
+
+const couponCreateSchema = couponFieldsSchema.superRefine(validateCouponDiscount);
+const couponUpdateSchema = couponFieldsSchema.partial().superRefine(validateCouponDiscount);
 
 const couponValidateSchema = z.object({
   code: z.string().min(1),

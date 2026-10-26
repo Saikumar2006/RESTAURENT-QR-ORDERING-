@@ -55,6 +55,7 @@ router.get("/:id/integrations/status", requireAuth, requirePermission("orders.vi
 });
 router.get("/:id/integrations/:provider/test-fixture", requireAuth, requirePermission("orders.view"), integrationController.getTestFixtureForRestaurant);
 router.get("/:id/analytics", requireAuth, requirePermission("analytics.view"), insightsController.getAnalytics);
+router.get("/:id/analytics/today", requireAuth, requirePermission("analytics.view"), insightsController.getTodayOperations);
 router.get("/:id/customers", requireAuth, requirePermission("analytics.view"), insightsController.getCustomers);
 
 // Staff

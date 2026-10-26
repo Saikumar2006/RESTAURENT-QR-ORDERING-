@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { getSocket } from "../../sockets/socket";
@@ -47,6 +47,7 @@ export default function AdminOrders() {
           pageSize: 100,
           ...(statusFilter ? { status: statusFilter } : {}),
           ...(sourceFilter ? { source: sourceFilter } : {}),
+          ...(search.trim() ? { search: search.trim() } : {}),
           ...(fromDate ? { from: new Date(`${fromDate}T00:00:00`).toISOString() } : {}),
           ...(toDate ? { to: new Date(`${toDate}T23:59:59.999`).toISOString() } : {}),
         },
@@ -62,12 +63,12 @@ export default function AdminOrders() {
     } catch {
       setInsights(null);
     }
-  }, [user.restaurantId, statusFilter, sourceFilter, fromDate, toDate]);
+  }, [user.restaurantId, statusFilter, sourceFilter, fromDate, toDate, search]);
 
   async function loadMoreOrders() {
     try {
       const nextPage = page + 1;
-      const data = await api.get(`/restaurants/${user.restaurantId}/orders`, { params: { page: nextPage, pageSize: 100, ...(statusFilter ? { status: statusFilter } : {}), ...(sourceFilter ? { source: sourceFilter } : {}), ...(fromDate ? { from: new Date(`${fromDate}T00:00:00`).toISOString() } : {}), ...(toDate ? { to: new Date(`${toDate}T23:59:59.999`).toISOString() } : {}) } });
+      const data = await api.get(`/restaurants/${user.restaurantId}/orders`, { params: { page: nextPage, pageSize: 100, ...(statusFilter ? { status: statusFilter } : {}), ...(sourceFilter ? { source: sourceFilter } : {}), ...(search.trim() ? { search: search.trim() } : {}), ...(fromDate ? { from: new Date(`${fromDate}T00:00:00`).toISOString() } : {}), ...(toDate ? { to: new Date(`${toDate}T23:59:59.999`).toISOString() } : {}) } });
       setOrders((current) => [...(current || []), ...data]);
       setPage(nextPage);
       setHasMore(data.length === 100);
@@ -149,13 +150,8 @@ export default function AdminOrders() {
     if (paymentFilter && order.paymentStatus !== paymentFilter) return false;
     if (typeFilter && order.orderType !== typeFilter) return false;
     if (sourceFilter && order.source !== sourceFilter) return false;
-    if (search) {
-      const query = search.toLowerCase();
-      const haystack = `${order.orderNumber} ${order.customerName || ""} ${order.customerPhone || ""} ${order.table?.tableNumber || ""}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
     return true;
-  }), [orders, paymentFilter, typeFilter, sourceFilter, search]);
+  }), [orders, paymentFilter, typeFilter, sourceFilter]);
   const selected = orders?.find((o) => o.id === selectedId) || visibleOrders[0] || null;
   const activeOrders = (orders || []).filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status));
 
@@ -194,7 +190,7 @@ export default function AdminOrders() {
       {error && <ErrorBanner message={error} />}
 
       <section className="orders-panel p-4">
-        <SectionHeading title="Order channels" detail="Marketplace partners require approved credentials before live sync can be enabled." />
+        <SectionHeading title="Order channels" detail="Marketplace partners require approved credentials before live sync can be enabled." action={<Link to="/admin/integrations" className="text-xs font-semibold text-clove">Integration setup →</Link>} />
         <div className="flex flex-wrap gap-2 text-xs">{integrationStatus.map((integration) => <span key={integration.provider} title={integration.reason || ""} className="rounded-full border border-charcoal/10 px-3 py-1.5"><b>{integration.provider.replaceAll("_", " ")}</b> · {integration.status === "NOT_CONFIGURED" ? "Not connected" : integration.status}</span>)}</div>
       </section>
 
@@ -271,6 +267,13 @@ export default function AdminOrders() {
               {selected.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${selected.table?.tableNumber}`}{" "}
               {selected.customerName ? `· ${selected.customerName}` : ""} {selected.customerPhone ? `· ${selected.customerPhone}` : ""}
             </p>
+            <div className="mb-4 rounded-md border border-charcoal/10 bg-[#fafbf9] px-3 py-2 text-xs text-charcoal/60">
+              <span>Source: <strong>{(selected.source || "SVAADYA_QR").replaceAll("_", " ")}</strong></span>
+              {selected.externalOrderId && <span> · Provider order: <strong>{selected.externalOrderId}</strong></span>}
+              {selected.sourceStatus && <span> · Provider status: <strong>{selected.sourceStatus}</strong></span>}
+              {selected.syncStatus && selected.syncStatus !== "NOT_REQUIRED" && <span> · Sync: <strong>{selected.syncStatus}</strong></span>}
+              {selected.syncError && <p role="alert" className="mt-2 text-red-700">Synchronization issue: {selected.syncError}</p>}
+            </div>
 
             <div className="orders-panel p-5 mb-4">
               <SectionHeading title="Items" detail={`${selected.items?.length || 0} line items`} />

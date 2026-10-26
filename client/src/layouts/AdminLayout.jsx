@@ -6,34 +6,40 @@ import { joinRestaurantRoom } from "../sockets/socket";
 const NAV = [
   { to: "/admin", label: "Overview", end: true, mark: "O" },
   { to: "/admin/orders", label: "Orders", mark: "↗" },
+  { to: "/admin/integrations", label: "Integrations", mark: "I" },
   { to: "/admin/tables", label: "Tables", mark: "T" },
   { to: "/admin/menu", label: "Menu", mark: "M" },
   { to: "/admin/coupons", label: "Promotions", adminOnly: true, mark: "%" },
   { to: "/admin/reports", label: "Analytics", mark: "↗" },
   { to: "/admin/staff", label: "Team", adminOnly: true, mark: "U" },
   { to: "/admin/settings", label: "Settings", adminOnly: true, mark: "S" },
+  { to: "/admin/appearance", label: "Website appearance", adminOnly: true, mark: "W" },
 ];
 
 const PAGE_TITLES = {
   "/admin": "Overview",
   "/admin/orders": "Orders",
+  "/admin/integrations": "Marketplace integrations",
   "/admin/tables": "Tables",
   "/admin/menu": "Menu",
   "/admin/coupons": "Promotions",
   "/admin/reports": "Analytics",
   "/admin/staff": "Team",
   "/admin/settings": "Settings",
+  "/admin/appearance": "Website appearance",
 };
 
 const NAV_PERMISSIONS = {
   "/admin": ["orders.view", "analytics.view", "tables.view"],
   "/admin/orders": "orders.view",
+  "/admin/integrations": "orders.view",
   "/admin/tables": "tables.view",
   "/admin/menu": "menu.view",
   "/admin/coupons": "coupons.view",
   "/admin/reports": "analytics.view",
   "/admin/staff": "staff.view",
   "/admin/settings": "settings.view",
+  "/admin/appearance": "settings.view",
 };
 
 function canAccessNav(item, permissions = []) {

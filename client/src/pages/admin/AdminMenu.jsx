@@ -7,6 +7,7 @@ import { resolveAssetUrl } from "../../utils/assetUrl.js";
 export default function AdminMenu() {
   const { user } = useAuth();
   const [categories, setCategories] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState(null);
   const [error, setError] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryImageUrl, setNewCategoryImageUrl] = useState("");
@@ -53,6 +54,21 @@ export default function AdminMenu() {
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    if (categories && expandedCategories === null && categories.length) {
+      setExpandedCategories(new Set([categories[0].id]));
+    }
+  }, [categories, expandedCategories]);
+
+  function toggleExpanded(categoryId) {
+    setExpandedCategories((current) => {
+      const next = new Set(current || []);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  }
 
   async function addCategory(e) {
     e.preventDefault();
@@ -151,15 +167,25 @@ export default function AdminMenu() {
       <div className="space-y-6">
         {categories.map((cat) => (
           <div key={cat.id} className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                aria-expanded={expandedCategories?.has(cat.id) || false}
+                aria-controls={`category-items-${cat.id}`}
+                onClick={() => toggleExpanded(cat.id)}
+              >
                 {cat.imageUrl ? (
                   <img src={resolveAssetUrl(cat.imageUrl)} alt="" className="w-10 h-10 rounded-lg object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-lg bg-marigold/15 flex items-center justify-center text-lg">🍽️</div>
                 )}
-                <h2 className="font-display text-xl">{cat.name}</h2>
-              </div>
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-xl">{cat.name}</span>
+                  <span className="block text-xs text-charcoal/45">{cat.menuItems.length} {cat.menuItems.length === 1 ? "item" : "items"}</span>
+                </span>
+                <span aria-hidden="true" className={`ml-1 text-xs text-charcoal/45 transition-transform ${expandedCategories?.has(cat.id) ? "rotate-180" : ""}`}>⌄</span>
+              </button>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-xs text-charcoal/60">
                   <input type="checkbox" checked={cat.isActive} onChange={() => toggleCategory(cat)} />
@@ -177,7 +203,7 @@ export default function AdminMenu() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div id={`category-items-${cat.id}`} hidden={!expandedCategories?.has(cat.id)} className="mt-4 space-y-2">
               {cat.menuItems.length === 0 && <p className="text-xs text-charcoal/40">No items yet.</p>}
               {cat.menuItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between border border-charcoal/10 rounded-xl px-4 py-2.5">

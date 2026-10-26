@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import api from "../../services/api";
 import { useCart } from "../../store/CartContext.jsx";
 import { Spinner } from "../../components/Ui.jsx";
@@ -11,6 +11,7 @@ import { getCurrentPosition, distanceMeters } from "../../utils/geo.js";
 // "Takeaway" — replacing the old one-QR-per-table approach.
 export default function RestaurantLanding() {
   const { slug } = useParams();
+  const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
   const { setSession } = useCart();
   const [context, setContext] = useState(null);
@@ -155,8 +156,9 @@ export default function RestaurantLanding() {
 
   return (
     <div className="min-h-screen flex flex-col items-center px-6 py-10 text-center bg-gradient-to-b from-marigold/10 to-cream">
-      {context.restaurant.logoUrl ? (
-        <img src={resolveAssetUrl(context.restaurant.logoUrl)} alt="" className="w-20 h-20 rounded-full object-cover mb-6 shadow" />
+      {theme?.bannerUrl && <div aria-hidden="true" className="customer-theme-banner mb-8 h-36 w-full max-w-2xl rounded-2xl bg-cover bg-center shadow" style={{ backgroundImage: `linear-gradient(180deg, #00000010, #00000035), url("${resolveAssetUrl(theme.bannerUrl)}")` }} />}
+      {(theme?.logoUrl || context.restaurant.logoUrl) ? (
+        <img src={resolveAssetUrl(theme?.logoUrl || context.restaurant.logoUrl)} alt="" className="w-20 h-20 rounded-full object-cover mb-6 shadow" />
       ) : (
         <div className="w-20 h-20 rounded-full bg-clove text-cream flex items-center justify-center font-display text-3xl mb-6 shadow">
           {context.restaurant.name.charAt(0)}

@@ -58,6 +58,7 @@ model Restaurant {
   notificationChannel       String  @default("whatsapp") // "whatsapp" | "sms" — preferred channel; falls back to SMS if WhatsApp send fails
   currency  String   @default("INR")
   logoUrl   String?
+  websiteThemeVersion Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -69,6 +70,8 @@ model Restaurant {
   menuItems  MenuItem[]
   orders     Order[]
   coupons    Coupon[]
+  websiteThemeVersions WebsiteThemeVersion[]
+  marketplaceEvents MarketplaceWebhookEvent[]
 
   @@index([slug])
 }
@@ -233,6 +236,12 @@ model Order {
   idempotencyFingerprint String?
   settlementStatus String @default("NOT_APPLICABLE") // NOT_APPLICABLE | PENDING | SETTLED | FAILED
   paymentMethod  String   @default("ONLINE") // ONLINE | CASH | MARKETPLACE | MANUAL
+  sourceStatus   String? // original provider status when an authorized adapter is enabled
+  syncStatus     String   @default("NOT_REQUIRED") // NOT_REQUIRED | PENDING | SYNCED | FAILED | TEST_ONLY
+  syncError      String?
+  sourceUpdatedAt DateTime?
+  syncedAt       DateTime?
+  sourceMetadata String? // sanitized JSON only; never credentials or raw webhook bodies
   orderNumber    String   @unique
   status         String   @default("PENDING") // see enum note above
   paymentStatus  String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
@@ -251,6 +260,7 @@ model Order {
   items    OrderItem[]
   payments Payment[]
   feedback Feedback?
+  marketplaceEvents MarketplaceWebhookEvent[]
 
   @@index([restaurantId])
   @@index([restaurantId, status, createdAt])
@@ -374,5 +384,43 @@ model NotificationLog {
   createdAt    DateTime @default(now())
 
   @@index([restaurantId, createdAt])
+  @@index([orderId])
+}
+
+// Immutable-by-convention theme revisions; editing and rollback create new versions.
+model WebsiteThemeVersion {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  version      Int
+  status       String   @default("DRAFT") // DRAFT | PUBLISHED
+  config       String   // validated presentation-only JSON
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  publishedAt DateTime?
+
+  @@unique([restaurantId, version])
+  @@index([restaurantId, status, version])
+}
+
+// Dedupe record for authorized provider webhook events. Raw payloads and
+// signatures are not retained here.
+model MarketplaceWebhookEvent {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  source           String // SWIGGY | ZOMATO
+  eventId          String
+  externalOrderId  String?
+  orderId          String?
+  order             Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  sourceUpdatedAt  DateTime?
+  processingStatus String   @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | STALE
+  errorCode        String?
+  receivedAt       DateTime @default(now())
+  processedAt      DateTime?
+
+  @@unique([restaurantId, source, eventId])
+  @@index([restaurantId, source, receivedAt])
   @@index([orderId])
 }

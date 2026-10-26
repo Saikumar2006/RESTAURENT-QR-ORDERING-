@@ -38,4 +38,30 @@ function getProvider(name) {
   return provider;
 }
 
-module.exports = { NativeOrderProvider, listProviderStatus, getProvider };
+// Deliberately synthetic and read-only: this exercises the application's
+// normalized inbox shape without pretending to be an official partner event.
+function getTestFixture(name) {
+  if (!Object.hasOwn(providers, name) || !["SWIGGY", "ZOMATO"].includes(name)) {
+    throw new ApiError(400, "A Swiggy or Zomato fixture must be selected");
+  }
+  const fixtureId = `fixture-${name.toLowerCase()}-001`;
+  return {
+    mode: "TEST_FIXTURE",
+    persisted: false,
+    provider: name,
+    note: "Synthetic internal adapter fixture. This is not a real or official marketplace payload.",
+    normalizedOrder: {
+      source: name,
+      externalOrderId: fixtureId,
+      sourceStatus: "ACCEPTED",
+      status: "ACCEPTED",
+      syncStatus: "TEST_ONLY",
+      items: [{ itemName: "Fixture menu item", quantity: 1, unitPrice: 100 }],
+      totalAmount: 100,
+      paymentMethod: "MARKETPLACE",
+      settlementStatus: "PENDING",
+    },
+  };
+}
+
+module.exports = { NativeOrderProvider, listProviderStatus, getProvider, getTestFixture };

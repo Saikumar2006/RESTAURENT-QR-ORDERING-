@@ -17,6 +17,9 @@ const {
   manualOrderCreateSchema,
 } = require("../validators/schemas");
 const roleController = require("../controllers/roleController");
+const websiteThemeController = require("../controllers/websiteThemeController");
+const { handleThemeImageUpload } = require("../middleware/upload");
+const integrationController = require("../controllers/integrationController");
 
 const router = express.Router();
 
@@ -25,6 +28,15 @@ router.post("/", validateBody(restaurantCreateSchema), authController.registerRe
 
 router.get("/:id", requireAuth, requirePermission("restaurant.view"), restaurantController.getRestaurant);
 router.put("/:id", requireAuth, requirePermission("restaurant.update"), validateBody(restaurantUpdateSchema), restaurantController.updateRestaurant);
+
+// Tenant-scoped website appearance. Editing requires settings.update; public
+// storefront reads expose only the latest published, presentation-only config.
+router.get("/:id/website-theme", requireAuth, requirePermission("settings.view"), websiteThemeController.getEditorState);
+router.post("/:id/website-theme/drafts", requireAuth, requirePermission("settings.update"), websiteThemeController.saveDraft);
+router.post("/:id/website-theme/drafts/:versionId/publish", requireAuth, requirePermission("settings.update"), websiteThemeController.publishDraft);
+router.post("/:id/website-theme/versions/:versionId/rollback", requireAuth, requirePermission("settings.update"), websiteThemeController.rollback);
+router.post("/:id/website-theme/restore-default", requireAuth, requirePermission("settings.update"), websiteThemeController.restoreDefault);
+router.post("/:id/website-theme/images", requireAuth, requirePermission("settings.update"), handleThemeImageUpload, websiteThemeController.uploadImage);
 
 // Single QR code for the whole restaurant (dine-in table / takeaway is
 // chosen by the customer after landing, not baked into the QR).
@@ -41,6 +53,7 @@ router.get("/:id/integrations/status", requireAuth, requirePermission("orders.vi
   if (req.params.id !== req.user.restaurantId) return res.status(403).json({ success: false, message: "Forbidden" });
   res.json({ success: true, data: require("../services/orderProviders").listProviderStatus() });
 });
+router.get("/:id/integrations/:provider/test-fixture", requireAuth, requirePermission("orders.view"), integrationController.getTestFixtureForRestaurant);
 router.get("/:id/analytics", requireAuth, requirePermission("analytics.view"), insightsController.getAnalytics);
 router.get("/:id/customers", requireAuth, requirePermission("analytics.view"), insightsController.getCustomers);
 

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { buildReceiptData, isActiveOrderStatus, sanitizeOrderPayments } = require('../src/services/orderService');
+const { canTransition } = require('../src/utils/order');
 
 test('buildReceiptData includes table number for dine-in and omits it for takeaway', () => {
   const dineInOrder = {
@@ -41,6 +42,15 @@ test('order status is active unless it is completed or cancelled', () => {
   assert.equal(isActiveOrderStatus('PREPARING'), true);
   assert.equal(isActiveOrderStatus('COMPLETED'), false);
   assert.equal(isActiveOrderStatus('CANCELLED'), false);
+});
+
+test('order state machine rejects skipped or reversed status changes', () => {
+  assert.equal(canTransition('PENDING', 'ACCEPTED'), true);
+  assert.equal(canTransition('ACCEPTED', 'PREPARING'), true);
+  assert.equal(canTransition('PREPARING', 'READY'), true);
+  assert.equal(canTransition('READY', 'COMPLETED'), true);
+  assert.equal(canTransition('PENDING', 'READY'), false);
+  assert.equal(canTransition('COMPLETED', 'PREPARING'), false);
 });
 
 test('order responses omit payment signatures and raw webhook payloads', () => {

@@ -3,6 +3,7 @@ const rateLimit = require("express-rate-limit");
 const menuController = require("../controllers/menuController");
 const couponController = require("../controllers/couponController");
 const otpController = require("../controllers/otpController");
+const websiteThemeController = require("../controllers/websiteThemeController");
 const { validateBody } = require("../middleware/validate");
 const { couponValidateSchema, otpSendSchema, otpVerifySchema } = require("../validators/schemas");
 
@@ -16,6 +17,7 @@ const otpVerifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standa
 // Single QR per restaurant: the landing page resolves restaurant + table
 // list from the slug, then the customer picks dine-in table or takeaway.
 router.get("/restaurants/:slug", menuController.getPublicRestaurantContext);
+router.get("/restaurants/:slug/theme", websiteThemeController.getPublicTheme);
 router.get("/restaurants/:slug/menu", menuController.getPublicMenuBySlug);
 router.post(
   "/restaurants/:slug/coupons/validate",

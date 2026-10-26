@@ -202,9 +202,9 @@ const paymentCreateSchema = z.object({
 const paymentVerifySchema = z.object({
   orderId: z.string().uuid(),
   orderSessionToken: z.string().uuid(),
-  razorpay_order_id: z.string(),
-  razorpay_payment_id: z.string(),
-  razorpay_signature: z.string(),
+  razorpay_order_id: z.string().trim().min(1),
+  razorpay_payment_id: z.string().trim().min(1),
+  razorpay_signature: z.string().trim().min(1),
 });
 
 const couponCreateSchema = z.object({

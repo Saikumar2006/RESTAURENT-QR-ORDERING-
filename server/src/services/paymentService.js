@@ -88,7 +88,9 @@ async function verifyPayment({ orderId, orderSessionToken, razorpay_order_id, ra
   if (!isValid) {
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { status: "FAILED", failureReason: "Signature verification failed", providerPaymentId: razorpay_payment_id },
+      // Never persist an unverified provider ID: a forged ID can collide with
+      // the provider's global uniqueness key and must not claim that payment.
+      data: { status: "FAILED", failureReason: "Signature verification failed" },
     });
     throw new ApiError(400, "Payment could not be verified. Please try again.");
   }

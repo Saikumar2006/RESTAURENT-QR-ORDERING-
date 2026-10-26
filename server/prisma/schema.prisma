@@ -6,11 +6,11 @@ generator client {
 }
 
 datasource db {
-  // Render/Postgres uses DATABASE_URL for the application connection.
-  // This project does not keep Prisma migration files and uses schema sync
-  // via `prisma db push`, so a separate DIRECT_URL is not required here.
+  // DATABASE_URL is used by the application; DIRECT_URL is the direct Neon
+  // connection used by Prisma migrations (rather than a pooled URL).
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // This schema uses Postgres (via Supabase — see the datasource block

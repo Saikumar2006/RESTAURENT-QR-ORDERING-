@@ -1,8 +1,10 @@
 const platformAuthService = require("../services/platformAuthService");
 const platformService = require("../services/platformService");
-const { ok, asyncHandler } = require("../utils/http");
+const { ok, created, asyncHandler } = require("../utils/http");
 const env = require("../config/env");
 const jwt = require("jsonwebtoken");
+const platformRoleService = require("../services/platformRoleService");
+const platformRestaurantService = require("../services/platformRestaurantService");
 
 const PLATFORM_SESSION_COOKIE = "svaadya_platform_session";
 const platformCookieOptions = () => ({
@@ -34,6 +36,22 @@ const me = asyncHandler(async (req, res) => {
 
 const getOverview = asyncHandler(async (req, res) => {
   const stats = await platformService.getOverview();
+  if (!req.platformAdmin.permissions.includes("platform.finance.view")) {
+    delete stats.totalRevenue;
+    delete stats.revenueToday;
+  }
+  if (!req.platformAdmin.permissions.includes("platform.restaurants.view")) {
+    delete stats.totalRestaurants;
+    delete stats.activeRestaurants;
+    delete stats.suspendedRestaurants;
+    delete stats.openNowCount;
+    delete stats.closedNowCount;
+    delete stats.totalUsers;
+    delete stats.usersByRole;
+    delete stats.totalOrders;
+    delete stats.ordersToday;
+    delete stats.restaurantsByCuisine;
+  }
   ok(res, stats);
 });
 
@@ -42,4 +60,33 @@ const listRestaurants = asyncHandler(async (req, res) => {
   ok(res, restaurants);
 });
 
-module.exports = { login, logout, me, getOverview, listRestaurants };
+const createRestaurant = asyncHandler(async (req, res) => {
+  created(res, await platformRestaurantService.createRestaurant(req.body, req.platformAdmin.id));
+});
+
+const issueOwnerInvitation = asyncHandler(async (req, res) => {
+  created(res, await platformRestaurantService.issueOwnerInvitation(req.params.id, req.body.reason, req.platformAdmin.id));
+});
+
+const getRestaurantInvitation = asyncHandler(async (req, res) => {
+  ok(res, await platformRestaurantService.getInvitation(req.params.token));
+});
+
+const activateRestaurantInvitation = asyncHandler(async (req, res) => {
+  ok(res, await platformRestaurantService.activateInvitation(req.params.token, req.body.password));
+});
+
+const listAdmins = asyncHandler(async (_req, res) => {
+  ok(res, await platformRoleService.listPlatformAdmins());
+});
+
+const updateAdminRole = asyncHandler(async (req, res) => {
+  const superAdminEmails = platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails);
+  ok(res, await platformRoleService.updatePlatformRole(req.platformAdmin.id, req.params.id, req.body.platformRole, undefined, superAdminEmails));
+});
+
+const listAudit = asyncHandler(async (req, res) => {
+  ok(res, await platformRoleService.listPlatformAudit(undefined, req.query.limit));
+});
+
+module.exports = { login, logout, me, getOverview, listRestaurants, createRestaurant, issueOwnerInvitation, getRestaurantInvitation, activateRestaurantInvitation, listAdmins, updateAdminRole, listAudit };

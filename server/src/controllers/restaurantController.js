@@ -1,8 +1,8 @@
 const prisma = require("../config/db");
 const tableService = require("../services/tableService");
 const { ok, created, asyncHandler, ApiError } = require("../utils/http");
-const { hashPassword } = require("../utils/auth");
 const roleService = require("../services/roleService");
+const staffAccessService = require("../services/staffAccessService");
 
 const getRestaurant = asyncHandler(async (req, res) => {
   // req.params.id is not trusted for authorization — a staff/admin can only
@@ -11,6 +11,10 @@ const getRestaurant = asyncHandler(async (req, res) => {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } });
   ok(res, restaurant);
 });
+
+function assertRestaurantPath(req) {
+  if (req.params.id !== req.user.restaurantId) throw new ApiError(403, "Forbidden");
+}
 
 const updateRestaurant = asyncHandler(async (req, res) => {
   if (req.params.id !== req.user.restaurantId) throw new ApiError(403, "Forbidden");
@@ -53,50 +57,51 @@ const generateRestaurantQr = asyncHandler(async (req, res) => {
 // --- Staff -------------------------------------------------------------
 
 const listStaff = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
   const staff = await prisma.user.findMany({
     where: { restaurantId: req.user.restaurantId },
-    include: { roleRecord: { select: { id: true, name: true, isSystem: true } } },
+    include: {
+      roleRecord: { select: { id: true, name: true, isSystem: true } },
+      staffAccessLinksReceived: { where: { purpose: "ACTIVATE", consumedAt: null }, select: { expiresAt: true }, take: 1 },
+    },
     orderBy: { createdAt: "asc" },
   });
-  ok(res, staff.map(({ passwordHash, roleRecord, ...member }) => ({
+  ok(res, staff.map(({ passwordHash, roleRecord, staffAccessLinksReceived, ...member }) => ({
     ...member,
     roleId: roleRecord?.id || null,
     roleName: roleRecord?.name || (member.role === "ADMIN" ? "OWNER" : "STAFF"),
     isOwner: roleRecord?.name === "OWNER" || (!roleRecord && member.role === "ADMIN"),
+    setupPending: !member.isActive && staffAccessLinksReceived.length > 0,
+    setupInviteExpiresAt: staffAccessLinksReceived[0]?.expiresAt || null,
   })));
 });
 
 const createStaff = asyncHandler(async (req, res) => {
-  await roleService.ensureRestaurantRoles(req.user.restaurantId);
-  const role = req.body.roleId
-    ? await prisma.role.findFirst({ where: { id: req.body.roleId, restaurantId: req.user.restaurantId } })
-    : await prisma.role.findFirst({ where: { restaurantId: req.user.restaurantId, name: "STAFF", isSystem: true } });
-  if (!role || role.name === "OWNER") throw new ApiError(400, "Choose a valid staff role");
-  if (req.body.roleId && !req.user.permissions.includes("staff.roles.manage") && role.name !== "STAFF") {
-    throw new ApiError(403, "You cannot assign roles");
-  }
-  const existing = await prisma.user.findFirst({
-    where: { restaurantId: req.user.restaurantId, email: { equals: req.body.email.trim(), mode: "insensitive" } },
-  });
-  if (existing) throw new ApiError(409, "A staff member with this email already exists");
+  assertRestaurantPath(req);
+  const invitation = await staffAccessService.createInvitation(req.user.restaurantId, req.user, req.body);
+  created(res, invitation);
+});
 
-  const passwordHash = await hashPassword(req.body.password);
-  const user = await prisma.$transaction(async (tx) => {
-    const createdUser = await tx.user.create({
-      data: {
-        restaurantId: req.user.restaurantId,
-        name: req.body.name,
-        email: req.body.email.trim().toLowerCase(),
-        role: "STAFF",
-        roleId: role.id,
-        passwordHash,
-      },
-      select: { id: true, name: true, email: true, role: true, roleId: true, isActive: true, createdAt: true },
-    });
-    await roleService.writeAudit(tx, req.user.restaurantId, req.user.id, "staff.created", "user", createdUser.id, { roleId: role.id });
-    return createdUser;
-  });
-  created(res, { ...user, roleName: role.name, isOwner: false });
+const createStaffInvitation = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const invitation = await staffAccessService.createInvitation(req.user.restaurantId, req.user, req.body);
+  created(res, invitation);
+});
+
+const issueStaffActivationLink = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const result = await staffAccessService.issueAccessLink(
+    req.user.restaurantId, req.params.staffId, req.user.id, staffAccessService.PURPOSE.ACTIVATE, req.body.reason
+  );
+  created(res, result);
+});
+
+const issueStaffPasswordResetLink = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const result = await staffAccessService.issueAccessLink(
+    req.user.restaurantId, req.params.staffId, req.user.id, staffAccessService.PURPOSE.PASSWORD_RESET, req.body.reason
+  );
+  created(res, result);
 });
 
 const updateStaff = asyncHandler(async (req, res) => {
@@ -107,6 +112,13 @@ const updateStaff = asyncHandler(async (req, res) => {
   if (!staffMember) throw new ApiError(404, "Staff member not found");
   const isOwner = staffMember.roleRecord?.name === "OWNER" || (!staffMember.roleRecord && staffMember.role === "ADMIN");
   if (isOwner) throw new ApiError(403, "The owner account cannot be changed here");
+  if (req.body.isActive === true && !staffMember.isActive) {
+    const pendingInvite = await prisma.restaurantStaffAccessLink.findUnique({
+      where: { userId_purpose: { userId: staffMember.id, purpose: "ACTIVATE" } },
+      select: { consumedAt: true },
+    });
+    if (pendingInvite && !pendingInvite.consumedAt) throw new ApiError(409, "This team member must activate through their setup link.");
+  }
   if (req.params.id === req.user.id && req.body.roleId !== undefined && !req.user.isOwner) {
     throw new ApiError(403, "You cannot change your own role");
   }
@@ -115,9 +127,10 @@ const updateStaff = asyncHandler(async (req, res) => {
   if (req.body.roleId !== undefined) {
     if (!req.user.permissions.includes("staff.roles.manage")) throw new ApiError(403, "You cannot assign roles");
     const role = req.body.roleId
-      ? await prisma.role.findFirst({ where: { id: req.body.roleId, restaurantId: req.user.restaurantId } })
-      : await prisma.role.findFirst({ where: { restaurantId: req.user.restaurantId, name: "STAFF", isSystem: true } });
+      ? await prisma.role.findFirst({ where: { id: req.body.roleId, restaurantId: req.user.restaurantId }, include: { permissions: { include: { permission: { select: { key: true } } } } } })
+      : await prisma.role.findFirst({ where: { restaurantId: req.user.restaurantId, name: "STAFF", isSystem: true }, include: { permissions: { include: { permission: { select: { key: true } } } } } });
     if (!role || role.name === "OWNER") throw new ApiError(400, "Choose a valid staff role");
+    roleService.assertPermissionSubset(role.permissions.map((entry) => entry.permission.key), req.user.permissions);
     data.roleId = role.id;
     data.role = "STAFF";
   }
@@ -128,6 +141,12 @@ const updateStaff = asyncHandler(async (req, res) => {
       data,
       select: { id: true, name: true, email: true, role: true, roleId: true, isActive: true, createdAt: true },
     });
+    if (data.isActive === false && staffMember.isActive) {
+      await tx.restaurantStaffAccessLink.updateMany({
+        where: { restaurantId: req.user.restaurantId, userId: member.id, consumedAt: null },
+        data: { consumedAt: new Date() },
+      });
+    }
     await roleService.writeAudit(tx, req.user.restaurantId, req.user.id, "staff.updated", "user", member.id, {
       ...(data.roleId ? { roleId: data.roleId } : {}),
       ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
@@ -148,5 +167,8 @@ module.exports = {
   generateRestaurantQr,
   listStaff,
   createStaff,
+  createStaffInvitation,
+  issueStaffActivationLink,
+  issueStaffPasswordResetLink,
   updateStaff,
 };

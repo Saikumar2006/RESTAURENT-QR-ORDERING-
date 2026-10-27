@@ -70,7 +70,12 @@ async function getAdminMenu(restaurantId) {
   const categories = await prisma.category.findMany({
     where: { restaurantId },
     orderBy: { displayOrder: "asc" },
-    include: { menuItems: { orderBy: { displayOrder: "asc" } } },
+    include: {
+      menuItems: {
+        orderBy: { displayOrder: "asc" },
+        include: { recipeComponents: { include: { inventoryItem: { select: { id: true, name: true, baseUnit: true } } } } },
+      },
+    },
   });
   return categories;
 }

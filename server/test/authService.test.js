@@ -58,6 +58,11 @@ test("existing email/password login still issues the tenant JWT response", async
         roleName: "OWNER",
         permissions: ["*"],
         restaurantId: "restaurant-1",
+      preferredLanguage: "en",
+      subscriptionStatus: "LEGACY",
+      subscriptionEndsAt: null,
+      subscriptionGraceEndsAt: null,
+      subscriptionAccess: true,
       },
     }
   );

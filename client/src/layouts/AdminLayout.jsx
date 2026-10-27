@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/AuthContext.jsx";
 import { joinRestaurantRoom } from "../sockets/socket";
+import { LanguageSwitcher, useTranslation } from "../i18n.jsx";
 
 const NAV = [
   { to: "/admin", label: "Overview", end: true, mark: "O" },
@@ -9,11 +10,13 @@ const NAV = [
   { to: "/admin/integrations", label: "Integrations", mark: "I" },
   { to: "/admin/tables", label: "Tables", mark: "T" },
   { to: "/admin/menu", label: "Menu", mark: "M" },
+  { to: "/admin/inventory", label: "Inventory", mark: "S" },
   { to: "/admin/coupons", label: "Promotions", adminOnly: true, mark: "%" },
   { to: "/admin/reports", label: "Analytics", mark: "↗" },
   { to: "/admin/staff", label: "Team", adminOnly: true, mark: "U" },
   { to: "/admin/settings", label: "Settings", adminOnly: true, mark: "S" },
   { to: "/admin/appearance", label: "Website appearance", adminOnly: true, mark: "W" },
+  { to: "/admin/billing", label: "Subscription", key: "settings", adminOnly: true, mark: "$" },
 ];
 
 const PAGE_TITLES = {
@@ -22,11 +25,20 @@ const PAGE_TITLES = {
   "/admin/integrations": "Marketplace integrations",
   "/admin/tables": "Tables",
   "/admin/menu": "Menu",
+  "/admin/inventory": "Inventory",
   "/admin/coupons": "Promotions",
   "/admin/reports": "Analytics",
   "/admin/staff": "Team",
   "/admin/settings": "Settings",
   "/admin/appearance": "Website appearance",
+  "/admin/billing": "Subscription",
+};
+
+const NAV_TRANSLATION_KEYS = {
+  Overview: "overview", Orders: "orders", Integrations: "integrations", Tables: "tables", Menu: "menu",
+  Inventory: "inventory", Promotions: "promotions", Analytics: "analytics", Team: "team", Settings: "settings",
+  "Website appearance": "appearance",
+  Subscription: "subscription",
 };
 
 const NAV_PERMISSIONS = {
@@ -35,6 +47,7 @@ const NAV_PERMISSIONS = {
   "/admin/integrations": "orders.view",
   "/admin/tables": "tables.view",
   "/admin/menu": "menu.view",
+  "/admin/inventory": "inventory.view",
   "/admin/coupons": "coupons.view",
   "/admin/reports": "analytics.view",
   "/admin/staff": "staff.view",
@@ -52,12 +65,14 @@ function canAccessNav(item, permissions = []) {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const pageTitle = PAGE_TITLES[location.pathname] || "Restaurant operations";
-  const availableNavigation = NAV.filter((item) => canAccessNav(item, user?.permissions));
+  const currentNavLabel = NAV.find((item) => item.to === location.pathname)?.label;
+  const pageTitle = (currentNavLabel && t(NAV_TRANSLATION_KEYS[currentNavLabel])) || PAGE_TITLES[location.pathname] || "Restaurant operations";
+  const availableNavigation = NAV.filter((item) => (!item.adminOnly || user?.role === "ADMIN") && canAccessNav(item, user?.permissions));
 
   useEffect(() => {
     const token = localStorage.getItem("qr_ordering_token");
@@ -95,7 +110,7 @@ export default function AdminLayout() {
             {availableNavigation.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} title={collapsed ? n.label : undefined} className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}>
                 <span className="nav-mark" aria-hidden="true">{n.mark}</span>
-                {!collapsed && <span>{n.label}</span>}
+                {!collapsed && <span>{t(NAV_TRANSLATION_KEYS[n.label])}</span>}
                 {n.label === "Orders" && !collapsed && <span className="ml-auto nav-count">Live</span>}
               </NavLink>
             ))}
@@ -107,7 +122,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-white/[0.06]">
             <div className="user-avatar">{user?.name?.trim()?.[0]?.toUpperCase() || "R"}</div>
             {!collapsed && <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-white">{user?.name}</p><p className="text-[10px] text-white/45">{user?.roleName || (user?.role === "ADMIN" ? "OWNER" : "STAFF")}</p></div>}
-            {!collapsed && <button onClick={handleLogout} className="text-[11px] text-white/50 hover:text-white">Sign out</button>}
+            {!collapsed && <button onClick={handleLogout} className="text-[11px] text-white/50 hover:text-white">{t("signOut")}</button>}
           </div>
           <button className="collapse-control hidden lg:block" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>{collapsed ? "→" : "←　Collapse"}</button>
         </div>
@@ -116,10 +131,15 @@ export default function AdminLayout() {
       <div className="min-w-0 flex-1">
         <header className="admin-topbar">
           <div className="flex min-w-0 items-center gap-3">
-            <button className="mobile-menu-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation">☰</button>
+            <button className="mobile-menu-button lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation" aria-expanded={mobileOpen}>☰</button>
             <div><p className="text-[10px] uppercase tracking-[0.14em] text-charcoal/40">Restaurant workspace</p><h1 className="text-base font-semibold text-charcoal">{pageTitle}</h1></div>
           </div>
-          <div className="flex items-center gap-3"><span className="hidden text-xs text-charcoal/45 sm:block">{user?.roleName || (user?.role === "ADMIN" ? "OWNER" : "STAFF")}</span><div className="user-avatar user-avatar-light">{user?.name?.trim()?.[0]?.toUpperCase() || "R"}</div></div>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher className="admin-language-switcher" />
+            <span className="hidden text-xs text-charcoal/45 sm:block">{user?.roleName || (user?.role === "ADMIN" ? "OWNER" : "STAFF")}</span>
+            <button className="mobile-menu-button hidden lg:grid" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} title={collapsed ? "Expand navigation" : "Collapse navigation"}>☰</button>
+            <div className="user-avatar user-avatar-light">{user?.name?.trim()?.[0]?.toUpperCase() || "R"}</div>
+          </div>
         </header>
         <main className="min-w-0"><Outlet /></main>
       </div>

@@ -68,6 +68,8 @@ async function listRestaurants() {
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { users: true, tables: true, menuItems: true, orders: true } },
+      users: { where: { role: "ADMIN" }, select: { isActive: true }, take: 1 },
+      platformInvites: { where: { consumedAt: null }, select: { id: true }, take: 1 },
     },
   });
 
@@ -85,6 +87,7 @@ async function listRestaurants() {
     name: r.name,
     slug: r.slug,
     status: r.status,
+    ownerSetupPending: r.users.some((user) => !user.isActive) && r.platformInvites.length > 0,
     cuisineType: r.cuisineType,
     isOpenNow: isRestaurantOpenNow(r),
     geofenceEnabled: r.geofenceEnabled,

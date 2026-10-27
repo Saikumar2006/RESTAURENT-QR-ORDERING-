@@ -6,6 +6,7 @@ import { CartProvider } from "./store/CartContext.jsx";
 import { AuthProvider } from "./store/AuthContext.jsx";
 import { PlatformAuthProvider } from "./store/PlatformAuthContext.jsx";
 import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
+import { LanguageProvider } from "./i18n.jsx";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -16,11 +17,13 @@ if (rootElement) {
       <AppErrorBoundary>
         <BrowserRouter>
           <AuthProvider>
-            <PlatformAuthProvider>
-              <CartProvider>
-                <App />
-              </CartProvider>
-            </PlatformAuthProvider>
+            <LanguageProvider>
+              <PlatformAuthProvider>
+                <CartProvider>
+                  <App />
+                </CartProvider>
+              </PlatformAuthProvider>
+            </LanguageProvider>
           </AuthProvider>
         </BrowserRouter>
       </AppErrorBoundary>

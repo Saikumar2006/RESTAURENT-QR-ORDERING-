@@ -23,7 +23,7 @@ test("today operations query only the tenant's local business day and return fiv
     order: {
       async count(query) { calls.push(["count", query]); return 8; },
       async aggregate(query) { calls.push(["aggregate", query]); return { _sum: { totalAmount: 725.5 } }; },
-      async findMany(query) { calls.push(["findMany", query]); return [{ id: "o5" }, { id: "o4" }, { id: "o3" }, { id: "o2" }, { id: "o1" }]; },
+      async findMany(query) { calls.push(["findMany", query]); return query.distinct ? [{ tableId: "table-a" }] : [{ id: "o5" }, { id: "o4" }, { id: "o3" }, { id: "o2" }, { id: "o1" }]; },
     },
   };
 
@@ -32,6 +32,7 @@ test("today operations query only the tenant's local business day and return fiv
   assert.equal(result.timeZone, "Asia/Kolkata");
   assert.deepEqual(result.summary, { orderCount: 8, paidRevenue: 725.5 });
   assert.equal(result.recentOrders.length, 5);
+  assert.deepEqual(result.occupiedTableIds, ["table-a"]);
   assert.equal(calls[1][1].where.restaurantId, "restaurant-a");
   assert.equal(calls[1][1].where.createdAt.gte.toISOString(), "2026-01-01T18:30:00.000Z");
   assert.equal(calls[1][1].where.createdAt.lt.toISOString(), "2026-01-02T18:30:00.000Z");

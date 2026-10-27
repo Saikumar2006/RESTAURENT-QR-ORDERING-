@@ -9,7 +9,7 @@ async function getTodayOperations(restaurantId, now = new Date(), database = pri
   const timeZone = restaurant.timezone || "Asia/Kolkata";
   const { dateKey, start, end } = getZonedDayBounds(now, timeZone);
   const where = { restaurantId, createdAt: { gte: start, lt: end } };
-  const [orderCount, paidTotals, recentOrders] = await Promise.all([
+  const [orderCount, paidTotals, recentOrders, occupiedTables] = await Promise.all([
     database.order.count({ where }),
     database.order.aggregate({ where: { ...where, paymentStatus: "PAID" }, _sum: { totalAmount: true } }),
     database.order.findMany({
@@ -27,9 +27,14 @@ async function getTodayOperations(restaurantId, now = new Date(), database = pri
         table: { select: { tableNumber: true } },
       },
     }),
+    database.order.findMany({
+      where: { restaurantId, orderType: "DINE_IN", tableId: { not: null }, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+      distinct: ["tableId"],
+      select: { tableId: true },
+    }),
   ]);
 
-  return { businessDate: dateKey, timeZone, summary: { orderCount, paidRevenue: Number(paidTotals._sum.totalAmount || 0) }, recentOrders };
+  return { businessDate: dateKey, timeZone, summary: { orderCount, paidRevenue: Number(paidTotals._sum.totalAmount || 0) }, recentOrders, occupiedTableIds: occupiedTables.map(({ tableId }) => tableId) };
 }
 
 function isDateKey(value) {

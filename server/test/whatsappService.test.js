@@ -1,5 +1,5 @@
-const assert = require("node:assert/strict");
 const { afterEach, test } = require("node:test");
+const assert = require("node:assert/strict");
 
 process.env.JWT_SECRET = "test-only-secret-with-enough-entropy";
 process.env.WHATSAPP_PHONE_NUMBER_ID = "123456789";
@@ -16,6 +16,73 @@ const whatsappService = require("../src/services/whatsappService");
 afterEach(() => {
   global.fetch = originalFetch;
   console.error = originalConsoleError;
+});
+
+const config = {
+  whatsappPhoneNumberId: "phone-id-safe",
+  whatsappBusinessAccountId: "business-id-safe",
+  whatsappAccessToken: "secret-token-must-not-return",
+  whatsappOtpTemplateName: "svaadya_otp",
+  whatsappApiVersion: "v22.0",
+};
+
+test("WhatsApp status exposes only readiness and never credential values", () => {
+  const status = whatsappService.getConnectionStatus(config);
+  assert.equal(status.configured, true);
+  assert.equal(status.senderConfigured, true);
+  assert.equal(status.businessAccountConfigured, true);
+  assert.equal(status.credentialConfigured, true);
+  assert.equal(status.templateName, "svaadya_otp");
+  assert.equal(status.connectionStatus, "NOT_TESTED");
+  assert.equal(JSON.stringify(status).includes(config.whatsappAccessToken), false);
+  const missing = whatsappService.getConnectionStatus({ ...config, whatsappAccessToken: "" });
+  assert.equal(missing.configured, false);
+  assert.ok(missing.missing.includes("WHATSAPP_ACCESS_TOKEN"));
+});
+
+test("connection test checks sender and named template with read-only Meta requests", async () => {
+  const requests = [];
+  const responses = [
+    { display_phone_number: "+919876543210", verified_name: "Svaadya", quality_rating: "GREEN" },
+    { data: [{ name: "svaadya_otp", status: "APPROVED", language: "en_US" }] },
+  ];
+  const result = await whatsappService.testConnection(async (url, options) => {
+    requests.push({ url: new URL(url), options });
+    return { ok: true, async json() { return responses.shift(); } };
+  }, config);
+
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every(({ options }) => options.method === "GET"));
+  assert.ok(requests.every(({ options }) => options.headers.Authorization === `Bearer ${config.whatsappAccessToken}`));
+  assert.equal(requests[0].url.pathname, "/v22.0/phone-id-safe");
+  assert.equal(requests[1].url.pathname, "/v22.0/business-id-safe/message_templates");
+  assert.equal(requests[1].url.searchParams.get("name"), config.whatsappOtpTemplateName);
+  assert.equal(result.connectionStatus, "CONNECTED");
+  assert.equal(result.templateStatus, "APPROVED");
+  assert.equal(result.senderPhoneMasked, "+••••••••3210");
+  assert.equal(JSON.stringify(result).includes(config.whatsappAccessToken), false);
+});
+
+test("provider errors return sanitized status metadata without Meta text or secrets", async () => {
+  await assert.rejects(whatsappService.testConnection(async () => ({
+    ok: false,
+    status: 403,
+    async json() { return { error: { message: `bad ${config.whatsappAccessToken}`, code: 10, fbtrace_id: "trace-safe" } }; },
+  }), config), (error) => {
+    assert.equal(error.status, 502);
+    assert.equal(error.details.status, 403);
+    assert.equal(error.details.code, 10);
+    assert.equal(error.details.traceId, "trace-safe");
+    assert.equal(JSON.stringify(error.details).includes(config.whatsappAccessToken), false);
+    assert.equal(error.message.includes(config.whatsappAccessToken), false);
+    return true;
+  });
+});
+
+test("unconfigured WhatsApp cannot trigger an external connection request", async () => {
+  let called = false;
+  await assert.rejects(whatsappService.testConnection(async () => { called = true; }, { ...config, whatsappAccessToken: "" }), { status: 503 });
+  assert.equal(called, false);
 });
 
 test("sends an approved authentication template with Meta's body and copy-code button parameters", async () => {

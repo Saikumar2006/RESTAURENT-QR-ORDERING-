@@ -46,10 +46,11 @@ export default function AdminDashboard() {
   const { orders, analytics, tables, todayOperations } = data;
   const activeOrders = orders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status));
   const today = { revenue: todayOperations.summary.paidRevenue, orders: todayOperations.summary.orderCount };
-  const activeTableIds = new Set(activeOrders.map((order) => order.tableId).filter(Boolean));
+  const activeTableIds = new Set(todayOperations.occupiedTableIds || []);
   const activeTables = tables.filter((table) => table.isActive);
   const occupiedTables = activeTables.filter((table) => activeTableIds.has(table.id)).length;
   const maxRevenue = Math.max(...analytics.daily.map((day) => day.revenue), 1);
+  const maxOrders = Math.max(...analytics.daily.map((day) => day.orders), 1);
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
 
   function applyDateRange(event) {
@@ -106,14 +107,15 @@ export default function AdminDashboard() {
                 {analytics.daily.map((day) => (
                   <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                     <span className="text-[10px] tabular-nums text-charcoal/45">{day.revenue ? `₹${Math.round(day.revenue)}` : ""}</span>
-                    <div className="flex h-28 w-full items-end justify-center">
-                      <div className="w-7 max-w-[70%] rounded-t-sm bg-clove/80 transition-all" style={{ height: `${Math.max(day.revenue ? 8 : 2, (day.revenue / maxRevenue) * 100)}%` }} title={`${day.date}: ₹${day.revenue.toFixed(2)}`} />
+                    <div className="flex h-28 w-full items-end justify-center gap-1" aria-label={`${day.date}: ${day.orders} orders and revenue ₹${day.revenue.toFixed(2)}`}>
+                      <div className="w-3 max-w-[35%] rounded-t-sm bg-clove/80 transition-all" style={{ height: `${Math.max(day.revenue ? 8 : 2, (day.revenue / maxRevenue) * 100)}%` }} title={`${day.date}: revenue ₹${day.revenue.toFixed(2)}`} />
+                      <div className="w-3 max-w-[35%] rounded-t-sm bg-marigold transition-all" style={{ height: `${Math.max(day.orders ? 8 : 2, (day.orders / maxOrders) * 100)}%` }} title={`${day.date}: ${day.orders} orders`} />
                     </div>
                     <span className="text-[10px] text-charcoal/45">{new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })}</span>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-charcoal/50">7-day paid revenue <strong className="ml-1 font-semibold text-charcoal">₹{Number(analytics.summary.paidRevenue).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</strong></p>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-charcoal/50"><p><span className="mr-2 inline-block h-2 w-2 rounded-sm bg-clove" />Paid revenue <span className="ml-2 mr-2 inline-block h-2 w-2 rounded-sm bg-marigold" />Orders</p><p>Paid revenue <strong className="ml-1 font-semibold text-charcoal">₹{Number(analytics.summary.paidRevenue).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</strong></p></div>
             </div>
           )}
         </div>

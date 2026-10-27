@@ -31,6 +31,10 @@ export default function AdminSettings() {
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState(null);
   const [paymentProvider, setPaymentProvider] = useState(null);
+  const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [whatsappCheck, setWhatsappCheck] = useState(null);
+  const [whatsappError, setWhatsappError] = useState(null);
+  const [checkingWhatsapp, setCheckingWhatsapp] = useState(false);
 
   useEffect(() => {
     api.get(`/restaurants/${user.restaurantId}`).then((r) => {
@@ -62,6 +66,25 @@ export default function AdminSettings() {
   useEffect(() => {
     api.get("/payments/provider-status").then(setPaymentProvider).catch(() => setPaymentProvider(null));
   }, []);
+
+  useEffect(() => {
+    api.get(`/restaurants/${user.restaurantId}/integrations/whatsapp/status`)
+      .then(setWhatsappStatus)
+      .catch((err) => setWhatsappError(err.message));
+  }, [user.restaurantId]);
+
+  async function testWhatsAppConnection() {
+    setCheckingWhatsapp(true);
+    setWhatsappError(null);
+    setWhatsappCheck(null);
+    try {
+      setWhatsappCheck(await api.post(`/restaurants/${user.restaurantId}/integrations/whatsapp/test`, {}));
+    } catch (err) {
+      setWhatsappError(err.message);
+    } finally {
+      setCheckingWhatsapp(false);
+    }
+  }
 
   function useMyLocation() {
     setLocateError(null);
@@ -133,7 +156,7 @@ export default function AdminSettings() {
   if (!form) return <Spinner label="Loading settings..." />;
 
   return (
-    <div className="p-8 max-w-lg">
+    <div className="mx-auto max-w-7xl space-y-6 p-5 md:p-8">
       <h1 className="font-display text-3xl mb-1">Settings</h1>
       <p className="text-sm text-charcoal/50 mb-6">
         These apply to every order, on top of any coupon a customer might use at checkout.
@@ -143,7 +166,30 @@ export default function AdminSettings() {
 
       {paymentProvider && <section className="card mb-4 p-5"><h2 className="text-sm font-semibold">Food payment gateway</h2><p className="mt-2 text-xs text-charcoal/60">{paymentProvider.available ? `${paymentProvider.provider} is available using platform-configured credentials.` : "Online payments are not configured."} {paymentProvider.mode === "development_test_only" ? "Test mode is development-only." : ""}</p><p className="mt-2 text-xs text-charcoal/50">This restaurant does not have a linked gateway account in the current setup. Do not use this configuration for marketplace settlement or assume funds route directly to this restaurant.</p></section>}
 
-      <div className={`card p-6 mb-4 border-l-4 ${form.isOpen ? "border-emerald-500" : "border-red-500"}`}>
+      <section className="card mb-4 space-y-4 p-5 md:p-6" aria-labelledby="whatsapp-settings-title">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><p className="text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">Messaging connection</p><h2 id="whatsapp-settings-title" className="mt-1 text-sm font-semibold">WhatsApp Business OTP</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-charcoal/55">This is Svaadya's platform-managed Meta Cloud API used for phone verification. Secrets stay in server environment settings and are never returned to this page. Restaurant order notifications use the configured messaging provider separately.</p></div>
+          <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${whatsappCheck?.connectionStatus === "CONNECTED" ? "bg-emerald-50 text-emerald-800" : whatsappStatus?.configured ? "bg-amber-50 text-amber-800" : "bg-charcoal/5 text-charcoal/60"}`}>{whatsappCheck?.connectionStatus || (whatsappStatus?.configured ? "Not tested" : "Not configured")}</span>
+        </div>
+        {whatsappStatus && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <WhatsAppFact label="Provider" value={whatsappStatus.provider} />
+          <WhatsAppFact label="Sender ID" value={whatsappStatus.senderConfigured ? "Configured · hidden" : "Not configured"} />
+          <WhatsAppFact label="Business account" value={whatsappStatus.businessAccountConfigured ? "Configured · hidden" : "Not configured"} />
+          <WhatsAppFact label="OTP template" value={whatsappStatus.templateName || "Not configured"} />
+          <WhatsAppFact label="Credential" value={whatsappStatus.credentialConfigured ? "Stored server-side · hidden" : "Not configured"} />
+          <WhatsAppFact label="Template status" value={whatsappCheck?.templateStatus || whatsappStatus.templateStatus} />
+          {whatsappCheck?.senderPhoneMasked && <WhatsAppFact label="Sender phone" value={whatsappCheck.senderPhoneMasked} />}
+          {whatsappCheck?.verifiedName && <WhatsAppFact label="Verified business name" value={whatsappCheck.verifiedName} />}
+        </div>}
+        {whatsappStatus?.missing?.length > 0 && <p className="text-xs text-amber-800">Missing server settings: {whatsappStatus.missing.join(", ")}</p>}
+        {whatsappStatus?.invalid?.length > 0 && <p className="text-xs text-amber-800">Invalid server settings: {whatsappStatus.invalid.join(", ")}</p>}
+        {whatsappError && <ErrorBanner message={whatsappError} />}
+        {whatsappCheck?.qualityRating && <p className="text-xs text-charcoal/55">Meta phone quality: {whatsappCheck.qualityRating} · checked {new Date(whatsappCheck.checkedAt).toLocaleString()}</p>}
+        <div className="flex flex-wrap items-center gap-3"><button className="btn-secondary text-xs" type="button" onClick={testWhatsAppConnection} disabled={checkingWhatsapp || !whatsappStatus?.configured}>{checkingWhatsapp ? "Checking connection..." : "Test WhatsApp connection"}</button><span className="text-[11px] text-charcoal/45">Performs read-only checks for sender access and OTP template approval.</span></div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+      <div className={`card p-6 border-l-4 ${form.isOpen ? "border-emerald-500" : "border-red-500"}`}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">{form.isOpen ? "Restaurant is open" : "Restaurant is closed"}</p>
@@ -179,7 +225,7 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      <div className="card p-6 mb-4">
+      <div className="card p-6">
         <div className="flex items-center justify-between mb-1">
           <div>
             <p className="text-sm font-medium">In-restaurant ordering only</p>
@@ -221,7 +267,7 @@ export default function AdminSettings() {
         )}
       </div>
 
-      <div className="card p-6 mb-4">
+      <div className="card p-6">
         <div className="flex items-center justify-between mb-1">
           <div>
             <p className="text-sm font-medium">Require phone verification</p>
@@ -253,7 +299,7 @@ export default function AdminSettings() {
         )}
       </div>
 
-      <form onSubmit={save} className="card p-6 space-y-4">
+      <form onSubmit={save} className="card grid gap-4 p-6 md:grid-cols-2">
         <div>
           <label className="text-xs text-charcoal/50 block mb-1">Restaurant name</label>
           <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -291,7 +337,7 @@ export default function AdminSettings() {
             onChange={(e) => setForm({ ...form, serviceChargePercent: e.target.value })}
           />
         </div>
-        <div className={form.discountEnabled ? "" : "opacity-50"}>
+        <div className={`md:col-span-2 ${form.discountEnabled ? "" : "opacity-50"}`}>
           <div className="flex items-center justify-between pt-2 border-t border-charcoal/10 mb-3">
             <div>
               <p className="text-sm font-medium">Default order discount</p>
@@ -319,20 +365,25 @@ export default function AdminSettings() {
             <span>100%</span>
           </div>
         </div>
-        <div className="flex items-center justify-between pt-2 border-t border-charcoal/10">
+        <div className="flex items-center justify-between border-t border-charcoal/10 pt-2 md:col-span-2">
           <div>
             <p className="text-sm font-medium">Menu search bar</p>
             <p className="text-xs text-charcoal/50">Let customers search the menu by name from their phone</p>
           </div>
           <Toggle checked={form.searchEnabled} onChange={(v) => setForm({ ...form, searchEnabled: v })} />
         </div>
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-2 md:col-span-2">
           <button className="btn-primary" type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save changes"}
           </button>
           {saved && <span className="text-sm text-emerald-600">Saved.</span>}
         </div>
       </form>
+      </div>
     </div>
   );
+}
+
+function WhatsAppFact({ label, value }) {
+  return <div className="rounded-lg bg-[#f7f8f5] p-3"><p className="text-[10px] uppercase tracking-wide text-charcoal/45">{label}</p><p className="mt-1 break-words text-xs font-medium text-charcoal/80">{value}</p></div>;
 }

@@ -2,6 +2,8 @@ const { verifyToken } = require("../utils/auth");
 const { fail } = require("../utils/http");
 const prisma = require("../config/db");
 const { PERMISSIONS_BY_ROLE } = require("../services/roleService");
+const platformRoleService = require("../services/platformRoleService");
+const env = require("../config/env");
 
 // Requires a valid Bearer token. Attaches req.user = { id, restaurantId, role }.
 // This is the ONLY source of truth for restaurantId on authenticated routes —
@@ -19,11 +21,23 @@ async function requireAuth(req, res, next) {
       where: { id: payload.sub },
       include: {
         roleRecord: { include: { permissions: { include: { permission: true } } } },
-        restaurant: { select: { status: true } },
+        restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
       },
     });
     if (!user || !user.isActive || user.restaurant?.status !== "ACTIVE") {
       return fail(res, 401, "Invalid or expired session");
+    }
+    const subscription = user.restaurant?.subscriptions?.[0] || null;
+    if (subscription) {
+      const now = new Date();
+      const entitled = subscription.status === "GRANDFATHERED"
+        || (subscription.status === "ACTIVE" && subscription.endsAt > now)
+        || (subscription.status === "TRIALING" && subscription.trialEndsAt && subscription.trialEndsAt > now)
+        || (subscription.status === "PAST_DUE" && subscription.graceEndsAt && subscription.graceEndsAt > now);
+      if (!entitled) {
+        const recoveryPath = req.originalUrl.startsWith("/api/auth/me") || req.originalUrl.startsWith("/api/subscriptions/");
+        if (!recoveryPath) return fail(res, 402, "The restaurant subscription has expired. Contact the account owner to renew.");
+      }
     }
 
     const role = user.roleRecord;
@@ -43,6 +57,14 @@ async function requireAuth(req, res, next) {
       isOwner,
       name: user.name,
       email: user.email,
+      preferredLanguage: user.preferredLanguage || "en",
+      subscriptionStatus: subscription?.status || "LEGACY",
+      subscriptionEndsAt: subscription?.endsAt || null,
+      subscriptionGraceEndsAt: subscription?.graceEndsAt || null,
+      subscriptionAccess: !subscription || subscription.status === "GRANDFATHERED"
+        || (subscription.status === "ACTIVE" && subscription.endsAt > new Date())
+        || (subscription.status === "TRIALING" && subscription.trialEndsAt && subscription.trialEndsAt > new Date())
+        || (subscription.status === "PAST_DUE" && subscription.graceEndsAt && subscription.graceEndsAt > new Date()),
     };
     next();
   } catch (err) {
@@ -108,7 +130,8 @@ async function requirePlatformAuth(req, res, next) {
     const admin = await prisma.platformAdmin.findUnique({ where: { id: payload.sub } });
     if (!admin || !admin.isActive) return fail(res, 401, "Invalid or expired session");
 
-    req.platformAdmin = { id: admin.id, name: admin.name, email: admin.email };
+    const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
+    req.platformAdmin = { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions };
     res.setHeader("Cache-Control", "no-store");
     next();
   } catch (err) {
@@ -116,4 +139,12 @@ async function requirePlatformAuth(req, res, next) {
   }
 }
 
-module.exports = { requireAuth, requireRole, requirePermission, optionalAuth, requirePlatformAuth };
+function requirePlatformPermission(...permissions) {
+  return (req, res, next) => {
+    const granted = req.platformAdmin?.permissions || [];
+    if (permissions.some((permission) => granted.includes(permission))) return next();
+    return fail(res, 403, "You do not have permission to perform this action");
+  };
+}
+
+module.exports = { requireAuth, requireRole, requirePermission, optionalAuth, requirePlatformAuth, requirePlatformPermission };

@@ -42,6 +42,14 @@ const whatsappBusinessAccountId = required("WHATSAPP_BUSINESS_ACCOUNT_ID", "");
 const whatsappAccessToken = required("WHATSAPP_ACCESS_TOKEN", "");
 const whatsappOtpTemplateName = required("WHATSAPP_OTP_TEMPLATE_NAME", "");
 const whatsappApiVersion = required("WHATSAPP_API_VERSION", "");
+const subscriptionPricingJson = required("SAAS_PLAN_PRICING_JSON", "");
+const subscriptionTrialDays = Math.max(0, Math.min(30, Number.parseInt(required("SAAS_TRIAL_DAYS", "0"), 10) || 0));
+const subscriptionGraceDays = Math.max(0, Math.min(30, Number.parseInt(required("SAAS_GRACE_DAYS", "0"), 10) || 0));
+const subscriptionPendingMinutes = Math.max(5, Math.min(120, Number.parseInt(required("SAAS_PENDING_MINUTES", "30"), 10) || 30));
+const saasPaymentProvider = required("SAAS_PAYMENT_PROVIDER", "unconfigured");
+const saasRazorpayKeyId = required("SAAS_RAZORPAY_KEY_ID", "");
+const saasRazorpayKeySecret = required("SAAS_RAZORPAY_KEY_SECRET", "");
+const saasRazorpayWebhookSecret = required("SAAS_RAZORPAY_WEBHOOK_SECRET", "");
 
 if (nodeEnv === "production" && !googleCallbackUrl.startsWith("https://")) {
   throw new Error("GOOGLE_CALLBACK_URL must use HTTPS in production");
@@ -99,6 +107,21 @@ module.exports = {
   whatsappAccessToken,
   whatsappOtpTemplateName,
   whatsappApiVersion,
+  platformSuperAdminEmails: required("PLATFORM_SUPER_ADMIN_EMAILS", ""),
+  subscriptionPricingJson,
+  subscriptionTrialDays,
+  subscriptionGraceDays,
+  subscriptionPendingMinutes,
+  saasPaymentProvider,
+  saasRazorpayKeyId,
+  saasRazorpayKeySecret,
+  saasRazorpayWebhookSecret,
+  companyLegalName: required("COMPANY_LEGAL_NAME", ""),
+  companySupportEmail: required("COMPANY_SUPPORT_EMAIL", ""),
+  companyAddress: required("COMPANY_ADDRESS", ""),
+  companyRegistrationNumber: required("COMPANY_REGISTRATION_NUMBER", ""),
+  aiProvider: required("AI_PROVIDER", "unconfigured"),
+  aiApiKey: required("AI_API_KEY", ""),
   twilioAccountSid: required("TWILIO_ACCOUNT_SID", ""),
   twilioAuthToken: required("TWILIO_AUTH_TOKEN", ""),
   // Twilio's own format, e.g. "whatsapp:+14155238886" and "+14155550123"

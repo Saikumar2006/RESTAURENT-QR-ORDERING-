@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import api from "../services/api";
+import { LanguageSwitcher } from "../i18n.jsx";
 
 const DEFAULT_THEME = {
   preset: "ELEGANT", logoUrl: null, bannerUrl: null,
@@ -40,6 +41,7 @@ export default function CustomerSiteLayout() {
 
   return (
     <div className="customer-site-theme min-h-full" data-layout={theme.layout} style={themeStyle(theme)}>
+      <div className="fixed right-3 top-3 z-40 rounded-lg border border-black/10 bg-white/95 p-1.5 shadow-sm sm:right-5 sm:top-5"><LanguageSwitcher /></div>
       <Outlet context={{ theme }} />
     </div>
   );

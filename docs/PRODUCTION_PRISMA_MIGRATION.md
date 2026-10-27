@@ -94,7 +94,7 @@ Before first production migration:
 
 1. Take a Neon backup/restore point and confirm it can be restored.
 2. Run the SQL above in Neon SQL Editor and review the counts and migration history.
-3. If migration history is absent, compare the current schema with every pending migration; the files use `IF NOT EXISTS` for the additive columns, tables, and indexes, but that is not a substitute for schema review.
+3. If migration history is absent, compare the current schema with every pending migration. Some additive migration statements use `IF NOT EXISTS`; that is not a substitute for schema review or a guarantee that every migration can be safely replayed.
 4. Set `MIGRATION_BACKUP_CONFIRMED=true` for the reviewed deployment. If no migration history exists, also set `MIGRATION_BASELINE_CONFIRMED=true`.
 5. Deploy and confirm Render's build succeeded and the service health check passes. Remove the confirmation values after the migration deployment; set them again only when reviewing a later migration.
 
@@ -102,4 +102,4 @@ RBAC initialization remains available as the separate idempotent command `npm ru
 
 ## Local facts and unresolved production checks
 
-The checked-in repository has four additive migrations but no migration history lock before this change. The local `server/.env` points to loopback PostgreSQL, not Neon; no production duplicate query was run and no production data was changed. `migrate deploy` does not detect unrelated schema drift, so review the live schema against the migration files as part of the first production baseline review. Do not claim a successful Neon check until the SQL above has been run against the production database.
+The repository now tracks ten migrations, including `20261027000000_platform_rbac`, `20261027000001_inventory_and_language`, `20261027000002_subscription_lifecycle`, `20261027000003_platform_restaurant_invites`, `20261027000004_restaurant_staff_access_links`, and `20261027000005_inventory_purchases`. These six recent migrations have not been applied to production. The latest migration creates supplier, purchase, and purchase-line tables with foreign keys and indexes; it does not alter or delete existing inventory, orders, or payments. The migration lock file is present. The local `server/.env` points to loopback PostgreSQL, not Neon; no production duplicate query was run and no production data was changed. `migrate deploy` does not detect unrelated schema drift, so review the live schema against the migration files as part of the first production baseline review. Do not claim a successful Neon check until the SQL above has been run against the production database.

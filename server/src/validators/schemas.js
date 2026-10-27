@@ -17,6 +17,28 @@ const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+const onboardingBaseSchema = z.object({
+  restaurantName: z.string().trim().min(2).max(100),
+  cuisineType: z.string().trim().max(60).optional().default(""),
+  adminName: z.string().trim().min(2).max(100),
+  adminEmail: z.string().trim().email().max(254),
+  adminPassword: z.string().min(10).max(128),
+  planKey: z.enum(["BASIC", "STANDARD", "PREMIUM"]),
+});
+const onboardingTrialSchema = onboardingBaseSchema;
+const onboardingCheckoutSchema = onboardingBaseSchema.extend({
+  billingPeriod: z.enum(["MONTHLY", "3_MONTHS", "6_MONTHS", "YEARLY"]),
+});
+const subscriptionVerifySchema = z.object({
+  providerOrderId: z.string().trim().min(1).max(100),
+  providerPaymentId: z.string().trim().min(1).max(100),
+  providerSignature: z.string().trim().min(1).max(200),
+});
+const subscriptionRenewSchema = z.object({ billingPeriod: z.enum(["MONTHLY", "3_MONTHS", "6_MONTHS", "YEARLY"]) });
+const preferredLanguageSchema = z.object({
+  language: z.enum(["en", "hi", "te", "ta", "kn", "ml", "bn", "mr", "gu", "pa", "or"]),
+});
+
 const restaurantCreateSchema = z.object({
   name: z.string().min(2),
   // Optional — leave it out and the server generates a unique URL slug
@@ -112,9 +134,16 @@ const menuItemUpdateSchema = menuItemCreateSchema.partial();
 const staffCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  roleId: z.string().uuid().optional(),
+}).strict();
+
+const staffInvitationSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(254),
   roleId: z.string().uuid().optional(),
 });
+const staffAccessLinkReasonSchema = z.object({ reason: z.string().trim().min(8).max(500) });
+const staffPasswordSetSchema = z.object({ password: z.string().min(10).max(72) });
 
 const staffUpdateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -132,6 +161,85 @@ const roleUpdateSchema = z.object({
   description: z.string().trim().max(200).optional(),
 });
 const rolePermissionsSchema = z.object({ permissions: z.array(z.string().min(1)).max(100) });
+const platformRoleUpdateSchema = z.object({ platformRole: z.enum(["SUPER_ADMIN", "PLATFORM_OPERATIONS", "FINANCE_ADMIN", "SUPPORT_AGENT", "READ_ONLY_AUDITOR"]) });
+const platformRestaurantCreateSchema = z.object({
+  restaurantName: z.string().trim().min(2).max(100),
+  cuisineType: z.string().trim().max(60).optional().default(""),
+  ownerName: z.string().trim().min(2).max(100),
+  ownerEmail: z.string().trim().email().max(254),
+  planKey: z.enum(["BASIC", "STANDARD", "PREMIUM"]),
+  reason: z.string().trim().min(8).max(500),
+});
+const accountActivationSchema = z.object({ password: z.string().min(10).max(72) });
+
+const inventoryConversionSchema = z.object({
+  unitName: z.string().trim().min(1).max(24),
+  multiplierToBase: z.number().positive().max(1_000_000),
+});
+const inventoryItemCreateSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  sku: z.string().trim().max(50).optional().nullable(),
+  baseUnit: z.string().trim().min(1).max(24),
+  initialQuantity: z.number().min(0).max(1_000_000_000).default(0),
+  lowStockThreshold: z.number().min(0).max(1_000_000_000).default(0),
+  conversions: z.array(inventoryConversionSchema).max(20).default([]),
+}).superRefine((data, context) => {
+  const names = data.conversions.map((conversion) => conversion.unitName.toLowerCase());
+  if (new Set(names).size !== names.length || names.includes(data.baseUnit.toLowerCase())) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["conversions"], message: "Use unique conversion units different from the base unit" });
+  }
+});
+const inventoryItemUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  sku: z.string().trim().max(50).optional().nullable(),
+  lowStockThreshold: z.number().min(0).max(1_000_000_000).optional(),
+  isActive: z.boolean().optional(),
+  conversions: z.array(inventoryConversionSchema).max(20).optional(),
+});
+const inventoryMovementSchema = z.object({
+  type: z.enum(["RECEIPT", "ADJUSTMENT", "WASTE"]),
+  quantity: z.number().positive().max(1_000_000_000),
+  direction: z.enum(["ADD", "REMOVE"]).optional(),
+  unit: z.string().trim().max(24).optional(),
+  reason: z.string().trim().min(2).max(200),
+  idempotencyKey: z.string().uuid(),
+}).refine((data) => data.type !== "ADJUSTMENT" || Boolean(data.direction), { message: "Choose whether the adjustment adds or removes stock", path: ["direction"] });
+const inventorySupplierCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  contactName: z.string().trim().max(100).optional().nullable(),
+  email: z.string().trim().email().max(254).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable(),
+});
+const inventorySupplierUpdateSchema = inventorySupplierCreateSchema.partial().extend({
+  isActive: z.boolean().optional(),
+}).refine((data) => Object.keys(data).length > 0, { message: "Update at least one supplier field" });
+const inventoryPurchaseSchema = z.object({
+  supplierId: z.string().uuid().optional().nullable(),
+  invoiceNumber: z.string().trim().max(100).optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable(),
+  purchasedAt: z.string().datetime().optional(),
+  idempotencyKey: z.string().uuid(),
+  lines: z.array(z.object({
+    inventoryItemId: z.string().uuid(),
+    quantity: z.number().positive().max(1_000_000_000),
+    unit: z.string().trim().max(24).optional(),
+    unitCost: z.number().min(0).max(1_000_000_000).optional(),
+  })).min(1).max(100),
+}).superRefine((data, context) => {
+  const ids = data.lines.map((line) => line.inventoryItemId);
+  if (new Set(ids).size !== ids.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["lines"], message: "Each stock item can appear once per purchase" });
+});
+const inventoryReportQuerySchema = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+const recipeComponentsSchema = z.object({
+  components: z.array(z.object({ inventoryItemId: z.string().uuid(), quantityPerItem: z.number().positive().max(1_000_000) })).max(100),
+}).superRefine((data, context) => {
+  const ids = data.components.map((component) => component.inventoryItemId);
+  if (new Set(ids).size !== ids.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["components"], message: "Each ingredient can be listed once" });
+});
 
 const orderCreateSchema = z
   .object({
@@ -267,6 +375,11 @@ const otpVerifySchema = z.object({
 
 module.exports = {
   loginSchema,
+  onboardingTrialSchema,
+  onboardingCheckoutSchema,
+  subscriptionVerifySchema,
+  subscriptionRenewSchema,
+  preferredLanguageSchema,
   restaurantCreateSchema,
   restaurantUpdateSchema,
   tableCreateSchema,
@@ -276,10 +389,24 @@ module.exports = {
   menuItemCreateSchema,
   menuItemUpdateSchema,
   staffCreateSchema,
+  staffInvitationSchema,
+  staffAccessLinkReasonSchema,
+  staffPasswordSetSchema,
   staffUpdateSchema,
   roleCreateSchema,
   roleUpdateSchema,
   rolePermissionsSchema,
+  platformRoleUpdateSchema,
+  platformRestaurantCreateSchema,
+  accountActivationSchema,
+  inventoryItemCreateSchema,
+  inventoryItemUpdateSchema,
+  inventoryMovementSchema,
+  inventorySupplierCreateSchema,
+  inventorySupplierUpdateSchema,
+  inventoryPurchaseSchema,
+  inventoryReportQuerySchema,
+  recipeComponentsSchema,
   orderCreateSchema,
   orderStatusSchema,
   manualOrderCreateSchema,

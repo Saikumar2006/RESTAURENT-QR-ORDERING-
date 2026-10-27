@@ -10,6 +10,7 @@ const { isWithinGeofence } = require("../utils/geo");
 const { verifyToken } = require("../utils/auth");
 const messagingService = require("./messagingService");
 const env = require("../config/env");
+const inventoryService = require("./inventoryService");
 
 // Creates a customer order. Re-reads menu prices/availability from the
 // database rather than trusting anything the client sent for pricing —
@@ -328,10 +329,13 @@ async function updateOrderStatus(restaurantId, orderId, newStatus) {
     throw new ApiError(400, `Cannot move order from ${order.status} to ${newStatus}`);
   }
 
-  const updated = await prisma.order.update({
-    where: { id: orderId },
-    data: { status: newStatus },
-    include: { items: true, table: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const changed = await tx.order.updateMany({ where: { id: orderId, restaurantId, status: order.status }, data: { status: newStatus } });
+    if (changed.count !== 1) throw new ApiError(409, "This order changed while you were updating it. Refresh and retry.");
+    if (newStatus === "ACCEPTED" || newStatus === "CANCELLED") {
+      await inventoryService.applyOrderInventory(restaurantId, orderId, newStatus, tx);
+    }
+    return tx.order.findUnique({ where: { id: orderId }, include: { items: true, table: true } });
   });
 
   emitOrderUpdated(restaurantId, orderSummary(updated));

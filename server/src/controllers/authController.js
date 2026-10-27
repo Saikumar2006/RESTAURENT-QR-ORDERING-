@@ -89,9 +89,18 @@ const me = asyncHandler(async (req, res) => {
   ok(res, req.user);
 });
 
+const updatePreferredLanguage = asyncHandler(async (req, res) => {
+  const user = await require("../config/db").user.update({
+    where: { id: req.user.id, restaurantId: req.user.restaurantId },
+    data: { preferredLanguage: req.body.language },
+    select: { preferredLanguage: true },
+  });
+  ok(res, user);
+});
+
 const registerRestaurant = asyncHandler(async (req, res) => {
   const restaurant = await authService.registerRestaurant(req.body);
   created(res, restaurant);
 });
 
-module.exports = { login, googleStart, googleCallback, me, registerRestaurant };
+module.exports = { login, googleStart, googleCallback, me, registerRestaurant, updatePreferredLanguage };

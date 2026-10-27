@@ -33,6 +33,8 @@ const PERMISSION_DEFINITIONS = [
   ["settings.view", "Settings", "View restaurant settings"],
   ["settings.update", "Settings", "Update restaurant settings"],
   ["audit.view", "Audit log", "View the restaurant audit log"],
+  ["inventory.view", "Inventory", "View stock levels and movement history"],
+  ["inventory.manage", "Inventory", "Create stock items, record movements, and edit recipes"],
 ];
 
 const PERMISSION_KEYS = PERMISSION_DEFINITIONS.map(([key]) => key);
@@ -46,11 +48,13 @@ const PERMISSIONS_BY_ROLE = {
     "analytics.view", "analytics.export",
     "coupons.view", "coupons.create", "coupons.update",
     "staff.view", "staff.create", "staff.update", "restaurant.view", "settings.view", "settings.update",
-    "audit.view",
+    "audit.view", "inventory.view", "inventory.manage",
   ],
   KITCHEN: ["orders.view", "orders.update", "orders.complete"],
   CASHIER: ["orders.view", "orders.create", "payments.view", "payments.reports"],
   STAFF: ["orders.view", "orders.update", "tables.view"],
+  MENU_MANAGER: ["menu.view", "menu.create", "menu.update", "menu.delete"],
+  INVENTORY_MANAGER: ["inventory.view", "inventory.manage", "menu.view"],
 };
 
 const DEFAULT_ROLE_DESCRIPTIONS = {
@@ -59,6 +63,8 @@ const DEFAULT_ROLE_DESCRIPTIONS = {
   KITCHEN: "Kitchen order queue and preparation progress.",
   CASHIER: "Order intake and payment visibility.",
   STAFF: "Assigned operational access for orders and tables.",
+  MENU_MANAGER: "Create and maintain menu sections, items, and classifications.",
+  INVENTORY_MANAGER: "Maintain stock, movements, and optional recipe mappings.",
 };
 
 function getPermissionDefinitions() {
@@ -93,6 +99,18 @@ async function ensureRestaurantRoles(restaurantId, database = prisma) {
         },
         update: {},
       });
+
+      // System role permissions are code-defined. Reconcile their links when
+      // the explicit rbac:backfill command runs so newly added capabilities
+      // reach existing tenants without overwriting custom role permissions.
+      if (role.isSystem) {
+        await tx.rolePermission.deleteMany({ where: { roleId: role.id } });
+        if (permissionKeys.length) {
+          await tx.rolePermission.createMany({
+            data: permissionKeys.map((key) => ({ roleId: role.id, permissionId: permissionRows.get(key) })),
+          });
+        }
+      }
 
       if (role.isSystem && role.name === "OWNER") {
         await tx.user.updateMany({
@@ -158,9 +176,9 @@ async function listRoles(restaurantId) {
   };
 }
 
-async function createRole(restaurantId, actorId, { name, description, permissions }) {
+async function createRole(restaurantId, actorId, { name, description, permissions }, actorPermissions = []) {
   const normalizedName = name.trim().replace(/\s+/g, " ");
-  const normalizedPermissions = normalizePermissions(permissions);
+  const normalizedPermissions = assertPermissionSubset(permissions, actorPermissions);
   try {
     return await prisma.$transaction(async (tx) => {
       const duplicate = await tx.role.findFirst({
@@ -208,8 +226,8 @@ async function updateRole(restaurantId, actorId, roleId, { name, description }) 
   }
 }
 
-async function replaceRolePermissions(restaurantId, actorId, roleId, permissions) {
-  const normalizedPermissions = normalizePermissions(permissions);
+async function replaceRolePermissions(restaurantId, actorId, roleId, permissions, actorPermissions = []) {
+  const normalizedPermissions = assertPermissionSubset(permissions, actorPermissions);
   return prisma.$transaction(async (tx) => {
     const role = await tx.role.findFirst({ where: { id: roleId, restaurantId } });
     if (!role) throw new ApiError(404, "Role not found");
@@ -247,6 +265,17 @@ function normalizePermissions(permissions) {
   const requested = [...new Set(permissions)];
   const invalid = requested.filter((key) => !PERMISSION_KEYS.includes(key));
   if (invalid.length) throw new ApiError(400, "One or more permissions are invalid", { invalid });
+  return requested;
+}
+
+function assertPermissionSubset(permissions, actorPermissions = []) {
+  const requested = normalizePermissions(permissions);
+  if (actorPermissions.includes("*")) return requested;
+  const granted = new Set(actorPermissions);
+  const unauthorized = requested.filter((permission) => !granted.has(permission));
+  if (unauthorized.length) {
+    throw new ApiError(403, "You cannot assign permissions you do not hold", { unauthorized });
+  }
   return requested;
 }
 
@@ -294,6 +323,8 @@ module.exports = {
   PERMISSION_KEYS,
   PERMISSIONS_BY_ROLE,
   getPermissionDefinitions,
+  normalizePermissions,
+  assertPermissionSubset,
   ensureRestaurantRoles,
   getUserAccess,
   listRoles,

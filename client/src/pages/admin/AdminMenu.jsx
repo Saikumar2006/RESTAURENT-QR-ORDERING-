@@ -10,12 +10,14 @@ export default function AdminMenu() {
   const [expandedCategories, setExpandedCategories] = useState(null);
   const [error, setError] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryImageUrl, setNewCategoryImageUrl] = useState("");
   const [categoryImageUploading, setCategoryImageUploading] = useState(false);
   const [categoryImageError, setCategoryImageError] = useState(null);
   const [itemDraft, setItemDraft] = useState(null); // { categoryId, ...fields } or null
   const [itemImageUploading, setItemImageUploading] = useState(false);
   const [itemImageError, setItemImageError] = useState(null);
+  const [aiAssist, setAiAssist] = useState(null);
 
   // Shared by both the category and menu-item image pickers. Validates
   // client-side (type/size) before spending a request, then uploads and
@@ -53,6 +55,7 @@ export default function AdminMenu() {
 
   useEffect(() => {
     refresh();
+    api.get("/ai/menu-assist/status").then(setAiAssist).catch(() => setAiAssist({ available: false, reason: "ai_provider_not_configured" }));
   }, []);
 
   useEffect(() => {
@@ -89,8 +92,24 @@ export default function AdminMenu() {
   }
 
   async function toggleCategory(cat) {
-    await api.put(`/categories/${cat.id}`, { isActive: !cat.isActive });
-    refresh();
+    try {
+      await api.put(`/categories/${cat.id}`, { isActive: !cat.isActive });
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function saveCategory(event) {
+    event.preventDefault();
+    if (!editingCategory?.name.trim()) return;
+    try {
+      await api.put(`/categories/${editingCategory.id}`, { name: editingCategory.name.trim() });
+      setEditingCategory(null);
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function toggleAvailability(item) {
@@ -131,9 +150,13 @@ export default function AdminMenu() {
   if (!categories) return <Spinner label="Loading menu..." />;
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="mx-auto max-w-6xl p-5 md:p-8">
       <h1 className="font-display text-3xl mb-6">Menu Management</h1>
       {error && <ErrorBanner message={error} />}
+      <section className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#dfe5df] bg-white p-4">
+        <div><p className="text-sm font-semibold">AI menu assistant · Premium</p><p className="mt-1 text-xs text-charcoal/55">{aiAssist?.available ? "Ready" : "Disabled until a supported AI provider is selected and connected by the service owner."}</p></div>
+        <button type="button" className="btn-secondary" disabled title="AI provider connection has not been configured">AI autofill unavailable</button>
+      </section>
 
       <form onSubmit={addCategory} className="flex items-center gap-2 mb-8">
         <input className="input" placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
@@ -168,7 +191,14 @@ export default function AdminMenu() {
         {categories.map((cat) => (
           <div key={cat.id} className="card p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <button
+              {editingCategory?.id === cat.id ? (
+                <form onSubmit={saveCategory} className="flex min-w-0 flex-1 items-center gap-2">
+                  <label className="sr-only" htmlFor={`category-name-${cat.id}`}>Section name</label>
+                  <input id={`category-name-${cat.id}`} className="input min-w-0" maxLength={80} required value={editingCategory.name} onChange={(event) => setEditingCategory({ ...editingCategory, name: event.target.value })} />
+                  <button type="submit" className="btn-primary px-3 py-2 text-xs">Save</button>
+                  <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={() => setEditingCategory(null)}>Cancel</button>
+                </form>
+              ) : <button
                 type="button"
                 className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 aria-expanded={expandedCategories?.has(cat.id) || false}
@@ -185,12 +215,13 @@ export default function AdminMenu() {
                   <span className="block text-xs text-charcoal/45">{cat.menuItems.length} {cat.menuItems.length === 1 ? "item" : "items"}</span>
                 </span>
                 <span aria-hidden="true" className={`ml-1 text-xs text-charcoal/45 transition-transform ${expandedCategories?.has(cat.id) ? "rotate-180" : ""}`}>⌄</span>
-              </button>
+              </button>}
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-xs text-charcoal/60">
                   <input type="checkbox" checked={cat.isActive} onChange={() => toggleCategory(cat)} />
                   Active
                 </label>
+                <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={() => setEditingCategory({ id: cat.id, name: cat.name })}>Rename</button>
                 <button
                   className="text-xs font-semibold text-clove"
                   onClick={() => {

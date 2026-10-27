@@ -13,7 +13,7 @@ const list = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const role = await roleService.createRole(restaurantIdFor(req), req.user.id, req.body);
+  const role = await roleService.createRole(restaurantIdFor(req), req.user.id, req.body, req.user.permissions);
   created(res, role);
 });
 
@@ -26,7 +26,7 @@ const setPermissions = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You cannot change permissions on your own role");
   }
   const permissions = await roleService.replaceRolePermissions(
-    restaurantIdFor(req), req.user.id, req.params.roleId, req.body.permissions
+    restaurantIdFor(req), req.user.id, req.params.roleId, req.body.permissions, req.user.permissions
   );
   ok(res, { roleId: req.params.roleId, permissions });
 });

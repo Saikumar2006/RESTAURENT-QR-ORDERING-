@@ -70,6 +70,36 @@ test("suspended restaurants cannot use otherwise active tenant accounts", async 
   assert.equal(res.statusCode, 401);
 });
 
+test("expired subscription access blocks tenant APIs while preserving billing recovery", async () => {
+  userRecord = {
+    id: "user-1", restaurantId: "restaurant-1", role: "ADMIN", name: "Owner", email: "owner@example.test", isActive: true,
+    restaurant: { status: "ACTIVE", subscriptions: [{ status: "EXPIRED", endsAt: new Date(Date.now() - 1000), trialEndsAt: null, graceEndsAt: null }] },
+    roleRecord: null,
+  };
+  const denied = responseRecorder();
+  let continued = false;
+  await requireAuth({ headers: { authorization: "Bearer token" }, originalUrl: "/api/orders" }, denied, () => { continued = true; });
+  assert.equal(continued, false);
+  assert.equal(denied.statusCode, 402);
+
+  const recovery = responseRecorder();
+  await requireAuth({ headers: { authorization: "Bearer token" }, originalUrl: "/api/auth/me" }, recovery, () => {});
+  assert.equal(recovery.statusCode, 200);
+});
+
+test("a failed renewal remains entitled inside its configured grace window", async () => {
+  userRecord = {
+    id: "user-1", restaurantId: "restaurant-1", role: "ADMIN", name: "Owner", email: "owner@example.test", isActive: true,
+    restaurant: { status: "ACTIVE", subscriptions: [{ status: "PAST_DUE", endsAt: new Date(Date.now() - 1000), trialEndsAt: null, graceEndsAt: new Date(Date.now() + 60000) }] },
+    roleRecord: null,
+  };
+  let continued = false;
+  const res = responseRecorder();
+  await requireAuth({ headers: { authorization: "Bearer token" }, originalUrl: "/api/orders" }, res, () => { continued = true; });
+  assert.equal(continued, true);
+  assert.equal(res.statusCode, 200);
+});
+
 test("permission middleware permits assigned capabilities and denies missing ones", () => {
   let continued = false;
   requirePermission("menu.update")({ user: { permissions: ["menu.view", "menu.update"] } }, responseRecorder(), () => { continued = true; });

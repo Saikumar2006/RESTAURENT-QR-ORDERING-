@@ -66,8 +66,14 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  async function setPreferredLanguage(language) {
+    if (!user) return;
+    await api.put("/auth/preferred-language", { language });
+    setUser((current) => current ? { ...current, preferredLanguage: language } : current);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, restoreError, retryRestore: restoreSession, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, restoreError, retryRestore: restoreSession, login, logout, setPreferredLanguage }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,6 +10,8 @@ const {
   tableCreateSchema,
   tableUpdateSchema,
   staffCreateSchema,
+  staffInvitationSchema,
+  staffAccessLinkReasonSchema,
   staffUpdateSchema,
   roleCreateSchema,
   roleUpdateSchema,
@@ -20,11 +22,16 @@ const roleController = require("../controllers/roleController");
 const websiteThemeController = require("../controllers/websiteThemeController");
 const { handleThemeImageUpload } = require("../middleware/upload");
 const integrationController = require("../controllers/integrationController");
+const whatsappIntegrationController = require("../controllers/whatsappIntegrationController");
 
 const router = express.Router();
 
-// Self-service onboarding: creates a restaurant + its first ADMIN user.
-router.post("/", validateBody(restaurantCreateSchema), authController.registerRestaurant);
+// Direct public tenant creation is retired. New accounts must pass through
+// the price-locked subscription or explicitly configured trial onboarding.
+router.post("/", (_req, res) => res.status(410).json({
+  success: false,
+  error: { message: "Restaurant registration now starts from the plans page.", details: { next: "/pricing" } },
+}));
 
 router.get("/:id", requireAuth, requirePermission("restaurant.view"), restaurantController.getRestaurant);
 router.put("/:id", requireAuth, requirePermission("restaurant.update"), validateBody(restaurantUpdateSchema), restaurantController.updateRestaurant);
@@ -54,6 +61,8 @@ router.get("/:id/integrations/status", requireAuth, requirePermission("orders.vi
   res.json({ success: true, data: require("../services/orderProviders").listProviderStatus() });
 });
 router.get("/:id/integrations/:provider/test-fixture", requireAuth, requirePermission("orders.view"), integrationController.getTestFixtureForRestaurant);
+router.get("/:id/integrations/whatsapp/status", requireAuth, requirePermission("settings.view"), whatsappIntegrationController.getStatus);
+router.post("/:id/integrations/whatsapp/test", requireAuth, requirePermission("settings.update"), whatsappIntegrationController.testConnection);
 router.get("/:id/analytics", requireAuth, requirePermission("analytics.view"), insightsController.getAnalytics);
 router.get("/:id/analytics/today", requireAuth, requirePermission("analytics.view"), insightsController.getTodayOperations);
 router.get("/:id/customers", requireAuth, requirePermission("analytics.view"), insightsController.getCustomers);
@@ -61,6 +70,9 @@ router.get("/:id/customers", requireAuth, requirePermission("analytics.view"), i
 // Staff
 router.get("/:id/staff", requireAuth, requirePermission("staff.view"), restaurantController.listStaff);
 router.post("/:id/staff", requireAuth, requirePermission("staff.create"), validateBody(staffCreateSchema), restaurantController.createStaff);
+router.post("/:id/staff/invitations", requireAuth, requirePermission("staff.create"), validateBody(staffInvitationSchema), restaurantController.createStaffInvitation);
+router.post("/:id/staff/:staffId/invitation", requireAuth, requirePermission("staff.create"), validateBody(staffAccessLinkReasonSchema), restaurantController.issueStaffActivationLink);
+router.post("/:id/staff/:staffId/password-reset-link", requireAuth, requirePermission("staff.update"), validateBody(staffAccessLinkReasonSchema), restaurantController.issueStaffPasswordResetLink);
 router.put("/:id/staff/:staffId", requireAuth, requirePermission("staff.update"), validateBody(staffUpdateSchema), (req, res, next) => {
   req.params.id = req.params.staffId; // reuse controller signature (params.id = staff id)
   restaurantController.updateStaff(req, res, next);

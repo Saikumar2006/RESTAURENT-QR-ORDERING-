@@ -72,6 +72,15 @@ model Restaurant {
   coupons    Coupon[]
   websiteThemeVersions WebsiteThemeVersion[]
   marketplaceEvents MarketplaceWebhookEvent[]
+  inventoryItems InventoryItem[]
+  inventoryMovements InventoryMovement[]
+  recipeComponents RecipeComponent[]
+  inventorySuppliers InventorySupplier[]
+  inventoryPurchases InventoryPurchase[]
+  subscriptions Subscription[]
+  pendingOnboardings PendingOnboarding[]
+  platformInvites PlatformRestaurantInvite[]
+  staffAccessLinks RestaurantStaffAccessLink[]
 
   @@index([slug])
 }
@@ -111,6 +120,12 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  preferredLanguage String @default("en")
+  inventoryMovementsCreated InventoryMovement[] @relation("InventoryMovementActor")
+  inventoryPurchasesCreated InventoryPurchase[] @relation("InventoryPurchaseActor")
+  platformInvites PlatformRestaurantInvite[]
+  staffAccessLinksReceived RestaurantStaffAccessLink[] @relation("RestaurantStaffAccessLinkTarget")
+  staffAccessLinksCreated RestaurantStaffAccessLink[] @relation("RestaurantStaffAccessLinkCreator")
 
   @@unique([restaurantId, email])
   @@index([restaurantId])
@@ -218,6 +233,7 @@ model MenuItem {
   updatedAt    DateTime @updatedAt
 
   orderItems OrderItem[]
+  recipeComponents RecipeComponent[]
 
   @@index([restaurantId])
   @@index([categoryId])
@@ -340,9 +356,146 @@ model PlatformAdmin {
   name         String
   email        String   @unique
   passwordHash String
+  platformRole String   @default("READ_ONLY_AUDITOR")
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  auditEvents PlatformAdminAuditLog[] @relation("PlatformAuditActor")
+  restaurantInvites PlatformRestaurantInvite[] @relation("PlatformRestaurantInviteCreator")
+}
+
+model PlatformAdminAuditLog {
+  id            String   @id @default(uuid())
+  actorAdminId  String?
+  actor         PlatformAdmin? @relation("PlatformAuditActor", fields: [actorAdminId], references: [id], onDelete: SetNull)
+  targetAdminId String?
+  targetRestaurantId String?
+  action        String
+  metadata      String   @default("{}")
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetAdminId, createdAt])
+}
+
+model PlatformRestaurantInvite {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdByAdminId String?
+  createdByAdmin   PlatformAdmin? @relation("PlatformRestaurantInviteCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+  tokenHash        String   @unique
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, consumedAt, expiresAt])
+  @@index([restaurantId, createdAt])
+}
+
+model RestaurantStaffAccessLink {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User @relation("RestaurantStaffAccessLinkTarget", fields: [userId], references: [id], onDelete: Cascade)
+  createdByUserId  String?
+  createdBy        User? @relation("RestaurantStaffAccessLinkCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  purpose          String
+  tokenHash        String   @unique
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, purpose, consumedAt, expiresAt])
+  @@index([restaurantId, userId, purpose, consumedAt])
+  @@unique([userId, purpose])
+}
+
+model PendingOnboarding {
+  id                String   @id @default(uuid())
+  restaurantName    String
+  cuisineType       String?
+  adminName         String
+  adminEmail        String
+  emailClaim        String?  @unique
+  passwordHash      String?
+  planKey           String
+  billingPeriod     String
+  amount            Float
+  currency          String   @default("INR")
+  status            String   @default("PENDING_PAYMENT") // PENDING_PAYMENT | ACTIVATED | EXPIRED | FAILED
+  expiresAt         DateTime
+  restaurantId      String?
+  restaurant        Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  payments SubscriptionPayment[]
+  subscription Subscription?
+
+  @@index([status, expiresAt])
+  @@index([adminEmail, createdAt])
+}
+
+model Subscription {
+  id                    String   @id @default(uuid())
+  restaurantId          String
+  restaurant            Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  pendingOnboardingId   String?  @unique
+  pendingOnboarding     PendingOnboarding? @relation(fields: [pendingOnboardingId], references: [id], onDelete: SetNull)
+  planKey               String
+  billingPeriod         String
+  amount                Float
+  currency              String   @default("INR")
+  status                String // TRIALING | ACTIVE | PAST_DUE | EXPIRED | CANCELLED | GRANDFATHERED
+  startsAt              DateTime
+  endsAt                DateTime?
+  trialEndsAt           DateTime?
+  graceEndsAt           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  payments SubscriptionPayment[]
+
+  @@index([restaurantId, status, endsAt])
+}
+
+model SubscriptionPayment {
+  id                  String   @id @default(uuid())
+  pendingOnboardingId String?
+  pendingOnboarding   PendingOnboarding? @relation(fields: [pendingOnboardingId], references: [id], onDelete: SetNull)
+  subscriptionId     String?
+  subscription       Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  provider            String
+  providerOrderId     String?  @unique
+  providerPaymentId   String?  @unique
+  amount              Float
+  currency            String   @default("INR")
+  billingPeriod       String?
+  status              String   @default("PENDING") // PENDING | PAID | FAILED
+  failureCode         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([pendingOnboardingId, status])
+  @@index([subscriptionId, createdAt])
+}
+
+model BillingWebhookEvent {
+  id               String   @id @default(uuid())
+  provider         String
+  eventId          String
+  processingStatus String   @default("RECEIVED") // RECEIVED | PROCESSED | FAILED | IGNORED
+  errorCode        String?
+  receivedAt       DateTime @default(now())
+  processedAt      DateTime?
+
+  @@unique([provider, eventId])
+  @@index([processingStatus, receivedAt])
 }
 
 // Short-lived OTP codes for phone verification. Not tied to a User/Order —
@@ -423,4 +576,137 @@ model MarketplaceWebhookEvent {
   @@unique([restaurantId, source, eventId])
   @@index([restaurantId, source, receivedAt])
   @@index([orderId])
+}
+
+model InventoryItem {
+  id                String   @id @default(uuid())
+  restaurantId      String
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name              String
+  sku               String?
+  baseUnit          String
+  quantity          Float    @default(0)
+  lowStockThreshold Float    @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  conversions InventoryUnitConversion[]
+  movements   InventoryMovement[]
+  recipes     RecipeComponent[]
+  purchaseLines InventoryPurchaseLine[]
+
+  @@unique([restaurantId, sku])
+  @@index([restaurantId, isActive, name])
+}
+
+model InventoryUnitConversion {
+  id                String   @id @default(uuid())
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  unitName          String
+  multiplierToBase  Float
+  createdAt         DateTime @default(now())
+
+  @@unique([inventoryItemId, unitName])
+}
+
+model InventoryMovement {
+  id               String   @id @default(uuid())
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  createdById      String?
+  createdBy        User? @relation("InventoryMovementActor", fields: [createdById], references: [id], onDelete: SetNull)
+  type             String // RECEIPT | ADJUSTMENT | WASTE | ORDER_CONSUMPTION | CANCELLATION_RESTOCK
+  quantityDelta    Float
+  quantityBefore   Float
+  quantityAfter    Float
+  unit             String
+  reason           String
+  referenceId      String?
+  idempotencyKey   String?
+  createdAt        DateTime @default(now())
+
+  purchaseLine InventoryPurchaseLine?
+
+  @@unique([restaurantId, idempotencyKey])
+  @@index([restaurantId, inventoryItemId, createdAt])
+  @@index([restaurantId, referenceId, type])
+}
+
+model InventorySupplier {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name         String
+  contactName  String?
+  email        String?
+  phone        String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchases InventoryPurchase[]
+
+  @@unique([restaurantId, name])
+  @@index([restaurantId, isActive, name])
+}
+
+model InventoryPurchase {
+  id             String   @id @default(uuid())
+  restaurantId   String
+  restaurant     Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  supplierId     String?
+  supplier       InventorySupplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdById    String?
+  createdBy      User? @relation("InventoryPurchaseActor", fields: [createdById], references: [id], onDelete: SetNull)
+  invoiceNumber  String?
+  notes          String?
+  totalCost      Float    @default(0)
+  currency       String   @default("INR")
+  idempotencyKey String
+  purchasedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  lines InventoryPurchaseLine[]
+
+  @@unique([restaurantId, idempotencyKey])
+  @@index([restaurantId, purchasedAt])
+  @@index([restaurantId, supplierId, purchasedAt])
+}
+
+model InventoryPurchaseLine {
+  id                String   @id @default(uuid())
+  purchaseId        String
+  purchase          InventoryPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  movementId        String   @unique
+  movement          InventoryMovement @relation(fields: [movementId], references: [id], onDelete: Restrict)
+  quantity          Float
+  unit              String
+  unitCost          Float?
+  createdAt         DateTime @default(now())
+
+  @@unique([purchaseId, inventoryItemId])
+  @@index([inventoryItemId, createdAt])
+}
+
+model RecipeComponent {
+  id                String   @id @default(uuid())
+  restaurantId      String
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItemId        String
+  menuItem          MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  quantityPerItem   Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([restaurantId, menuItemId, inventoryItemId])
+  @@index([restaurantId, menuItemId])
 }

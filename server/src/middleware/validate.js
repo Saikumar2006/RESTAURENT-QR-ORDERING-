@@ -13,4 +13,13 @@ function validateBody(schema) {
   };
 }
 
-module.exports = { validateBody };
+function validateQuery(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) return fail(res, 400, "Validation failed", result.error.flatten());
+    req.validatedQuery = result.data;
+    next();
+  };
+}
+
+module.exports = { validateBody, validateQuery };

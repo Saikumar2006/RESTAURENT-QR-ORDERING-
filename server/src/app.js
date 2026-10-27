@@ -24,6 +24,10 @@ const orderRoutes = require("./routes/orders");
 const paymentRoutes = require("./routes/payments");
 const couponRoutes = require("./routes/coupons");
 const platformRoutes = require("./routes/platform");
+const inventoryRoutes = require("./routes/inventory");
+const subscriptionRoutes = require("./routes/subscriptions");
+const subscriptionController = require("./controllers/subscriptionController");
+const aiRoutes = require("./routes/ai");
 
 const app = express();
 
@@ -89,6 +93,7 @@ const authLimiter = env.redisUrl
 app.use("/api", cors(corsOptions()));
 
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), paymentController.webhook);
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), subscriptionController.webhook);
 
 app.use(express.json({ limit: "1mb" }));
 
@@ -132,6 +137,9 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/platform", authLimiter, platformRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/ai", aiRoutes);
 
 // ---- Serve the built React client from the same server/port -----------
 // One process, one port: `npm start` builds the client (see root

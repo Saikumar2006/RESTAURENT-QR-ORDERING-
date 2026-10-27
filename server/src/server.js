@@ -4,6 +4,7 @@ const env = require("./config/env");
 const { initSockets } = require("./sockets");
 const { assertProductionSafety } = require("./startupChecks");
 const { connectRedis, getRedisClient, isRedisEnabled } = require("./config/redis");
+const { expireSubscriptions } = require("./services/subscriptionService");
 
 assertProductionSafety();
 
@@ -32,6 +33,12 @@ async function start() {
   server.listen(env.port, () => {
     console.log(`QR Ordering API listening on port ${env.port} (${env.nodeEnv})`);
     console.log(`Payment provider: ${env.paymentProvider}`);
+    const subscriptionSweep = setInterval(() => {
+      expireSubscriptions().catch(() => {
+        console.error(JSON.stringify({ event: "subscription_expiry_sweep_failed", category: "billing_lifecycle", timestamp: new Date().toISOString() }));
+      });
+    }, 5 * 60 * 1000);
+    subscriptionSweep.unref?.();
   });
 }
 

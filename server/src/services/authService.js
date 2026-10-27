@@ -22,6 +22,19 @@ function serializeUserAccess(user) {
         ? [...new Set(role.permissions.map((entry) => entry.permission.key))]
         : PERMISSIONS_BY_ROLE.STAFF,
     restaurantId: user.restaurantId,
+    preferredLanguage: user.preferredLanguage || "en",
+    subscriptionStatus: user.restaurant?.subscriptions?.[0]?.status || "LEGACY",
+    subscriptionEndsAt: user.restaurant?.subscriptions?.[0]?.endsAt || null,
+    subscriptionGraceEndsAt: user.restaurant?.subscriptions?.[0]?.graceEndsAt || null,
+    subscriptionAccess: (() => {
+      const subscription = user.restaurant?.subscriptions?.[0];
+      if (!subscription) return true;
+      const now = new Date();
+      return subscription.status === "GRANDFATHERED"
+        || (subscription.status === "ACTIVE" && subscription.endsAt && subscription.endsAt > now)
+        || (subscription.status === "TRIALING" && subscription.trialEndsAt && subscription.trialEndsAt > now)
+        || (subscription.status === "PAST_DUE" && subscription.graceEndsAt && subscription.graceEndsAt > now);
+    })(),
   };
 }
 
@@ -54,7 +67,7 @@ async function login(email, password) {
     where: { email: { equals: normalizedEmail, mode: "insensitive" } },
     include: {
       roleRecord: { include: { permissions: { include: { permission: true } } } },
-      restaurant: { select: { status: true } },
+      restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
     },
   });
   const activeUsers = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
@@ -89,7 +102,7 @@ async function googleLoginWithCode(code) {
     where: { email: { equals: payload.email, mode: "insensitive" } },
     include: {
       roleRecord: { include: { permissions: { include: { permission: true } } } },
-      restaurant: { select: { status: true } },
+      restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
     },
   });
   if (users.length > 1) {

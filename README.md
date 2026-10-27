@@ -62,7 +62,7 @@ npm run install:all   # installs server + client dependencies
 npm run setup:env     # creates server/.env from server/.env.example with a
                        # freshly generated JWT_SECRET — you still need to
                        # fill in the Supabase values from step 1 above
-npm run db:setup      # pushes the schema to your Supabase database, seeds demo data
+npm run db:setup      # local development setup: pushes schema and seeds demo data
 npm start              # builds the client, then starts the one server on
                         # http://localhost:4000 — client + API both live there
 ```
@@ -72,23 +72,9 @@ After `setup:env` runs, open `server/.env` and fill in `DATABASE_URL`,
 values from your Supabase project. Everything else in that file already
 has a working default.
 
-**Why two database URLs?** Supabase's connection pooler (pgbouncer, in
-transaction mode) doesn't support the prepared statements Prisma uses for
-schema changes. `DATABASE_URL` (pooled) is what the running app uses for
-every normal query; `DIRECT_URL` is used only by `prisma db push` when you
-change the schema. Prisma switches between them automatically — you never
-have to think about which one is being used.
+**Why two database URLs?** Supabase's connection pooler uses `DATABASE_URL` for application traffic; `DIRECT_URL` is used by versioned Prisma migrations.
 
-**No migration files.** `db:setup` (and `server`'s own `npm run db:push`)
-uses `prisma db push`, which reads `server/prisma/schema.prisma` and syncs
-your database to match it directly — no `prisma/migrations/` folder to
-generate, commit, or keep in sync. Change a model, run `npm run db:push
---prefix server` (or `db:setup` again), done. The trade-off: no migration
-history/rollback log — fine for a single-tenant app you control, less ideal
-if you ever need to coordinate schema changes across a team or audit what
-changed when. If you outgrow that, switch to `prisma migrate dev` /
-`migrate deploy` later; nothing else about the setup needs to change.
-
+**Production schema changes use versioned migrations.** The repository tracks PostgreSQL migrations under `server/prisma/migrations/`. Render runs `npm run db:migrate:safe --prefix server` in the build phase. It checks migration history, existing order/payment identifiers, backup confirmation, and expected unique-index state before `prisma migrate deploy`. It does not auto-repair duplicates. Take and verify a production backup and review the live schema before setting `MIGRATION_BACKUP_CONFIRMED=true`. `db:setup` and `db:push` are for local development only; do not use `prisma db push --accept-data-loss` or `prisma migrate dev` against production.
 **File storage:** `STORAGE_PROVIDER=supabase` (the default) uploads menu
 photos straight to your Supabase Storage bucket — nothing touches this
 server's disk, so uploaded photos survive redeploys automatically with no
@@ -230,11 +216,7 @@ phone verification, not restaurant staff sign-in. It issues the existing
 short-lived phone-verification JWT after success; email/password and Google
 authentication are unchanged.
 
-The OTP table already existed. Two nullable timestamps were added to record
-successful verification and invalidation. This repository uses
-`prisma db push` rather than checked-in Prisma migration files; the normal
-server `prestart` applies this additive schema update. It does not reset or
-drop the production database.
+The OTP table already existed. Two nullable timestamps were added to record successful verification and invalidation. Production schema changes use checked-in Prisma migrations and the Render safe-migration gate; runtime `prestart` only generates Prisma Client and builds the client assets.
 
 ## 6. Switching on real Razorpay payments
 

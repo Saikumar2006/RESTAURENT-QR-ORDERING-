@@ -10,6 +10,8 @@ export default function ProtectedRoute({ children, roles, permissions, allPermis
   if (loading) return <Spinner label="Checking session..." />;
   if (restoreError) return <SessionRecovery error={restoreError} onRetry={retryRestore} />;
   if (!user) return <Navigate to="/admin/login" state={{ from: location }} replace />;
+  const billingAllowed = location.pathname === "/admin/billing";
+  if (!billingAllowed && user.subscriptionAccess === false) return <Navigate to="/admin/billing" replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/admin" replace />;
   if (permissions && !user.permissions?.includes("*") && !permissions.some((permission) => user.permissions?.includes(permission))) {
     return <AccessDenied />;

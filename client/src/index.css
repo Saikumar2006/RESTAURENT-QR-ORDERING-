@@ -245,4 +245,6 @@ body {
   .page-header { align-items: flex-start; flex-direction: column; margin-bottom: 20px; }
   .page-title { font-size: 26px; }
   .page-actions { width: 100%; }
+  .admin-language-switcher > span { display: none; }
+  .admin-language-switcher select { max-width: 98px; }
 }

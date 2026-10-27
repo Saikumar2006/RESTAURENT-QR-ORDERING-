@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LanguageSwitcher } from "../i18n.jsx";
 import "./landing.css";
 
 const salesEmail = import.meta.env.VITE_SALES_EMAIL;
@@ -72,8 +73,9 @@ function Navbar() {
           <a href="#resources" onClick={closeMenu}>Resources</a>
           <Link className="landing-super-admin-link" to="/super-admin/login" onClick={closeMenu}>Super Admin</Link>
           <div className="landing-nav-actions">
+            <LanguageSwitcher className="landing-language-control" />
             <Link className="landing-signin" to="/admin/login" onClick={closeMenu}>Sign in</Link>
-            <Link className="landing-button landing-button-small" to="/admin/register" onClick={closeMenu}>Get Started <span aria-hidden="true">↗</span></Link>
+            <Link className="landing-button landing-button-small" to="/pricing" onClick={closeMenu}>View plans <span aria-hidden="true">↗</span></Link>
           </div>
         </nav>
       </div>
@@ -154,7 +156,7 @@ function Hero() {
           <p className="landing-eyebrow"><span className="eyebrow-dash" /> THE OPERATING SYSTEM FOR MODERN RESTAURANTS</p>
           <h1>Run your restaurant <span>smarter.</span></h1>
           <p className="hero-description">Orders, tables, payments, kitchen operations, staff and analytics — everything your restaurant needs, connected in one powerful platform.</p>
-          <div className="hero-actions"><Link className="landing-button" to="/admin/register">Get Started <span>↗</span></Link><Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link></div>
+          <div className="hero-actions"><Link className="landing-button" to="/pricing">View plan availability <span>↗</span></Link><Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link></div>
           <div className="hero-note"><span className="hero-note-check">✓</span> One connected workspace. Built for the way restaurants run.</div>
           <div className="hero-proof"><div className="hero-proof-avatars"><span>R</span><span>M</span><span>A</span></div><p><strong>Made for restaurant teams</strong><small>From the first order to the end-of-day close.</small></p></div>
         </div>
@@ -354,7 +356,7 @@ function FinalCTA() {
   return (
     <section className="final-cta" id="contact">
       <div className="landing-container final-cta-inner"><div className="cta-orb cta-orb-left" /><div className="cta-orb cta-orb-right" />
-        <p className="landing-eyebrow">MAKE THE NEXT SHIFT YOURS</p><h2>Ready to run your restaurant <span>smarter?</span></h2><p>Bring ordering, operations, payments, staff and analytics together with Svaadya.</p><div className="hero-actions"><Link className="landing-button" to="/admin/register">Get Started <span>↗</span></Link>{salesHref ? <a className="landing-button landing-button-ghost" href={salesHref}>Contact sales <span>→</span></a> : <Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link>}</div><small>Existing restaurant account? <Link to="/admin/login">Sign in here</Link>.</small>
+        <p className="landing-eyebrow">MAKE THE NEXT SHIFT YOURS</p><h2>Ready to run your restaurant <span>smarter?</span></h2><p>Bring ordering, operations, payments, staff and analytics together with Svaadya.</p><div className="hero-actions"><Link className="landing-button" to="/pricing">View plan availability <span>↗</span></Link>{salesHref ? <a className="landing-button landing-button-ghost" href={salesHref}>Contact sales <span>→</span></a> : <Link className="landing-button landing-button-ghost" to="/admin/login">Restaurant Login <span>→</span></Link>}</div><small>Existing restaurant account? <Link to="/admin/login">Sign in here</Link>.</small>
       </div>
     </section>
   );
@@ -366,8 +368,8 @@ function Footer() {
       <div className="landing-container">
         <div className="footer-top"><div className="footer-brand"><Link className="landing-wordmark" to="/"><span className="landing-brand-icon">S</span><span>SVAADYA</span></Link><p>The operating system for modern restaurants.</p><span className="footer-platform-note">Restaurant operations, connected.</span></div>
           <div className="footer-links-group"><b>PRODUCT</b><a href="#product">Product</a><a href="#features">Features</a><a href="#analytics">Analytics</a><a href="#how-it-works">How it works</a></div>
-          <div className="footer-links-group"><b>EXPLORE</b><a href="#how-it-works">How it works</a><a href="#resources">Resources &amp; FAQ</a><a href="#security">Security</a><a href="#contact">About Svaadya</a></div>
-          <div className="footer-links-group"><b>ACCOUNT</b><Link to="/admin/login">Restaurant login</Link><Link to="/admin/register">Get Started</Link><Link to="/super-admin/login">Super Admin login</Link><a href={salesHref || "#contact"}>Contact</a>{privacyUrl && <a href={privacyUrl} target="_blank" rel="noreferrer">Privacy</a>}{termsUrl && <a href={termsUrl} target="_blank" rel="noreferrer">Terms</a>}</div>
+          <div className="footer-links-group"><b>EXPLORE</b><a href="#how-it-works">How it works</a><a href="#resources">Resources &amp; FAQ</a><a href="#security">Security</a><Link to="/about">About Svaadya</Link></div>
+          <div className="footer-links-group"><b>ACCOUNT</b><Link to="/admin/login">Restaurant login</Link><Link to="/pricing">Plans</Link><Link to="/super-admin/login">Super Admin login</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div>
         </div>
         <div className="footer-bottom"><span>© 2026 Svaadya. All rights reserved.</span><span>Thoughtfully built for restaurant teams.</span></div>
       </div>

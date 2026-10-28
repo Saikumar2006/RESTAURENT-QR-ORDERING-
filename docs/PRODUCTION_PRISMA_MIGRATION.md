@@ -78,7 +78,7 @@ If duplicate groups or blank identifiers are present, stop. Review the affected 
 
 ## Render lifecycle
 
-The `prestart` hook now only generates Prisma Client and builds the client assets. It does not change database schema or run RBAC data updates. Render's configured build command runs `npm run db:migrate:safe --prefix server` after dependency installation. This command:
+The `prestart` hook only generates Prisma Client and builds client assets. It does not change database schema or run RBAC data updates. The checked-in `render.yaml` build command runs `npm run db:migrate:safe --prefix server` after dependency installation, but Render dashboard settings can override it. Verify the effective service command and deploy log: a sequence of `npm install`, `npm run install:all`, and `npm run build` does not apply migrations. The safe command:
 
 1. Detects pending migration files without printing connection details.
 2. Stops if a previous migration is unresolved.
@@ -102,4 +102,4 @@ RBAC initialization remains available as the separate idempotent command `npm ru
 
 ## Local facts and unresolved production checks
 
-The repository now tracks ten migrations, including `20261027000000_platform_rbac`, `20261027000001_inventory_and_language`, `20261027000002_subscription_lifecycle`, `20261027000003_platform_restaurant_invites`, `20261027000004_restaurant_staff_access_links`, and `20261027000005_inventory_purchases`. These six recent migrations have not been applied to production. The latest migration creates supplier, purchase, and purchase-line tables with foreign keys and indexes; it does not alter or delete existing inventory, orders, or payments. The migration lock file is present. The local `server/.env` points to loopback PostgreSQL, not Neon; no production duplicate query was run and no production data was changed. `migrate deploy` does not detect unrelated schema drift, so review the live schema against the migration files as part of the first production baseline review. Do not claim a successful Neon check until the SQL above has been run against the production database.
+The repository currently tracks nine migration folders. The subscription lifecycle is introduced by `20261027000002_subscription_lifecycle`; `20261027000003_platform_restaurant_invites` depends on its `Subscription` table. The local `server/.env` points to loopback PostgreSQL. A read-only check of that local database found no `Subscription`, `PendingOnboarding`, or `_prisma_migrations` table; it does not establish production state. The effective Render build command must be checked because dashboard settings can override `render.yaml`. `migrate deploy` does not detect unrelated schema drift, so review the live schema against all pending migration files as part of baseline review. Do not claim a successful production check until these queries have run against the Render database.

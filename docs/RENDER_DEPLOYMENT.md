@@ -1,27 +1,27 @@
 # Render deployment
 
-The checked-in Render service uses the repository root, `/health` for liveness, this build command, and this start command:
+The checked-in `render.yaml` declares the repository root, `/health` for liveness, this build command, and this start command:
 
 ```text
 npm install --include=dev --prefix server && npm install --prefix client && npm run db:migrate:safe --prefix server
 npm start
 ```
 
-The server package `prestart` generates Prisma Client and builds the React client. It does not run `db push` or the RBAC backfill. The migration gate runs during Render's build; a failed migration prevents that build from deploying. Do not set the Render start command to `prisma db push`, `prisma migrate dev`, or `rbac:backfill`.
+Render dashboard settings can override `render.yaml`. Always confirm the effective build and start commands in the Render service settings and deploy logs. The observed override `npm install && npm run install:all && npm run build` does **not** run migrations: root `install:all` only installs dependencies, root `build` only builds the client, and `npm start` invokes `server` `prestart`, which only generates Prisma Client and builds the client. With that override, no Prisma migration runs before the server starts.
+
+The server package `prestart` does not run `db push`, migrations, or the RBAC backfill. The checked-in migration gate runs during Render's build only when that command is actually configured. Do not set the Render start command to `prisma db push`, `prisma migrate dev`, or `rbac:backfill`.
 
 ## Production migration prerequisites
 
-The current application changes include three new additive Prisma migrations:
+The repository currently contains nine versioned migrations. The subscription tables are created by:
 
-- `20261027000000_platform_rbac`
-- `20261027000001_inventory_and_language`
 - `20261027000002_subscription_lifecycle`
 
-They have not been applied to production. Before a deployment that applies them:
+That migration creates `PendingOnboarding`, `Subscription`, `SubscriptionPayment`, and `BillingWebhookEvent`. It expects the earlier `Restaurant` and `PlatformAdminAuditLog` tables; the latter is created by `20261027000000_platform_rbac`. The following `20261027000003_platform_restaurant_invites` migration alters `Subscription.endsAt`, so it depends on the subscription migration. Production migration history and table state must be checked read-only before choosing the pending migration set. Before a deployment that applies them:
 
 1. Create and verify a Neon backup/restore point.
 2. Review the production `_prisma_migrations` history and compare the live schema with all pending migrations.
-3. Run the aggregate-only duplicate and identifier checks described in [PRODUCTION_PRISMA_MIGRATION.md](PRODUCTION_PRISMA_MIGRATION.md); no production database was queried for this change.
+3. Run the aggregate-only duplicate and identifier checks described in [PRODUCTION_PRISMA_MIGRATION.md](PRODUCTION_PRISMA_MIGRATION.md).
 4. Set `MIGRATION_BACKUP_CONFIRMED=true` only after that review. For a database with no migration history, also set `MIGRATION_BASELINE_CONFIRMED=true` only after the baseline has been verified.
 5. Remove confirmation values after the reviewed deployment. Review the Render build and `/health/ready` before routing traffic.
 

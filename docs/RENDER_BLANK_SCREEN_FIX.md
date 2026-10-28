@@ -34,6 +34,6 @@ The production build completed successfully with Vite 5.4.21. The server suite p
 
 ## Render configuration
 
-No manifest change is required for the existing single-service setup. Keep the service root directory as `.`, build command as `npm install --prefix server && npm install --prefix client`, start command as `npm start`, and health path as `/health`. The server's `prestart` script generates Prisma Client, applies the configured Prisma schema, and builds the client before the server starts. Production should keep `VITE_API_URL` unset for this same-origin deployment; set it only if the frontend is moved to a separate host.
+The checked-in `render.yaml` uses the service root `.`, runs the guarded migration command during build, starts with `npm start`, and checks `/health`. Render dashboard settings can override the manifest, so verify the effective build command in service settings and deploy logs. The server's `prestart` generates Prisma Client and builds the client; it does not apply the schema or run migrations. Production should keep `VITE_API_URL` unset for this same-origin deployment; set it only if the frontend is moved to a separate host.
 
 After deploying, confirm in the browser network panel that `/` and a direct nested route return HTML, `/assets/<fingerprinted-file>.js` returns JavaScript, and a deliberately nonexistent `/assets/...js` path returns 404. Check Render deploy/runtime logs for startup or database errors if initialization still fails.

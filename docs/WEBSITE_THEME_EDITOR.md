@@ -12,7 +12,7 @@ Theme image upload requires the existing server-side Supabase Storage setup (`ST
 
 ## Database and deployment
 
-The additive theme schema is `server/prisma/migrations/20261026000000_website_theme_versions/migration.sql`, with matching Prisma models in `server/prisma/schema.prisma`. It adds a per-restaurant version counter and a version table; it does not alter existing orders or menu rows. This workspace did not apply the migration or connect to a database. Review the SQL and apply it to a backed-up staging database before deployment. The current server `prestart` still runs `prisma db push`; coordinate that existing deployment behavior with your operator and compare the staging schema before production. Rollback should retain the table and use the editor's version restore rather than dropping saved revisions.
+The additive theme schema is `server/prisma/migrations/20261026000000_website_theme_versions/migration.sql`, with matching Prisma models in `server/prisma/schema.prisma`. It adds a per-restaurant version counter and a version table; it does not alter existing orders or menu rows. Review and apply it to an isolated staging database before production. The current server `prestart` only generates Prisma Client and builds the client; it does not run `prisma db push` or migrations. Verify the effective Render build command because dashboard settings can override the checked-in manifest. Rollback should retain the table and use the editor's version restore rather than dropping saved revisions.
 
 ## Public theme behavior and limits
 

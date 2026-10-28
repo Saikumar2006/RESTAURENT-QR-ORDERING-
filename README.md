@@ -1,11 +1,11 @@
 # QR Restaurant Ordering System
 
-A full-stack, multi-tenant MVP built from the SRS: customers scan **one QR
+A full-stack, multi-tenant restaurant ordering app: customers scan **one QR
 code** for the whole restaurant, choose **Dine In (pick a table)** or
-**Takeaway**, browse the menu, order, and pay from their phone; restaurant
-staff manage menus/tables and process live orders from a dashboard.
+**Takeaway**, browse the menu, order, and pay when a payment provider is
+configured; restaurant staff manage menus/tables and process live orders.
 
-**Stack:** React (Vite) · Node.js/Express · Supabase (Postgres + Storage) · Prisma (schema-push, no migration files) · Socket.IO · Razorpay (pluggable, mock provider included)
+**Stack:** React (Vite) · Node.js/Express · PostgreSQL · Prisma with versioned migrations · Socket.IO · configurable Razorpay payments and Twilio notifications, with development-only mock modes
 
 ## Project layout
 
@@ -74,7 +74,7 @@ has a working default.
 
 **Why two database URLs?** Supabase's connection pooler uses `DATABASE_URL` for application traffic; `DIRECT_URL` is used by versioned Prisma migrations.
 
-**Production schema changes use versioned migrations.** The repository tracks PostgreSQL migrations under `server/prisma/migrations/`. Render runs `npm run db:migrate:safe --prefix server` in the build phase. It checks migration history, existing order/payment identifiers, backup confirmation, and expected unique-index state before `prisma migrate deploy`. It does not auto-repair duplicates. Take and verify a production backup and review the live schema before setting `MIGRATION_BACKUP_CONFIRMED=true`. `db:setup` and `db:push` are for local development only; do not use `prisma db push --accept-data-loss` or `prisma migrate dev` against production.
+**Production schema changes use versioned migrations.** The repository tracks PostgreSQL migrations under `server/prisma/migrations/`. The checked-in `render.yaml` build command runs `npm run db:migrate:safe --prefix server`, but Render dashboard settings can override that command. Confirm the effective command in the service settings and deploy log; `npm run build` and `npm start` do not apply migrations. The migration gate checks history, selected order/payment identifiers, backup confirmation, and expected unique-index state before `prisma migrate deploy`; it does not auto-repair duplicates. Take and verify a production backup and review the live schema before setting `MIGRATION_BACKUP_CONFIRMED=true`. `db:setup` and `db:push` are for local development only; do not use `prisma db push --accept-data-loss` or `prisma migrate dev` against production.
 **File storage:** `STORAGE_PROVIDER=supabase` (the default) uploads menu
 photos straight to your Supabase Storage bucket — nothing touches this
 server's disk, so uploaded photos survive redeploys automatically with no
@@ -218,15 +218,26 @@ authentication are unchanged.
 
 The OTP table already existed. Two nullable timestamps were added to record successful verification and invalidation. Production schema changes use checked-in Prisma migrations and the Render safe-migration gate; runtime `prestart` only generates Prisma Client and builds the client assets.
 
-## 6. Switching on real Razorpay payments
+## 6. Payment provider configuration
 
-By default `PAYMENT_PROVIDER=mock` in `server/.env`, which lets you exercise the
-entire order → pay → verify → webhook flow without live credentials.
+Local development defaults to `PAYMENT_PROVIDER=mock` in `server/.env`, which
+simulates the order → pay → verify flow without contacting a payment service.
+Mock payments are development-only and production startup rejects this setting.
+The Render manifest leaves provider settings owner-managed. When a setting is
+absent, the server defaults it to `unconfigured`, so checkout reports that
+online payment is unavailable. This safe state does not accept payments.
+
+For production startup, do not set `PAYMENT_PROVIDER` or
+`MESSAGING_PROVIDER` to `mock`. Leave each `unconfigured` until its live
+integration is ready, or select `razorpay` / `twilio` only after configuring
+the matching credentials. These checks intentionally stop startup when a
+production mock is selected; Render settings must be corrected in the service
+environment by its owner.
 
 To go live:
 
-1. Set `PAYMENT_PROVIDER=razorpay`
-2. Fill in `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
+1. In the production service environment, set `PAYMENT_PROVIDER=razorpay`
+2. Fill in `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`
 3. Point your Razorpay webhook at `POST {SERVER_URL}/api/payments/webhook`
 
 The backend never trusts a frontend "payment succeeded" event on its own —
@@ -289,24 +300,27 @@ Two independent controls, both in **Admin → Settings**:
 - AuthN/AuthZ: JWT-based sessions, bcrypt password hashing, `ADMIN`/`STAFF` roles, every protected query filtered by `restaurantId` derived from the token — never from client-supplied IDs
 - Security basics: helmet, CORS locked to `CLIENT_URL`, rate limiting (tighter on `/api/auth`), Zod request validation, Razorpay webhook signature verification over the raw body
 
-## 9. What's intentionally out of scope for the MVP (see SRS §32 roadmap)
+## 9. Integration status and planned work
 
-Multi-language menus, split bills, delivery, inventory integration,
-loyalty, advanced analytics, kitchen display system, multiple payment
-providers. The codebase is structured (routes/controllers/services/validators)
-so these can be added without a rewrite.
+Inventory management, basic reports, staff roles, subscriptions and theme
+customisation have application code. Real Swiggy/Zomato connections are not
+enabled: the available marketplace adapters are synthetic fixtures. AI is
+unconfigured until a supported provider adapter and credentials are supplied.
+The app does not currently provide split bills, delivery or loyalty features;
+Razorpay is the only implemented online payment provider. Provider and feature
+availability depends on the deployed configuration.
 
 ## 10. Production readiness checklist before a real pilot
 
 **Enforced automatically, nothing to do:**
 - `npm run setup:env` generates a real random `JWT_SECRET` — not a placeholder.
-- The server refuses to start in `NODE_ENV=production` with an insecure/missing `JWT_SECRET`, or with `PAYMENT_PROVIDER=razorpay`/`MESSAGING_PROVIDER=twilio` set but no credentials — see `server/src/startupChecks.js`. It fails loudly at boot rather than running insecurely.
+- The server refuses to start in `NODE_ENV=production` with an insecure/missing `JWT_SECRET`, or with a mock payment or messaging provider selected. Razorpay and Twilio selections also require their credentials. Unconfigured providers are permitted but their features remain unavailable — see `server/src/startupChecks.js`.
 - Plain HTTP is redirected to HTTPS in production (`FORCE_HTTPS`, no-op on hosts that already terminate TLS in front, like Railway/Render/Cloudflare).
 - Razorpay signature verification (both the checkout callback and the webhook) uses a constant-time comparison, not `===` — closes a timing side-channel on the HMAC check.
 
 **Still on you before a real launch:**
-- Get real Razorpay keys and test the actual payment + webhook flow end to end — this has only ever been tested against the mock provider.
-- Get real Twilio (or another provider) credentials for OTP/WhatsApp notifications if you're using those features — same caveat, mock-only so far.
+- Configure real Razorpay keys and test the actual payment + webhook flow end to end; automated tests do not establish that a live account is configured.
+- Configure Twilio credentials for restaurant order notifications if needed. Checkout OTP uses the separate platform-owned WhatsApp Cloud API configuration. Neither external delivery path was verified against live provider accounts in this repository audit.
 - DB backups: Supabase takes automatic daily backups on paid plans — check your project's plan and retention window; the free tier has no point-in-time recovery.
 - Load testing if you expect a busy concurrent rush — Supabase's pooled connection handles concurrent writes fine at small-to-mid scale, but check your plan's connection limits before a big launch.
 - Work through the full acceptance checklist in `docs/` and SRS §36 before onboarding a real restaurant.

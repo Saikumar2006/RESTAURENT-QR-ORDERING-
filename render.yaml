@@ -13,6 +13,11 @@ services:
         value: production
       - key: PORT
         value: 10000
+      # Owner-managed: set to unconfigured or a supported, credentialed provider.
+      - key: PAYMENT_PROVIDER
+        sync: false
+      - key: MESSAGING_PROVIDER
+        sync: false
       - key: REDIS_URL
         sync: false
       - key: DATABASE_URL

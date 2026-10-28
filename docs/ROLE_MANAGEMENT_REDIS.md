@@ -18,17 +18,17 @@ The team screen is available at **Admin → Team**. The API exposes role listing
 
 ## Existing database rollout
 
-The RBAC schema additions are additive: `roleId` is nullable, legacy `User.role` and password hashes remain, and existing business records are untouched. Before the server starts, `prestart` runs `prisma db push`, then `scripts/backfill-rbac.js`. The backfill creates the permission catalog and built-in tenant roles, maps old `ADMIN` users to `OWNER`, and maps old staff to `STAFF`; it can be rerun safely. New restaurant registration initializes its owner role within the registration transaction.
+The RBAC schema additions are additive: `roleId` is nullable, legacy `User.role` and password hashes remain, and existing business records are untouched. The current server `prestart` only generates Prisma Client and builds the client; it does not run `prisma db push` or `scripts/backfill-rbac.js`. The versioned migration adds the role tables/column; the separate backfill creates the permission catalog and built-in tenant roles and maps old `ADMIN` users to `OWNER` and old staff to `STAFF`. New restaurant registration initializes its owner role within the registration transaction.
 
 Use the current Render commands:
 
 ```text
 Root directory: .
-Build command: npm install --prefix server && npm install --prefix client
+Build command (checked-in render.yaml): npm install --include=dev --prefix server && npm install --prefix client && npm run db:migrate:safe --prefix server
 Start command: npm start
 ```
 
-The existing `npm start` lifecycle runs the schema sync, RBAC backfill, and client build before `server/src/server.js`. The backfill is database-writing, so deploy it to a staging database first when introducing this version to an existing production database. Do not run the demo seed against production.
+Render dashboard settings may override the manifest. Confirm the effective build command in service settings and deploy logs. A build command containing only installs and `npm run build` does not apply database migrations; `npm start` generates Prisma Client and builds assets but does not migrate or backfill. The migration gate requires the backup and schema review described in the production migration guide. The backfill is database-writing, so test it against staging first. Do not run the demo seed against production.
 
 ## Redis configuration and behavior
 

@@ -169,4 +169,6 @@ test("Render manifest declares the complete platform-owned WhatsApp configuratio
   ]) {
     assert.match(renderManifest, new RegExp(`- key: ${key}\\s+sync: false`));
   }
+  assert.match(renderManifest, /- key: PAYMENT_PROVIDER\s+sync: false/);
+  assert.match(renderManifest, /- key: MESSAGING_PROVIDER\s+sync: false/);
 });

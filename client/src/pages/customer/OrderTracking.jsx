@@ -27,7 +27,9 @@ export default function OrderTracking() {
   // local order history), or a WhatsApp/SMS tracking link opened fresh
   // (falls back to the ?t= token embedded in that link — see
   // orderService.js's order confirmation message).
-  const storedOrder = !orderFromState && orderIdParam ? getStoredOrder(slug, orderIdParam) : null;
+  const storedOrder = !orderFromState
+    ? (orderIdParam ? getStoredOrder(slug, orderIdParam) : (getOrderHistory(slug)?.[0] || null))
+    : null;
 
   const [order, setOrder] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState(orderFromState?.paymentStatus);

@@ -99,6 +99,8 @@ export default function App() {
           linked from anywhere else in the app. */}
       <Route path="/platform/login" element={<PlatformLogin />} />
       <Route path="/super-admin/login" element={<PlatformLogin />} />
+      <Route path="/platform" element={<Navigate to="/platform/dashboard" replace />} />
+      <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
       <Route
         path="/platform/dashboard"
         element={

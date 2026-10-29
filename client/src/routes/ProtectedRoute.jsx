@@ -11,8 +11,15 @@ export default function ProtectedRoute({ children, roles, permissions, allPermis
   if (restoreError) return <SessionRecovery error={restoreError} onRetry={retryRestore} />;
   if (!user) return <Navigate to="/admin/login" state={{ from: location }} replace />;
   const billingAllowed = location.pathname === "/admin/billing";
-  if (!billingAllowed && user.subscriptionAccess === false) return <Navigate to="/admin/billing" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/admin" replace />;
+  if (!billingAllowed && user.subscriptionAccess === false) {
+    if (user.role === "ADMIN" || user.isOwner) {
+      return <Navigate to="/admin/billing" replace />;
+    }
+    return <SubscriptionExpired />;
+  }
+  if (roles && !roles.includes(user.role) && !user.isOwner) {
+    return <AccessDenied />;
+  }
   if (permissions && !user.permissions?.includes("*") && !permissions.some((permission) => user.permissions?.includes(permission))) {
     return <AccessDenied />;
   }
@@ -25,6 +32,17 @@ export default function ProtectedRoute({ children, roles, permissions, allPermis
 
 function AccessDenied() {
   return <main className="p-8"><h1 className="font-display text-2xl mb-2">Access unavailable</h1><p className="text-charcoal/55">Your assigned role does not include permission to open this page.</p></main>;
+}
+
+function SubscriptionExpired() {
+  return (
+    <main className="min-h-screen flex items-center justify-center px-6">
+      <section className="max-w-md text-center">
+        <h1 className="font-display text-2xl mb-3">Subscription Expired</h1>
+        <p className="text-charcoal/60 mb-6">The restaurant subscription has expired. Please contact your restaurant administrator to renew access.</p>
+      </section>
+    </main>
+  );
 }
 
 function SessionRecovery({ error, onRetry }) {

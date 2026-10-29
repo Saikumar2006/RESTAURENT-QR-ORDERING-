@@ -59,7 +59,7 @@ export default function Payment() {
         orderSessionToken: order.orderSessionToken,
         ...payload,
       });
-      navigate(`/r/${slug}/confirmation`, { state: { order } });
+      navigate(`/r/${slug}/order/${order.id}?t=${encodeURIComponent(order.orderSessionToken)}`, { state: { order } });
     } catch (err) {
       setError(err.message);
       setProcessing(false);

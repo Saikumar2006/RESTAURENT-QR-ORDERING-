@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
         setUser(null);
         return;
       }
-      setUser(await api.get("/auth/me", { timeout: 12000 }));
+      setUser(await api.get("/auth/me", { timeout: 25000 }));
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         try { localStorage.removeItem("qr_ordering_token"); } catch { /* Storage may be disabled. */ }

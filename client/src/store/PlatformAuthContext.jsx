@@ -14,7 +14,7 @@ export function PlatformAuthProvider({ children }) {
     setLoading(true);
     setRestoreError(null);
     try {
-      setAdmin(await platformApi.get("/me", { timeout: 12000 }));
+      setAdmin(await platformApi.get("/me", { timeout: 25000 }));
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         setAdmin(null);

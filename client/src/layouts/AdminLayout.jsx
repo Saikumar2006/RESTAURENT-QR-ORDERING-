@@ -21,6 +21,7 @@ const NAV = [
 
 const PAGE_TITLES = {
   "/admin": "Overview",
+  "/admin/dashboard": "Overview",
   "/admin/orders": "Orders",
   "/admin/integrations": "Marketplace integrations",
   "/admin/tables": "Tables",
@@ -53,6 +54,7 @@ const NAV_PERMISSIONS = {
   "/admin/staff": "staff.view",
   "/admin/settings": "settings.view",
   "/admin/appearance": "settings.view",
+  "/admin/billing": "settings.view",
 };
 
 function canAccessNav(item, permissions = []) {
@@ -70,9 +72,9 @@ export default function AdminLayout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const currentNavLabel = NAV.find((item) => item.to === location.pathname)?.label;
+  const currentNavLabel = NAV.find((item) => item.to === location.pathname || (item.to === "/admin" && location.pathname === "/admin/dashboard"))?.label;
   const pageTitle = (currentNavLabel && t(NAV_TRANSLATION_KEYS[currentNavLabel])) || PAGE_TITLES[location.pathname] || "Restaurant operations";
-  const availableNavigation = NAV.filter((item) => (!item.adminOnly || user?.role === "ADMIN") && canAccessNav(item, user?.permissions));
+  const availableNavigation = NAV.filter((item) => (!item.adminOnly || user?.role === "ADMIN" || user?.isOwner) && canAccessNav(item, user?.permissions));
 
   useEffect(() => {
     const token = localStorage.getItem("qr_ordering_token");
@@ -89,10 +91,13 @@ export default function AdminLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (location.pathname !== "/admin" || canAccessNav(NAV[0], user?.permissions)) return;
-    const destination = availableNavigation.find((item) => item.to !== "/admin")?.to;
-    navigate(destination || "/admin/login", { replace: true });
-  }, [location.pathname, navigate, user?.permissions]);
+    if (location.pathname !== "/admin" && location.pathname !== "/admin/dashboard") return;
+    if (canAccessNav(NAV[0], user?.permissions)) return;
+    const destination = availableNavigation.find((item) => item.to !== "/admin" && item.to !== "/admin/dashboard")?.to;
+    if (destination) {
+      navigate(destination, { replace: true });
+    }
+  }, [location.pathname, navigate, user?.permissions, availableNavigation]);
 
   return (
     <div className="min-h-screen bg-[#f4f6f3] text-charcoal lg:flex">

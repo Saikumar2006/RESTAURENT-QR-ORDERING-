@@ -340,6 +340,23 @@ async function main() {
     }
 
     try {
+      const demoUser = await prisma.user.findFirst({
+        where: { email: { equals: "admin@spicegarden.test", mode: "insensitive" } },
+      });
+      if (!demoUser) {
+        console.log("Demo user admin@spicegarden.test not found; seeding baseline demo data...");
+        const seedResult = spawnSync(process.execPath, [path.join(__dirname, "..", "prisma", "seed.js")], {
+          cwd: path.join(__dirname, ".."),
+          env: process.env,
+          stdio: "inherit",
+        });
+        if (seedResult.error) console.warn("Seed execution warning:", seedResult.error.message);
+      }
+    } catch (seedErr) {
+      console.warn("Baseline seed check warning:", seedErr.message);
+    }
+
+    try {
       const { ensureRestaurantRoles } = require("../src/services/roleService");
       const restaurants = await prisma.restaurant.findMany({ select: { id: true } });
       for (const restaurant of restaurants) {

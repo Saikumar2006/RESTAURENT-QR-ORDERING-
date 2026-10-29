@@ -15,13 +15,19 @@ const googleErrorMessages = {
 };
 
 export default function AdminLogin() {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const { state, hash } = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/admin", { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const errorCode = new URLSearchParams(hash.slice(1)).get("google_error");
@@ -38,7 +44,10 @@ export default function AdminLogin() {
     setError(null);
     try {
       await login(email, password);
-      navigate(state?.from?.pathname || "/admin", { replace: true });
+      const destination = (state?.from?.pathname && state.from.pathname !== "/admin/login" && state.from.pathname !== "/login")
+        ? state.from.pathname
+        : "/admin";
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);

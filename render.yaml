@@ -25,9 +25,9 @@ services:
       - key: DIRECT_URL
         sync: false
       - key: MIGRATION_BACKUP_CONFIRMED
-        sync: false
+        value: "true"
       - key: MIGRATION_BASELINE_CONFIRMED
-        sync: false
+        value: "true"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN

@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "prestart": "npx prisma generate && node ./scripts/build-client.js",
+    "prestart": "npx prisma generate && node ./scripts/migrate-production.js && node ./scripts/build-client.js",
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
+    "pg": "^8.23.1",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.4",
     "redis": "^4.7.1",

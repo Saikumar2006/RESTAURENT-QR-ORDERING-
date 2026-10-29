@@ -391,23 +391,56 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="landing-page">
-      <Navbar />
-      <Hero />
-      <ProblemSection />
-      <ProductSection />
-      <FeaturesSection />
-      <StepsSection />
-      <CustomerExperience />
-      <DashboardShowcase />
-      <KitchenSection />
-      <RolesSection />
-      <AnalyticsSection />
-      <MultiRestaurantSection />
-      <SecuritySection />
-      <FAQSection />
-      <FinalCTA />
-      <Footer />
+    <main className="landing-page minimal-home">
+      <header className="minimal-nav">
+        <div className="minimal-nav-inner">
+          <Link className="minimal-brand" to="/" aria-label="Svaadya home"><span>S</span>Svaadya</Link>
+          <nav aria-label="Main navigation">
+            <a href="#features">Features</a>
+            <Link to="/pricing">Pricing</Link>
+            <LanguageSwitcher className="landing-language-control" />
+            <Link className="minimal-signin" to="/admin/login">Sign in</Link>
+          </nav>
+        </div>
+      </header>
+
+      <section className="minimal-hero">
+        <div className="minimal-hero-copy">
+          <span className="minimal-kicker"><i /> RESTAURANT OPERATIONS, IN SYNC</span>
+          <h1>More care on the floor.<br /><em>Less work behind it.</em></h1>
+          <p>Orders, tables, menus and your team, brought together in one calm workspace.</p>
+          <div className="minimal-actions">
+            <Link className="minimal-button" to="/admin/login">Open your workspace <span>→</span></Link>
+            <Link className="minimal-text-link" to="/pricing">Explore Svaadya <span>↗</span></Link>
+          </div>
+          <div className="minimal-proof"><span>QR ordering</span><b>·</b><span>Live operations</span><b>·</b><span>Built for your team</span></div>
+        </div>
+        <div className="minimal-preview-wrap" aria-label="Illustrative Svaadya workspace preview">
+          <div className="minimal-preview">
+            <div className="minimal-preview-top"><div className="minimal-preview-brand"><span>S</span><b>Workspace</b></div><span className="minimal-demo-pill">PREVIEW</span></div>
+            <div className="minimal-preview-heading"><div><small>YOUR RESTAURANT</small><h2>Good afternoon</h2></div><span className="minimal-live-dot">Ready for service</span></div>
+            <div className="minimal-preview-stats"><div><small>Orders</small><b>All in one queue</b><span>QR · Website · Counter</span></div><div><small>Floor</small><b>Tables at a glance</b><span>Live service view</span></div></div>
+            <div className="minimal-order-row"><span className="minimal-order-icon">↗</span><div><b>Order management</b><small>Follow each order from new to ready</small></div><span className="minimal-row-arrow">→</span></div>
+            <div className="minimal-preview-footer"><span>One clear view of the shift</span><span>SV&nbsp; · &nbsp;01</span></div>
+          </div>
+          <span className="minimal-preview-caption">A quieter way to run a busy day.</span>
+        </div>
+      </section>
+
+      <section className="minimal-features" id="features">
+        <div className="minimal-section-head"><div><span className="minimal-kicker">THE ESSENTIALS, TOGETHER</span><h2>Everything in its place.</h2></div><p>Simple tools for the small moments that make service feel seamless.</p></div>
+        <div className="minimal-feature-grid">
+          {[
+            ["01", "Orders", "Keep new, active and completed orders easy to follow."],
+            ["02", "Digital menu", "Give guests a clear menu that your team can update."],
+            ["03", "Tables", "See the floor at a glance and keep service moving."],
+            ["04", "Your team", "Give each person the access they need for their role."],
+          ].map(([number, title, description]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{description}</p></div><b aria-hidden="true">↗</b></article>)}
+        </div>
+      </section>
+
+      <section className="minimal-cta"><div><span className="minimal-kicker">A BETTER FLOW STARTS HERE</span><h2>Make room for great hospitality.</h2></div><Link className="minimal-button" to="/admin/login">Sign in to Svaadya <span>→</span></Link></section>
+      <footer className="minimal-footer"><Link className="minimal-brand" to="/"><span>S</span>Svaadya</Link><p>Thoughtfully made for restaurant teams.</p><div><Link to="/about">About</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div><small>© 2026 Svaadya</small></footer>
     </main>
   );
 }

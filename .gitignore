@@ -30,3 +30,11 @@ server/uploads/*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local backups & dumps
+*.dump
+server/prisma/*.dump
+
+# Editor
+.vscode/
+

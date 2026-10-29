@@ -54,8 +54,14 @@ export function PlatformAuthProvider({ children }) {
 
   async function login(email, password) {
     const result = await platformApi.post("/login", { email, password });
-    setAdmin(result.admin);
-    return result.admin;
+    if (result.admin) {
+      setAdmin(result.admin);
+    }
+    return result;
+  }
+
+  function setAdminFromLogin(newAdmin) {
+    setAdmin(newAdmin);
   }
 
   async function logout() {
@@ -65,7 +71,7 @@ export function PlatformAuthProvider({ children }) {
   }
 
   return (
-    <PlatformAuthContext.Provider value={{ admin, loading, restoreError, retryRestore: restoreSession, login, logout }}>
+    <PlatformAuthContext.Provider value={{ admin, loading, restoreError, retryRestore: restoreSession, login, logout, setAdminFromLogin }}>
       {children}
     </PlatformAuthContext.Provider>
   );

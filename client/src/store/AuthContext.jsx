@@ -56,9 +56,17 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     const result = await api.post("/auth/login", { email, password });
+    if (result.accountType === "platform") {
+      return result;
+    }
     localStorage.setItem("qr_ordering_token", result.token);
     setUser(result.user);
-    return result.user;
+    return result;
+  }
+
+  function setSessionFromLogin(token, user) {
+    localStorage.setItem("qr_ordering_token", token);
+    setUser(user);
   }
 
   function logout() {
@@ -73,7 +81,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, restoreError, retryRestore: restoreSession, login, logout, setPreferredLanguage }}>
+    <AuthContext.Provider value={{ user, loading, restoreError, retryRestore: restoreSession, login, logout, setSessionFromLogin, setPreferredLanguage }}>
       {children}
     </AuthContext.Provider>
   );

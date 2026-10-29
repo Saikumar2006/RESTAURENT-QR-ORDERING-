@@ -188,6 +188,7 @@ const getOrder = asyncHandler(async (req, res) => {
 });
 
 const listOrders = asyncHandler(async (req, res) => {
+  if (req.params.id && req.params.id !== req.user.restaurantId) throw new ApiError(403, "Forbidden");
   const { status, source, search, from, to, page, pageSize } = req.query;
   const sources = new Set(["SVAADYA_QR", "SVAADYA_WEBSITE", "SWIGGY", "ZOMATO", "MANUAL"]);
   if (source && !sources.has(source)) throw new ApiError(400, "Invalid order source filter");

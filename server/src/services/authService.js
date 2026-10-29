@@ -75,7 +75,25 @@ async function login(email, password) {
     throw new ApiError(409, "Multiple restaurant accounts match this email. Please contact support.");
   }
   const user = activeUsers[0];
-  if (!user) throw new ApiError(401, "Invalid email or password");
+  if (!user) {
+    const admin = await prisma.platformAdmin.findUnique({ where: { email: normalizedEmail } });
+    if (admin && admin.isActive) {
+      const valid = await comparePassword(password, admin.passwordHash);
+      if (valid) {
+        const platformRoleService = require("./platformRoleService");
+        const { signPlatformToken } = require("../utils/auth");
+        const token = signPlatformToken(admin);
+        const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
+        return {
+          accountType: "platform",
+          token,
+          admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
+          redirectTo: "/super-admin/dashboard",
+        };
+      }
+    }
+    throw new ApiError(401, "Invalid email or password");
+  }
 
   const validPassword = await comparePassword(password, user.passwordHash);
   if (!validPassword) throw new ApiError(401, "Invalid email or password");

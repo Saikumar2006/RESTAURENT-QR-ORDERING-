@@ -17,10 +17,24 @@ const platformCookieOptions = () => ({
 
 const login = asyncHandler(async (req, res) => {
   const result = await platformAuthService.login(req.body.email, req.body.password);
-  const claims = jwt.decode(result.token);
-  const maxAge = claims?.exp ? Math.max(0, claims.exp * 1000 - Date.now()) : 0;
-  res.cookie(PLATFORM_SESSION_COOKIE, result.token, { ...platformCookieOptions(), maxAge });
-  ok(res, { admin: result.admin });
+  if (result.accountType === "platform") {
+    const claims = jwt.decode(result.token);
+    const maxAge = claims?.exp ? Math.max(0, claims.exp * 1000 - Date.now()) : 0;
+    res.cookie(PLATFORM_SESSION_COOKIE, result.token, { ...platformCookieOptions(), maxAge });
+    ok(res, {
+      accountType: "platform",
+      admin: result.admin,
+      redirectTo: "/super-admin/dashboard",
+    });
+    return;
+  }
+  // Tenant user (Owner / Staff)
+  ok(res, {
+    accountType: "tenant",
+    token: result.token,
+    user: result.user,
+    redirectTo: result.redirectTo || "/admin",
+  });
 });
 
 const logout = asyncHandler(async (_req, res) => {

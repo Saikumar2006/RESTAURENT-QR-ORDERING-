@@ -82,7 +82,25 @@ async function googleCallback(req, res) {
 
 const login = asyncHandler(async (req, res) => {
   const result = await authService.login(req.body.email, req.body.password);
-  ok(res, result);
+  if (result.accountType === "platform") {
+    const jwt = require("jsonwebtoken");
+    const claims = jwt.decode(result.token);
+    const maxAge = claims?.exp ? Math.max(0, claims.exp * 1000 - Date.now()) : 0;
+    res.cookie("svaadya_platform_session", result.token, {
+      httpOnly: true,
+      secure: env.nodeEnv === "production",
+      sameSite: "strict",
+      path: "/api/platform",
+      maxAge,
+    });
+    return ok(res, result);
+  }
+  const redirectTo = result.user?.role === "STAFF" ? "/admin/orders" : "/admin";
+  ok(res, {
+    accountType: "tenant",
+    redirectTo,
+    ...result,
+  });
 });
 
 const me = asyncHandler(async (req, res) => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext.jsx";
+import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -16,6 +17,7 @@ const googleErrorMessages = {
 
 export default function AdminLogin() {
   const { user, login } = useAuth();
+  const { admin, setAdminFromLogin } = usePlatformAuth();
   const navigate = useNavigate();
   const { state, hash } = useLocation();
   const [email, setEmail] = useState("");
@@ -24,10 +26,13 @@ export default function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate("/admin", { replace: true });
+    if (admin) {
+      navigate("/super-admin/dashboard", { replace: true });
+    } else if (user) {
+      const destination = user.role === "STAFF" ? "/admin/orders" : "/admin";
+      navigate(destination, { replace: true });
     }
-  }, [user, navigate]);
+  }, [admin, user, navigate]);
 
   useEffect(() => {
     const errorCode = new URLSearchParams(hash.slice(1)).get("google_error");
@@ -43,13 +48,21 @@ export default function AdminLogin() {
     setSubmitting(true);
     setError(null);
     try {
-      await login(email, password);
-      const destination = (state?.from?.pathname && state.from.pathname !== "/admin/login" && state.from.pathname !== "/login")
+      const result = await login(email, password);
+      if (result.accountType === "platform") {
+        if (setAdminFromLogin) setAdminFromLogin(result.admin);
+        navigate(result.redirectTo || "/super-admin/dashboard", { replace: true });
+        return;
+      }
+      let destination = (state?.from?.pathname && state.from.pathname !== "/admin/login" && state.from.pathname !== "/login")
         ? state.from.pathname
-        : "/admin";
+        : (result.redirectTo || "/admin");
+      if (result.user?.role === "STAFF" && (destination === "/admin" || destination === "/admin/dashboard")) {
+        destination = "/admin/orders";
+      }
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Invalid email or password");
       setSubmitting(false);
     }
   }
@@ -116,9 +129,19 @@ export default function AdminLogin() {
               </button>
             </form>
 
-            <p className="mt-5 text-center text-xs text-charcoal/45">
-              Seeded demo login: admin@spicegarden.test / password123
-            </p>
+            <div className="mt-5 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@spicegarden.test");
+                  setPassword("password123");
+                  setError(null);
+                }}
+                className="text-xs text-charcoal/60 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
+              >
+                Click to fill demo: <span className="font-mono text-[11px] font-medium text-charcoal/80">admin@spicegarden.test</span> / <span className="font-mono text-[11px] font-medium text-charcoal/80">password123</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

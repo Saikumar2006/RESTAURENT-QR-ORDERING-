@@ -25,11 +25,13 @@ const updateRestaurant = asyncHandler(async (req, res) => {
 // --- Tables ----------------------------------------------------------------
 
 const listTables = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
   const tables = await tableService.listTables(req.user.restaurantId);
   ok(res, tables);
 });
 
 const createTable = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
   const table = await tableService.createTable(req.user.restaurantId, req.body);
   created(res, table);
 });

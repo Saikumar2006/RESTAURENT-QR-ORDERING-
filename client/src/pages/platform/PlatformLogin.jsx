@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
+import { useAuth } from "../../store/AuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
 import "./platform.css";
 
 export default function PlatformLogin() {
-  const { login } = usePlatformAuth();
+  const { admin, login } = usePlatformAuth();
+  const { user, setSessionFromLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,15 +15,30 @@ export default function PlatformLogin() {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (admin) {
+      navigate("/super-admin/dashboard", { replace: true });
+    } else if (user) {
+      const destination = user.role === "STAFF" ? "/admin/orders" : "/admin";
+      navigate(destination, { replace: true });
+    }
+  }, [admin, user, navigate]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate("/super-admin/dashboard", { replace: true });
+      const result = await login(email, password);
+      if (result.accountType === "tenant" && result.token) {
+        setSessionFromLogin(result.token, result.user);
+        const destination = result.user?.role === "STAFF" ? "/admin/orders" : (result.redirectTo || "/admin");
+        navigate(destination, { replace: true });
+        return;
+      }
+      navigate(result.redirectTo || "/super-admin/dashboard", { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Invalid email or password");
       setSubmitting(false);
     }
   }

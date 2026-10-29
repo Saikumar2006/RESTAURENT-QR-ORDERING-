@@ -67,56 +67,166 @@ WHERE ns.nspname = 'public'
     'Payment_provider_providerPaymentId_key'
   )`;
 
-const duplicateAndNullChecks = `
-WITH duplicate_checks AS (
-  SELECT 'Order(restaurantId, source, externalOrderId)' AS check_name,
-         COUNT(*) AS duplicate_groups, COALESCE(SUM(n - 1), 0) AS duplicate_rows,
-         0::bigint AS null_rows, 0::bigint AS blank_rows
-  FROM (SELECT COUNT(*) n FROM "Order"
-        WHERE "externalOrderId" IS NOT NULL
-        GROUP BY "restaurantId", "source", "externalOrderId"
-        HAVING COUNT(*) > 1) grouped
-  UNION ALL
-  SELECT 'Order(restaurantId, idempotencyKey)', COUNT(*), COALESCE(SUM(n - 1), 0), 0, 0
-  FROM (SELECT COUNT(*) n FROM "Order"
-        WHERE "idempotencyKey" IS NOT NULL
-        GROUP BY "restaurantId", "idempotencyKey"
-        HAVING COUNT(*) > 1) grouped
-  UNION ALL
-  SELECT 'Payment(provider, providerPaymentId)', COUNT(*), COALESCE(SUM(n - 1), 0), 0, 0
-  FROM (SELECT COUNT(*) n FROM "Payment"
-        WHERE "providerPaymentId" IS NOT NULL
-        GROUP BY "provider", "providerPaymentId"
-        HAVING COUNT(*) > 1) grouped
-), field_checks AS (
-  SELECT 'Order.externalOrderId' AS check_name, 0::bigint duplicate_groups, 0::bigint duplicate_rows,
-         COUNT(*) FILTER (WHERE "externalOrderId" IS NULL) AS null_rows,
-         COUNT(*) FILTER (WHERE "externalOrderId" IS NOT NULL AND btrim("externalOrderId") = '') AS blank_rows
-  FROM "Order"
-  UNION ALL
-  SELECT 'Order.idempotencyKey', 0, 0,
-         COUNT(*) FILTER (WHERE "idempotencyKey" IS NULL),
-         COUNT(*) FILTER (WHERE "idempotencyKey" IS NOT NULL AND btrim("idempotencyKey") = '')
-  FROM "Order"
-  UNION ALL
-  SELECT 'Order.source', 0, 0,
-         COUNT(*) FILTER (WHERE "source" IS NULL),
-         COUNT(*) FILTER (WHERE "source" IS NOT NULL AND btrim("source") = '')
-  FROM "Order"
-  UNION ALL
-  SELECT 'Payment.providerPaymentId', 0, 0,
-         COUNT(*) FILTER (WHERE "providerPaymentId" IS NULL),
-         COUNT(*) FILTER (WHERE "providerPaymentId" IS NOT NULL AND btrim("providerPaymentId") = '')
-  FROM "Payment"
-  UNION ALL
-  SELECT 'Payment.provider', 0, 0,
-         COUNT(*) FILTER (WHERE "provider" IS NULL),
-         COUNT(*) FILTER (WHERE "provider" IS NOT NULL AND btrim("provider") = '')
-  FROM "Payment"
-)
-SELECT * FROM duplicate_checks
-UNION ALL SELECT * FROM field_checks
-ORDER BY check_name`;
+async function runSafeDuplicateAndNullChecks(prisma) {
+  const existingColsRaw = await prisma.$queryRawUnsafe(`
+    SELECT table_name, column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name IN ('Order', 'Payment')
+  `);
+  const colSet = new Set(existingColsRaw.map((r) => `${r.table_name}.${r.column_name}`));
+
+  const checks = [];
+
+  // Check 1: Order(restaurantId, source, externalOrderId)
+  if (colSet.has("Order.restaurantId") && colSet.has("Order.source") && colSet.has("Order.externalOrderId")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Order(restaurantId, source, externalOrderId)' AS check_name,
+             COUNT(*)::bigint AS duplicate_groups,
+             COALESCE(SUM(n - 1), 0)::bigint AS duplicate_rows,
+             0::bigint AS null_rows,
+             0::bigint AS blank_rows
+      FROM (SELECT COUNT(*) n FROM "Order"
+            WHERE "externalOrderId" IS NOT NULL
+            GROUP BY "restaurantId", "source", "externalOrderId"
+            HAVING COUNT(*) > 1) grouped
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({
+      check_name: "Order(restaurantId, source, externalOrderId)",
+      duplicate_groups: 0n,
+      duplicate_rows: 0n,
+      null_rows: 0n,
+      blank_rows: 0n,
+    });
+  }
+
+  // Check 2: Order(restaurantId, idempotencyKey)
+  if (colSet.has("Order.restaurantId") && colSet.has("Order.idempotencyKey")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Order(restaurantId, idempotencyKey)' AS check_name,
+             COUNT(*)::bigint AS duplicate_groups,
+             COALESCE(SUM(n - 1), 0)::bigint AS duplicate_rows,
+             0::bigint AS null_rows,
+             0::bigint AS blank_rows
+      FROM (SELECT COUNT(*) n FROM "Order"
+            WHERE "idempotencyKey" IS NOT NULL
+            GROUP BY "restaurantId", "idempotencyKey"
+            HAVING COUNT(*) > 1) grouped
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({
+      check_name: "Order(restaurantId, idempotencyKey)",
+      duplicate_groups: 0n,
+      duplicate_rows: 0n,
+      null_rows: 0n,
+      blank_rows: 0n,
+    });
+  }
+
+  // Check 3: Payment(provider, providerPaymentId)
+  if (colSet.has("Payment.provider") && colSet.has("Payment.providerPaymentId")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Payment(provider, providerPaymentId)' AS check_name,
+             COUNT(*)::bigint AS duplicate_groups,
+             COALESCE(SUM(n - 1), 0)::bigint AS duplicate_rows,
+             0::bigint AS null_rows,
+             0::bigint AS blank_rows
+      FROM (SELECT COUNT(*) n FROM "Payment"
+            WHERE "providerPaymentId" IS NOT NULL
+            GROUP BY "provider", "providerPaymentId"
+            HAVING COUNT(*) > 1) grouped
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({
+      check_name: "Payment(provider, providerPaymentId)",
+      duplicate_groups: 0n,
+      duplicate_rows: 0n,
+      null_rows: 0n,
+      blank_rows: 0n,
+    });
+  }
+
+  // Field check: Order.externalOrderId
+  if (colSet.has("Order.externalOrderId")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Order.externalOrderId' AS check_name,
+             0::bigint AS duplicate_groups,
+             0::bigint AS duplicate_rows,
+             COUNT(*) FILTER (WHERE "externalOrderId" IS NULL)::bigint AS null_rows,
+             COUNT(*) FILTER (WHERE "externalOrderId" IS NOT NULL AND btrim("externalOrderId") = '')::bigint AS blank_rows
+      FROM "Order"
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({ check_name: "Order.externalOrderId", duplicate_groups: 0n, duplicate_rows: 0n, null_rows: 0n, blank_rows: 0n });
+  }
+
+  // Field check: Order.idempotencyKey
+  if (colSet.has("Order.idempotencyKey")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Order.idempotencyKey' AS check_name,
+             0::bigint AS duplicate_groups,
+             0::bigint AS duplicate_rows,
+             COUNT(*) FILTER (WHERE "idempotencyKey" IS NULL)::bigint AS null_rows,
+             COUNT(*) FILTER (WHERE "idempotencyKey" IS NOT NULL AND btrim("idempotencyKey") = '')::bigint AS blank_rows
+      FROM "Order"
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({ check_name: "Order.idempotencyKey", duplicate_groups: 0n, duplicate_rows: 0n, null_rows: 0n, blank_rows: 0n });
+  }
+
+  // Field check: Order.source
+  if (colSet.has("Order.source")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Order.source' AS check_name,
+             0::bigint AS duplicate_groups,
+             0::bigint AS duplicate_rows,
+             COUNT(*) FILTER (WHERE "source" IS NULL)::bigint AS null_rows,
+             COUNT(*) FILTER (WHERE "source" IS NOT NULL AND btrim("source") = '')::bigint AS blank_rows
+      FROM "Order"
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({ check_name: "Order.source", duplicate_groups: 0n, duplicate_rows: 0n, null_rows: 0n, blank_rows: 0n });
+  }
+
+  // Field check: Payment.providerPaymentId
+  if (colSet.has("Payment.providerPaymentId")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Payment.providerPaymentId' AS check_name,
+             0::bigint AS duplicate_groups,
+             0::bigint AS duplicate_rows,
+             COUNT(*) FILTER (WHERE "providerPaymentId" IS NULL)::bigint AS null_rows,
+             COUNT(*) FILTER (WHERE "providerPaymentId" IS NOT NULL AND btrim("providerPaymentId") = '')::bigint AS blank_rows
+      FROM "Payment"
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({ check_name: "Payment.providerPaymentId", duplicate_groups: 0n, duplicate_rows: 0n, null_rows: 0n, blank_rows: 0n });
+  }
+
+  // Field check: Payment.provider
+  if (colSet.has("Payment.provider")) {
+    const res = await prisma.$queryRawUnsafe(`
+      SELECT 'Payment.provider' AS check_name,
+             0::bigint AS duplicate_groups,
+             0::bigint AS duplicate_rows,
+             COUNT(*) FILTER (WHERE "provider" IS NULL)::bigint AS null_rows,
+             COUNT(*) FILTER (WHERE "provider" IS NOT NULL AND btrim("provider") = '')::bigint AS blank_rows
+      FROM "Payment"
+    `);
+    checks.push(res[0]);
+  } else {
+    checks.push({ check_name: "Payment.provider", duplicate_groups: 0n, duplicate_rows: 0n, null_rows: 0n, blank_rows: 0n });
+  }
+
+  return checks.sort((a, b) => a.check_name.localeCompare(b.check_name));
+}
 
 async function main() {
   if (!process.env.DATABASE_URL || !process.env.DIRECT_URL) {
@@ -170,7 +280,7 @@ async function main() {
       return;
     }
 
-    const checks = await prisma.$queryRawUnsafe(duplicateAndNullChecks);
+    const checks = await runSafeDuplicateAndNullChecks(prisma);
     const report = summarizeRows(checks);
     for (const row of report) console.log(JSON.stringify(row));
     const blockers = migrationBlockers(checks);
@@ -252,4 +362,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { migrationBlockers, summarizeRows, missingOrInvalidUniqueIndexes };
+module.exports = { migrationBlockers, summarizeRows, missingOrInvalidUniqueIndexes, runSafeDuplicateAndNullChecks };

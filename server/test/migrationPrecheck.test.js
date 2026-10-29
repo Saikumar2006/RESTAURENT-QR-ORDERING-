@@ -46,3 +46,30 @@ test("migration gate detects missing, invalid, or mismatched recorded unique ind
   assert.deepEqual(missingOrInvalidUniqueIndexes(existing.slice(0, 2)), ["Payment_provider_providerPaymentId_key"]);
   assert.deepEqual(missingOrInvalidUniqueIndexes([{ ...existing[0], is_valid: false }, ...existing.slice(1)]), ["Order_restaurantId_source_externalOrderId_key"]);
 });
+
+test("runSafeDuplicateAndNullChecks handles missing columns gracefully before migrations run", async () => {
+  const { runSafeDuplicateAndNullChecks } = require("../scripts/migrate-production");
+
+  // Mock Prisma client where information_schema reports externalOrderId does NOT exist yet
+  const mockPrismaMissingCols = {
+    async $queryRawUnsafe(sql) {
+      if (sql.includes("information_schema.columns")) {
+        return [
+          { table_name: "Order", column_name: "id" },
+          { table_name: "Order", column_name: "restaurantId" },
+          { table_name: "Payment", column_name: "id" },
+        ];
+      }
+      throw new Error(`Unexpected query on missing columns: ${sql}`);
+    },
+  };
+
+  const results = await runSafeDuplicateAndNullChecks(mockPrismaMissingCols);
+  assert.equal(Array.isArray(results), true);
+  assert.equal(results.length, 8);
+  const extOrderCheck = results.find((r) => r.check_name === "Order.externalOrderId");
+  assert.ok(extOrderCheck);
+  assert.equal(extOrderCheck.duplicate_groups, 0n);
+  assert.equal(extOrderCheck.null_rows, 0n);
+});
+

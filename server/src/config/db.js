@@ -1,6 +1,5 @@
 // Prisma v7 requires a driver adapter — the Rust query engine is gone.
-// We use @prisma/adapter-pg to connect via the pg pool.
-const { PrismaClient } = require("../generated/prisma/client.ts");
+const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
 

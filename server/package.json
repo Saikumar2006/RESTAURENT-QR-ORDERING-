@@ -6,16 +6,16 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "prestart": "npx prisma generate && node ./scripts/migrate-production.js && node ./scripts/build-client.js",
+    "prestart": "prisma generate && node ./scripts/migrate-production.js && node ./scripts/build-client.js",
     "start": "node src/server.js",
-    "prisma:generate": "prisma generate && node -e \"require('fs').writeFileSync('src/generated/prisma/package.json', JSON.stringify({type:'module'}))\"",
+    "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate:safe": "node scripts/migrate-production.js",
     "rbac:backfill": "node scripts/backfill-rbac.js",
     "seed": "node prisma/seed.js",
     "test": "node --test",
     "create-platform-admin": "node scripts/create-platform-admin.js",
-    "postinstall": "prisma generate && node -e \"require('fs').writeFileSync('src/generated/prisma/package.json', JSON.stringify({type:'module'}))\""
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

@@ -2,9 +2,7 @@
 // Multi-tenant from day one. Every tenant-owned table carries restaurantId.
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider = "prisma-client-js"
 }
 
 datasource db {

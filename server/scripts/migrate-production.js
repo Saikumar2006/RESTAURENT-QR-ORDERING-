@@ -45,12 +45,12 @@ function missingOrInvalidUniqueIndexes(indexes) {
 }
 
 const uniqueIndexInspection = `
-SELECT tbl.relname AS table_name,
-       idx.relname AS index_name,
+SELECT tbl.relname::text AS table_name,
+       idx.relname::text AS index_name,
        i.indisunique AS is_unique,
        i.indisvalid AS is_valid,
        ARRAY(
-         SELECT att.attname
+         SELECT att.attname::text
          FROM unnest(i.indkey) WITH ORDINALITY AS key(attnum, position)
          JOIN pg_attribute att ON att.attrelid = tbl.oid AND att.attnum = key.attnum
          WHERE key.position <= i.indnkeyatts

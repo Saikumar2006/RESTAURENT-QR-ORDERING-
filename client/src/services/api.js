@@ -6,7 +6,7 @@ import axios from "axios";
 // Pages + Railway/Render), set VITE_API_URL to the API's full origin at
 // build time and requests get routed there instead.
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-const api = axios.create({ baseURL: `${API_ORIGIN}/api` });
+const api = axios.create({ baseURL: `${API_ORIGIN}/api`, withCredentials: true });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("qr_ordering_token");

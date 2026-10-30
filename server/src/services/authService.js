@@ -55,9 +55,18 @@ function getGoogleAuthorizationUrl(state) {
   });
 }
 
-async function login(email, password) {
+async function login(email, password, requestId = null) {
+  const startTime = Date.now();
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!normalizedEmail || typeof password !== "string" || !password) {
+    console.log(JSON.stringify({
+      event: "auth_diagnostic",
+      requestId,
+      endpoint: "/api/auth/login",
+      emailProvided: Boolean(normalizedEmail),
+      rejectionReason: "MISSING_CREDENTIALS",
+      durationMs: Date.now() - startTime,
+    }));
     throw new ApiError(401, "Invalid email or password");
   }
 
@@ -70,35 +79,156 @@ async function login(email, password) {
       restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
     },
   });
-  const activeUsers = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
-  if (activeUsers.length > 1) {
-    throw new ApiError(409, "Multiple restaurant accounts match this email. Please contact support.");
-  }
-  const user = activeUsers[0];
-  if (!user) {
-    const admin = await prisma.platformAdmin.findUnique({ where: { email: normalizedEmail } });
-    if (admin && admin.isActive) {
-      const valid = await comparePassword(password, admin.passwordHash);
-      if (valid) {
-        const platformRoleService = require("./platformRoleService");
-        const { signPlatformToken } = require("../utils/auth");
-        const token = signPlatformToken(admin);
-        const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
-        return {
-          accountType: "platform",
-          token,
-          admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
-          redirectTo: "/super-admin/dashboard",
-        };
-      }
+
+  if (users.length > 1) {
+    const active = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
+    if (active.length > 1) {
+      console.log(JSON.stringify({
+        event: "auth_diagnostic",
+        requestId,
+        endpoint: "/api/auth/login",
+        emailProvided: true,
+        matchCount: users.length,
+        rejectionReason: "MULTIPLE_ACCOUNTS",
+        durationMs: Date.now() - startTime,
+      }));
+      throw new ApiError(409, "Multiple restaurant accounts match this email. Please contact support.");
     }
+  }
+
+  const user = users.find((u) => u.isActive && u.restaurant?.status === "ACTIVE") || users[0];
+
+  if (!user) {
+    const admin = await prisma.platformAdmin.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    });
+    if (admin) {
+      const valid = await comparePassword(password, admin.passwordHash);
+      if (!valid) {
+        console.log(JSON.stringify({
+          event: "auth_diagnostic",
+          requestId,
+          endpoint: "/api/auth/login",
+          emailProvided: true,
+          platformAdminFound: true,
+          platformAdminActive: admin.isActive,
+          passwordValid: false,
+          rejectionReason: "INVALID_PASSWORD",
+          durationMs: Date.now() - startTime,
+        }));
+        throw new ApiError(401, "Invalid email or password");
+      }
+      if (!admin.isActive) {
+        console.log(JSON.stringify({
+          event: "auth_diagnostic",
+          requestId,
+          endpoint: "/api/auth/login",
+          emailProvided: true,
+          platformAdminFound: true,
+          platformAdminActive: false,
+          passwordValid: true,
+          rejectionReason: "ACCOUNT_INACTIVE",
+          durationMs: Date.now() - startTime,
+        }));
+        throw new ApiError(403, "Your platform administrator account is inactive.");
+      }
+      const platformRoleService = require("./platformRoleService");
+      const { signPlatformToken } = require("../utils/auth");
+      const token = signPlatformToken(admin);
+      const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
+      console.log(JSON.stringify({
+        event: "auth_diagnostic",
+        requestId,
+        endpoint: "/api/auth/login",
+        emailProvided: true,
+        platformAdminFound: true,
+        accountType: "platform",
+        passwordValid: true,
+        tokenCreated: true,
+        durationMs: Date.now() - startTime,
+      }));
+      return {
+        accountType: "platform",
+        token,
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
+        redirectTo: "/super-admin/dashboard",
+      };
+    }
+
+    console.log(JSON.stringify({
+      event: "auth_diagnostic",
+      requestId,
+      endpoint: "/api/auth/login",
+      emailProvided: true,
+      userFound: false,
+      platformAdminFound: false,
+      rejectionReason: "ACCOUNT_NOT_FOUND",
+      durationMs: Date.now() - startTime,
+    }));
     throw new ApiError(401, "Invalid email or password");
   }
 
   const validPassword = await comparePassword(password, user.passwordHash);
-  if (!validPassword) throw new ApiError(401, "Invalid email or password");
+  if (!validPassword) {
+    console.log(JSON.stringify({
+      event: "auth_diagnostic",
+      requestId,
+      endpoint: "/api/auth/login",
+      emailProvided: true,
+      userFound: true,
+      userActive: user.isActive,
+      restaurantStatus: user.restaurant?.status,
+      passwordValid: false,
+      rejectionReason: "INVALID_PASSWORD",
+      durationMs: Date.now() - startTime,
+    }));
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (!user.isActive) {
+    console.log(JSON.stringify({
+      event: "auth_diagnostic",
+      requestId,
+      endpoint: "/api/auth/login",
+      emailProvided: true,
+      userFound: true,
+      userActive: false,
+      passwordValid: true,
+      rejectionReason: "ACCOUNT_INACTIVE",
+      durationMs: Date.now() - startTime,
+    }));
+    throw new ApiError(403, "Your account is inactive. Please contact your restaurant administrator.");
+  }
+
+  if (user.restaurant?.status !== "ACTIVE") {
+    console.log(JSON.stringify({
+      event: "auth_diagnostic",
+      requestId,
+      endpoint: "/api/auth/login",
+      emailProvided: true,
+      userFound: true,
+      userActive: true,
+      restaurantStatus: user.restaurant?.status,
+      passwordValid: true,
+      rejectionReason: "RESTAURANT_INACTIVE",
+      durationMs: Date.now() - startTime,
+    }));
+    throw new ApiError(403, "This restaurant account is currently suspended or inactive. Please contact support.");
+  }
 
   const token = signToken(user);
+  console.log(JSON.stringify({
+    event: "auth_diagnostic",
+    requestId,
+    endpoint: "/api/auth/login",
+    emailProvided: true,
+    userFound: true,
+    accountType: "tenant",
+    passwordValid: true,
+    tokenCreated: true,
+    durationMs: Date.now() - startTime,
+  }));
+
   return {
     token,
     user: serializeUserAccess(user),

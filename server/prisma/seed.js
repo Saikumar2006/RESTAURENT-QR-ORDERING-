@@ -1,8 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../src/config/db");
 const bcrypt = require("bcryptjs");
 const { ensureRestaurantRoles } = require("../src/services/roleService");
-
-const prisma = new PrismaClient();
 
 async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
@@ -160,9 +158,25 @@ async function main() {
     },
   });
 
+  const platformAdminCount = await prisma.platformAdmin.count();
+  if (platformAdminCount === 0) {
+    const platformHash = await bcrypt.hash("PlatformAdminPass123!", 10);
+    await prisma.platformAdmin.create({
+      data: {
+        name: "Platform Administrator",
+        email: "platform@svaadya.test",
+        passwordHash: platformHash,
+        platformRole: "SUPER_ADMIN",
+        isActive: true,
+      },
+    });
+    console.log("Platform admin seeded: platform@svaadya.test / PlatformAdminPass123!");
+  }
+
   console.log("Seed complete.");
   console.log("Admin login: admin@spicegarden.test / password123");
   console.log("Staff login: staff@spicegarden.test / password123");
+  console.log("Platform login: platform@svaadya.test / PlatformAdminPass123!");
   console.log(`Restaurant QR link (single QR for the whole restaurant): /r/${restaurant.slug}`);
   console.log("Customer picks a table (from those seeded below) or Takeaway once they land on that page:");
   tables.forEach((t) => console.log(`  Table ${t.tableNumber}`));

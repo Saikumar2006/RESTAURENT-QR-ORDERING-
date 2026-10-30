@@ -1,10 +1,8 @@
 // Run interactively on a trusted server shell. Passwords are not accepted as
 // arguments or echoed, and this command only creates PlatformAdmin records.
 const readline = require("readline");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../src/config/db");
 const bcrypt = require("bcryptjs");
-
-const prisma = new PrismaClient();
 
 function ask(question) {
   return new Promise((resolve) => {

@@ -2,15 +2,15 @@
 // Multi-tenant from day one. Every tenant-owned table carries restaurantId.
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
-  // DATABASE_URL is used by the application; DIRECT_URL is the direct Neon
-  // connection used by Prisma migrations (rather than a pooled URL).
+  // In Prisma v7, the connection URL is configured in prisma.config.js
+  // rather than here. The provider still needs to be declared.
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // This schema uses Postgres (via Supabase — see the datasource block

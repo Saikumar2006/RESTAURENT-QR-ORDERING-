@@ -15,6 +15,7 @@ build/
 coverage/
 **/dist/
 **/build/
+server/src/generated/
 
 # Logs
 npm-debug.log*
@@ -37,4 +38,5 @@ server/prisma/*.dump
 
 # Editor
 .vscode/
+.agents/
 

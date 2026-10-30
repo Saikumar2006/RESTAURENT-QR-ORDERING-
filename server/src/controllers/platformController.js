@@ -16,7 +16,7 @@ const platformCookieOptions = () => ({
 });
 
 const login = asyncHandler(async (req, res) => {
-  const result = await platformAuthService.login(req.body.email, req.body.password);
+  const result = await platformAuthService.login(req.body.email, req.body.password, req.requestId);
   if (result.accountType === "platform") {
     const claims = jwt.decode(result.token);
     const maxAge = claims?.exp ? Math.max(0, claims.exp * 1000 - Date.now()) : 0;

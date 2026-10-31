@@ -1,6 +1,6 @@
 const express = require("express");
 const inventoryController = require("../controllers/inventoryController");
-const { requireAuth, requirePermission } = require("../middleware/auth");
+const { requireAuth, requirePermission, requireFeature } = require("../middleware/auth");
 const { validateBody } = require("../middleware/validate");
 const {
   inventoryItemCreateSchema,
@@ -16,6 +16,7 @@ const { validateQuery } = require("../middleware/validate");
 
 const router = express.Router();
 router.use(requireAuth);
+router.use(requireFeature("inventory"));
 
 router.get("/items", requirePermission("inventory.view"), inventoryController.listItems);
 router.get("/report", requirePermission("inventory.view"), validateQuery(inventoryReportQuerySchema), inventoryController.getReport);

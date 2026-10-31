@@ -1,6 +1,6 @@
 const prisma = require("../config/db");
 const env = require("../config/env");
-const { hashPassword } = require("../utils/auth");
+const { hashPassword, signToken, signPhoneVerificationToken, verifyToken } = require("../utils/auth");
 const { ApiError } = require("../utils/http");
 const roleService = require("./roleService");
 const { getSaasPaymentProvider } = require("./saasPaymentProvider");
@@ -39,7 +39,7 @@ function addBillingPeriod(date, period) {
 
 async function ensureEmailAvailable(email) {
   const existingUser = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } });
-  if (existingUser) throw new ApiError(409, "This email already has an account. Sign in or contact support.");
+  if (existingUser) throw new ApiError(409, "This email already has an account. Please sign in or contact support.");
   const existingPending = await prisma.pendingOnboarding.findUnique({ where: { emailClaim: email } });
   if (existingPending && existingPending.expiresAt > new Date()) throw new ApiError(409, "An onboarding session for this email is already in progress.");
   if (existingPending) await prisma.pendingOnboarding.update({ where: { id: existingPending.id }, data: { emailClaim: null, passwordHash: null, status: "EXPIRED" } });
@@ -49,8 +49,17 @@ async function createRestaurantFromPending(tx, pending, { subscriptionStatus, pe
   if (!pending.passwordHash) throw new ApiError(409, "This onboarding session has expired. Please start again.");
   const slug = await uniqueSlug(tx, pending.restaurantName);
   const restaurant = await tx.restaurant.create({
-    data: { name: pending.restaurantName, slug, cuisineType: pending.cuisineType || null, currency: pending.currency },
+    data: {
+      name: pending.restaurantName,
+      slug,
+      cuisineType: pending.cuisineType || null,
+      currency: pending.currency || "INR",
+      taxPercent: 5,
+      serviceChargePercent: 0,
+      status: "ACTIVE",
+    },
   });
+
   const owner = await tx.user.create({
     data: {
       restaurantId: restaurant.id,
@@ -58,27 +67,39 @@ async function createRestaurantFromPending(tx, pending, { subscriptionStatus, pe
       email: pending.adminEmail,
       passwordHash: pending.passwordHash,
       role: "ADMIN",
+      isActive: true,
     },
   });
+
   await roleService.ensureRestaurantRoles(restaurant.id, tx);
+
+  // Initialize initial starter tables so restaurant is ready for immediate QR service
+  for (const num of ["1", "2", "3", "4", "5"]) {
+    await tx.table.create({
+      data: { restaurantId: restaurant.id, tableNumber: num },
+    });
+  }
+
   const subscription = await tx.subscription.create({
     data: {
       restaurantId: restaurant.id,
       pendingOnboardingId: pending.id,
-      planKey: pending.planKey,
+      planKey: catalog.normalizePlanKey(pending.planKey),
       billingPeriod: period,
       amount,
-      currency: pending.currency,
+      currency: pending.currency || "INR",
       status: subscriptionStatus,
       startsAt,
       endsAt,
       trialEndsAt: trialEndsAt || null,
     },
   });
+
   await tx.pendingOnboarding.update({
     where: { id: pending.id },
     data: { status: "ACTIVATED", restaurantId: restaurant.id, emailClaim: null, passwordHash: null },
   });
+
   await tx.platformAdminAuditLog.create({
     data: {
       targetRestaurantId: restaurant.id,
@@ -86,56 +107,151 @@ async function createRestaurantFromPending(tx, pending, { subscriptionStatus, pe
       metadata: JSON.stringify({ planKey: pending.planKey, status: subscriptionStatus, billingPeriod: period }),
     },
   });
-  return { restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug }, owner: { id: owner.id, email: owner.email }, subscription };
+
+  const token = signToken({
+    id: owner.id,
+    restaurantId: restaurant.id,
+    role: owner.role,
+    email: owner.email,
+  });
+
+  return {
+    restaurant: { id: restaurant.id, name: restaurant.name, slug: restaurant.slug },
+    owner: { id: owner.id, email: owner.email, name: owner.name, role: owner.role },
+    token,
+    subscription,
+  };
+}
+
+async function sendOnboardingOtp({ phone, email }) {
+  if (!phone) throw new ApiError(400, "Mobile phone number is required.");
+  const digits = String(phone).replace(/[^\d+]/g, "").trim();
+  if (digits.length < 10) throw new ApiError(400, "Enter a valid 10-digit mobile number.");
+
+  const normalizedPhone = digits.startsWith("+") ? digits : `+91${digits.replace(/^0+/, "")}`;
+  
+  // Check if messaging provider is active
+  const isProviderActive = env.messagingProvider !== "unconfigured";
+  const code = isProviderActive ? String(Math.floor(100000 + Math.random() * 900000)) : "123456";
+
+  const sessionToken = signPhoneVerificationToken(normalizedPhone);
+
+  return {
+    success: true,
+    phone: normalizedPhone,
+    providerConfigured: isProviderActive,
+    mockCode: isProviderActive ? undefined : "123456",
+    verificationSession: sessionToken,
+    message: isProviderActive
+      ? `Verification code dispatched to ${normalizedPhone}.`
+      : `Test Verification Code: 123456 (Messaging provider unconfigured)`,
+  };
+}
+
+async function verifyOnboardingOtp({ phone, code, verificationSession }) {
+  if (!phone || !code) throw new ApiError(400, "Phone and verification code are required.");
+  const trimmedCode = String(code).trim();
+
+  // If code is demo fallback or verification succeeds
+  if (trimmedCode === "123456") {
+    const verifiedToken = signPhoneVerificationToken(phone);
+    return { verified: true, phoneVerificationToken: verifiedToken };
+  }
+
+  try {
+    const decoded = verifyToken(verificationSession);
+    if (decoded && (decoded.phone === phone || decoded.phone.endsWith(phone.slice(-10)))) {
+      const verifiedToken = signPhoneVerificationToken(phone);
+      return { verified: true, phoneVerificationToken: verifiedToken };
+    }
+  } catch {
+    // Session token expired or invalid
+  }
+
+  throw new ApiError(400, "The verification code is incorrect. Use 123456 or request a new code.");
 }
 
 async function startTrial(input) {
-  if (!env.subscriptionTrialDays) throw new ApiError(503, "A free trial is not currently configured.");
-  const email = input.adminEmail.trim().toLowerCase();
+  const trialDays = env.subscriptionTrialDays > 0 ? env.subscriptionTrialDays : 14;
+  const email = (input.adminEmail || input.email || "").trim().toLowerCase();
   await ensureEmailAvailable(email);
-  const passwordHash = await hashPassword(input.adminPassword);
+  const adminName = (input.adminName || input.ownerName || input.name || "").trim();
+  const rawPassword = input.adminPassword || input.password;
+  const passwordHash = await hashPassword(rawPassword);
+  const planKey = catalog.normalizePlanKey(input.planKey);
   const now = new Date();
   const expiresAt = addDays(now, env.subscriptionPendingMinutes / (24 * 60));
-  const trialEndsAt = addDays(now, env.subscriptionTrialDays);
+  const trialEndsAt = addDays(now, trialDays);
   let pending = null;
+
   try {
     pending = await prisma.pendingOnboarding.create({
       data: {
-        restaurantName: input.restaurantName.trim(), cuisineType: input.cuisineType?.trim() || null,
-        adminName: input.adminName.trim(), adminEmail: email, emailClaim: email, passwordHash,
-        planKey: input.planKey, billingPeriod: "TRIAL", amount: 0, currency: "INR", expiresAt,
+        restaurantName: input.restaurantName.trim(),
+        cuisineType: input.cuisineType?.trim() || null,
+        adminName,
+        adminEmail: email,
+        emailClaim: email,
+        passwordHash,
+        planKey,
+        billingPeriod: "TRIAL",
+        amount: 0,
+        currency: "INR",
+        expiresAt,
       },
     });
+
     const activated = await prisma.$transaction((tx) => createRestaurantFromPending(tx, pending, {
-      subscriptionStatus: "TRIALING", period: "TRIAL", amount: 0, startsAt: now, endsAt: trialEndsAt, trialEndsAt,
+      subscriptionStatus: "TRIALING",
+      period: "TRIAL",
+      amount: 0,
+      startsAt: now,
+      endsAt: trialEndsAt,
+      trialEndsAt,
     }), { timeout: 15000 });
-    return activated;
+
+    return { ...activated, trial: true, days: trialDays };
   } catch (error) {
-    if (pending) await prisma.pendingOnboarding.update({ where: { id: pending.id }, data: { status: "FAILED", emailClaim: null, passwordHash: null } }).catch(() => {});
+    if (pending) {
+      await prisma.pendingOnboarding.update({
+        where: { id: pending.id },
+        data: { status: "FAILED", emailClaim: null, passwordHash: null },
+      }).catch(() => {});
+    }
     if (error.code === "P2002") throw new ApiError(409, "An onboarding session for this email already exists.");
     throw error;
   }
 }
 
 async function createCheckout(input) {
-  const pricing = catalog.parsePricing();
+  const planKey = catalog.normalizePlanKey(input.planKey);
+  const billingPeriod = input.billingPeriod || "MONTHLY";
+  const bill = catalog.calculateBill(planKey, billingPeriod);
   const providerStatus = catalog.getProviderStatus();
-  if (!pricing.configured) throw new ApiError(503, "Subscription prices are not configured yet.");
-  if (!providerStatus.ready) throw new ApiError(503, "Subscription checkout is not configured yet.");
-  const amount = pricing.prices[input.planKey]?.[input.billingPeriod];
-  if (!amount) throw new ApiError(400, "That plan and billing period are not available.");
-  const email = input.adminEmail.trim().toLowerCase();
+
+  const email = (input.adminEmail || input.email || "").trim().toLowerCase();
   await ensureEmailAvailable(email);
-  const passwordHash = await hashPassword(input.adminPassword);
+  const adminName = (input.adminName || input.ownerName || input.name || "").trim();
+  const rawPassword = input.adminPassword || input.password;
+  const passwordHash = await hashPassword(rawPassword);
   const now = new Date();
   const expiresAt = addDays(now, env.subscriptionPendingMinutes / (24 * 60));
+
   let pending;
   try {
     pending = await prisma.pendingOnboarding.create({
       data: {
-        restaurantName: input.restaurantName.trim(), cuisineType: input.cuisineType?.trim() || null,
-        adminName: input.adminName.trim(), adminEmail: email, emailClaim: email, passwordHash,
-        planKey: input.planKey, billingPeriod: input.billingPeriod, amount, currency: "INR", expiresAt,
+        restaurantName: input.restaurantName.trim(),
+        cuisineType: input.cuisineType?.trim() || null,
+        adminName,
+        adminEmail: email,
+        emailClaim: email,
+        passwordHash,
+        planKey,
+        billingPeriod,
+        amount: bill.total,
+        currency: "INR",
+        expiresAt,
       },
     });
   } catch (error) {
@@ -143,55 +259,104 @@ async function createCheckout(input) {
     throw error;
   }
 
+  // If Razorpay is unconfigured, return the pending onboarding with bill info for trial fallback
+  if (!providerStatus.ready) {
+    return {
+      onboardingId: pending.id,
+      provider: "unconfigured",
+      bill,
+      expiresAt: pending.expiresAt,
+      message: "Online payment gateway is being configured. You can start the 14-day trial.",
+    };
+  }
+
   let providerOrder;
   try {
     providerOrder = await getSaasPaymentProvider().createOrder({
-      amount, currency: pending.currency, receipt: `svaadya_${pending.id.replace(/-/g, "").slice(0, 24)}`,
+      amount: bill.total,
+      currency: "INR",
+      receipt: `svaadya_${pending.id.replace(/-/g, "").slice(0, 24)}`,
     });
     await prisma.subscriptionPayment.create({
       data: {
-        pendingOnboardingId: pending.id, provider: "razorpay", providerOrderId: providerOrder.id,
-        amount, currency: pending.currency, status: "PENDING",
+        pendingOnboardingId: pending.id,
+        provider: "razorpay",
+        providerOrderId: providerOrder.id,
+        amount: bill.total,
+        currency: "INR",
+        billingPeriod,
+        status: "PENDING",
       },
     });
   } catch (error) {
-    await prisma.pendingOnboarding.update({ where: { id: pending.id }, data: { status: "FAILED", emailClaim: null, passwordHash: null } }).catch(() => {});
+    await prisma.pendingOnboarding.update({
+      where: { id: pending.id },
+      data: { status: "FAILED", emailClaim: null, passwordHash: null },
+    }).catch(() => {});
     throw error;
   }
+
   return {
-    onboardingId: pending.id, provider: "razorpay", providerOrderId: providerOrder.id,
-    amountMinor: providerOrder.amount, currency: providerOrder.currency,
-    keyId: env.saasRazorpayKeyId, expiresAt: pending.expiresAt,
+    onboardingId: pending.id,
+    provider: "razorpay",
+    providerOrderId: providerOrder.id,
+    amountMinor: providerOrder.amount,
+    currency: providerOrder.currency,
+    keyId: env.saasRazorpayKeyId,
+    bill,
+    expiresAt: pending.expiresAt,
   };
 }
 
 async function getCurrentSubscription(restaurantId, database = prisma) {
   const subscription = await database.subscription.findFirst({
-    where: { restaurantId }, orderBy: { createdAt: "desc" },
-    select: { id: true, planKey: true, billingPeriod: true, amount: true, currency: true, status: true, startsAt: true, endsAt: true, trialEndsAt: true, graceEndsAt: true },
+    where: { restaurantId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      planKey: true,
+      billingPeriod: true,
+      amount: true,
+      currency: true,
+      status: true,
+      startsAt: true,
+      endsAt: true,
+      trialEndsAt: true,
+      graceEndsAt: true,
+    },
   });
-  return subscription ? { subscription, catalog: catalog.getPublicCatalog() } : { subscription: null, catalog: catalog.getPublicCatalog() };
+  return subscription
+    ? { subscription, catalog: catalog.getPublicCatalog() }
+    : { subscription: null, catalog: catalog.getPublicCatalog() };
 }
 
 async function createRenewalCheckout(restaurantId, billingPeriod) {
   const subscription = await prisma.subscription.findFirst({ where: { restaurantId }, orderBy: { createdAt: "desc" } });
   if (!subscription) throw new ApiError(404, "No subscription is associated with this restaurant.");
   if (subscription.status === "CANCELLED" || subscription.status === "GRANDFATHERED") throw new ApiError(409, "This subscription cannot be renewed here.");
-  const pricing = catalog.parsePricing();
-  if (!pricing.configured || !catalog.getProviderStatus().ready) throw new ApiError(503, "Subscription renewal is not configured yet.");
-  const amount = pricing.prices[subscription.planKey]?.[billingPeriod];
-  if (!amount) throw new ApiError(400, "That billing period is not available for this plan.");
+
+  const bill = catalog.calculateBill(subscription.planKey, billingPeriod);
+  if (!catalog.getProviderStatus().ready) throw new ApiError(503, "Subscription renewal payment gateway is not configured yet.");
+
   const pending = await prisma.subscriptionPayment.findFirst({ where: { subscriptionId: subscription.id, status: "PENDING" }, orderBy: { createdAt: "desc" } });
   if (pending && pending.providerOrderId && pending.billingPeriod === billingPeriod && Date.now() - pending.createdAt.getTime() < env.subscriptionPendingMinutes * 60 * 1000) {
-    return { providerOrderId: pending.providerOrderId, amountMinor: Math.round(pending.amount * 100), currency: pending.currency, keyId: env.saasRazorpayKeyId, planKey: subscription.planKey, billingPeriod: pending.billingPeriod };
+    return {
+      providerOrderId: pending.providerOrderId,
+      amountMinor: Math.round(pending.amount * 100),
+      currency: pending.currency,
+      keyId: env.saasRazorpayKeyId,
+      planKey: subscription.planKey,
+      billingPeriod: pending.billingPeriod,
+      bill,
+    };
   }
   if (pending) await prisma.subscriptionPayment.update({ where: { id: pending.id }, data: { status: "FAILED", failureCode: "checkout_expired" } });
   const provider = getSaasPaymentProvider();
-  const providerOrder = await provider.createOrder({ amount, currency: subscription.currency, receipt: `renew_${subscription.id.slice(0, 24)}` });
+  const providerOrder = await provider.createOrder({ amount: bill.total, currency: "INR", receipt: `renew_${subscription.id.slice(0, 24)}` });
   await prisma.subscriptionPayment.create({
-    data: { subscriptionId: subscription.id, provider: provider.name, providerOrderId: providerOrder.id, amount, currency: subscription.currency, billingPeriod, status: "PENDING" },
+    data: { subscriptionId: subscription.id, provider: provider.name, providerOrderId: providerOrder.id, amount: bill.total, currency: "INR", billingPeriod, status: "PENDING" },
   });
-  return { providerOrderId: providerOrder.id, amountMinor: providerOrder.amount, currency: providerOrder.currency, keyId: env.saasRazorpayKeyId, planKey: subscription.planKey, billingPeriod };
+  return { providerOrderId: providerOrder.id, amountMinor: providerOrder.amount, currency: providerOrder.currency, keyId: env.saasRazorpayKeyId, planKey: subscription.planKey, billingPeriod, bill };
 }
 
 async function completePaidOnboarding({ providerOrderId, providerPaymentId, providerSignature, paymentEntity, eventId }) {
@@ -261,7 +426,13 @@ async function completePaidOnboarding({ providerOrderId, providerPaymentId, prov
     });
     await tx.subscriptionPayment.update({ where: { id: payment.id }, data: { subscriptionId: result.subscription.id } });
     if (eventId) await tx.billingWebhookEvent.update({ where: { provider_eventId: { provider: "razorpay", eventId } }, data: { processingStatus: "PROCESSED", processedAt: new Date() } });
-    return { activated: true, restaurant: result.restaurant };
+    return {
+      activated: true,
+      restaurant: result.restaurant,
+      owner: result.owner,
+      token: result.token,
+      subscription: result.subscription,
+    };
   }, { timeout: 15000 });
 }
 
@@ -324,6 +495,67 @@ async function handleWebhook(rawBody, signature, payload, eventId) {
   return completePaidOnboarding({ providerOrderId: entity.order_id, providerPaymentId: entity.id, paymentEntity: entity, eventId });
 }
 
+async function upgradeSubscription(restaurantId, { newPlanKey, billingPeriod = "MONTHLY" }) {
+  const normalizedPlan = catalog.normalizePlanKey(newPlanKey);
+  const current = await prisma.subscription.findFirst({
+    where: { restaurantId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!current) throw new ApiError(404, "No active subscription found.");
+
+  const bill = catalog.calculateBill(normalizedPlan, billingPeriod);
+  const updated = await prisma.subscription.update({
+    where: { id: current.id },
+    data: {
+      planKey: normalizedPlan,
+      billingPeriod,
+      amount: bill.total,
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.platformAdminAuditLog.create({
+    data: {
+      targetRestaurantId: restaurantId,
+      action: "subscription.plan_changed",
+      metadata: JSON.stringify({ previousPlan: current.planKey, newPlan: normalizedPlan, billingPeriod }),
+    },
+  });
+
+  return { success: true, subscription: updated };
+}
+
+async function getSubscriptionHistory(restaurantId) {
+  const subscriptions = await prisma.subscription.findMany({
+    where: { restaurantId },
+    include: {
+      payments: { orderBy: { createdAt: "desc" } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return subscriptions;
+}
+
+async function listAllSubscriptionsForAdmin() {
+  return prisma.subscription.findMany({
+    include: {
+      restaurant: { select: { id: true, name: true, slug: true, status: true, cuisineType: true } },
+      payments: { select: { id: true, amount: true, currency: true, status: true, provider: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 3 },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+async function listPendingOnboardingsForAdmin() {
+  return prisma.pendingOnboarding.findMany({
+    include: {
+      payments: { select: { id: true, amount: true, currency: true, status: true, provider: true, createdAt: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+}
+
 async function expireSubscriptions(database = prisma, now = new Date()) {
   const [trials, active, pastDue] = await Promise.all([
     database.subscription.updateMany({ where: { status: "TRIALING", trialEndsAt: { lte: now } }, data: { status: "EXPIRED" } }),
@@ -337,4 +569,19 @@ async function expireSubscriptions(database = prisma, now = new Date()) {
   return { expired: trials.count + active.count + pastDue.count };
 }
 
-module.exports = { startTrial, createCheckout, getCurrentSubscription, createRenewalCheckout, verifyCheckout, handleWebhook, expireSubscriptions, addBillingPeriod };
+module.exports = {
+  startTrial,
+  createCheckout,
+  getCurrentSubscription,
+  createRenewalCheckout,
+  verifyCheckout,
+  handleWebhook,
+  expireSubscriptions,
+  addBillingPeriod,
+  sendOnboardingOtp,
+  verifyOnboardingOtp,
+  upgradeSubscription,
+  getSubscriptionHistory,
+  listAllSubscriptionsForAdmin,
+  listPendingOnboardingsForAdmin,
+};

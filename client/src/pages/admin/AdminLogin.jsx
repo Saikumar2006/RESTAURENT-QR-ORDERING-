@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
@@ -129,18 +129,42 @@ export default function AdminLogin() {
               </button>
             </form>
 
-            <div className="mt-5 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("admin@spicegarden.test");
-                  setPassword("password123");
-                  setError(null);
-                }}
-                className="text-xs text-charcoal/60 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
-              >
-                Click to fill demo: <span className="font-mono text-[11px] font-medium text-charcoal/80">admin@spicegarden.test</span> / <span className="font-mono text-[11px] font-medium text-charcoal/80">password123</span>
-              </button>
+            <div className="mt-5 rounded-2xl border border-charcoal/10 bg-[#f7f9f6] p-4 text-center">
+              <p className="text-xs text-charcoal/70">
+                New restaurant owner?{" "}
+                <Link to="/admin/register" className="font-semibold text-[#087f70] hover:underline">
+                  Create an account →
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-2 text-center">
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("demo@svaadya.com");
+                    setPassword("admin123");
+                    setError(null);
+                  }}
+                  className="text-xs text-charcoal/70 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
+                >
+                  Fill Demo: <span className="font-mono text-[11px] font-semibold text-[#087f70]">demo@svaadya.com</span> / <span className="font-mono text-[11px] text-charcoal/80">admin123</span>
+                </button>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("admin@spicegarden.test");
+                    setPassword("password123");
+                    setError(null);
+                  }}
+                  className="text-[11px] text-charcoal/50 hover:text-charcoal/80 hover:underline transition-colors cursor-pointer"
+                >
+                  Fill Legacy: <span className="font-mono text-[10px]">admin@spicegarden.test</span> / <span className="font-mono text-[10px]">password123</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -30,6 +30,21 @@ async function listActiveTablesPublic(restaurantId) {
 }
 
 async function createTable(restaurantId, data) {
+  const subscription = await prisma.subscription.findFirst({
+    where: { restaurantId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (subscription && subscription.status !== "GRANDFATHERED") {
+    const plan = subscription.planKey;
+    const maxTables = (plan === "STARTER" || plan === "BASIC") ? 15 : (plan === "GROWTH" || plan === "STANDARD") ? 50 : Infinity;
+    if (maxTables !== Infinity) {
+      const count = await prisma.table.count({ where: { restaurantId } });
+      if (count >= maxTables) {
+        throw new ApiError(403, `Your current plan allows up to ${maxTables} tables. Please upgrade your subscription to add more tables.`);
+      }
+    }
+  }
+
   const existing = await prisma.table.findFirst({ where: { restaurantId, tableNumber: data.tableNumber } });
   if (existing) throw new ApiError(409, "A table with this number already exists");
   const table = await prisma.table.create({ data: { ...data, restaurantId } });

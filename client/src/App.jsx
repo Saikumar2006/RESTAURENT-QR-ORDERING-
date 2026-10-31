@@ -54,6 +54,8 @@ export default function App() {
       <Route path="/activate-account/:token" element={<ActivateAccount />} />
       <Route path="/staff-access/:token" element={<StaffAccess />} />
       <Route path="/login" element={<AdminLogin />} />
+      <Route path="/register" element={<Navigate to="/admin/register" replace />} />
+      <Route path="/onboarding" element={<Navigate to="/admin/register" replace />} />
       <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
 
       {/* Customer flow — public, driven by ONE QR per restaurant. The

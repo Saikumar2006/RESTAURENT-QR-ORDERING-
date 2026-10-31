@@ -5,6 +5,8 @@ const env = require("../config/env");
 const jwt = require("jsonwebtoken");
 const platformRoleService = require("../services/platformRoleService");
 const platformRestaurantService = require("../services/platformRestaurantService");
+const subscriptionCatalog = require("../services/subscriptionCatalog");
+const subscriptionService = require("../services/subscriptionService");
 
 const PLATFORM_SESSION_COOKIE = "svaadya_platform_session";
 const platformCookieOptions = () => ({
@@ -103,4 +105,41 @@ const listAudit = asyncHandler(async (req, res) => {
   ok(res, await platformRoleService.listPlatformAudit(undefined, req.query.limit));
 });
 
-module.exports = { login, logout, me, getOverview, listRestaurants, createRestaurant, issueOwnerInvitation, getRestaurantInvitation, activateRestaurantInvitation, listAdmins, updateAdminRole, listAudit };
+// Subscription & Package Management for Super Admin
+const getPackages = asyncHandler(async (_req, res) => {
+  ok(res, subscriptionCatalog.getPublicCatalog());
+});
+
+const updatePackages = asyncHandler(async (req, res) => {
+  const updated = subscriptionCatalog.updateDynamicPricing(req.body.prices || req.body);
+  ok(res, updated);
+});
+
+const listSubscriptions = asyncHandler(async (_req, res) => {
+  const subscriptions = await subscriptionService.listAllSubscriptionsForAdmin();
+  ok(res, subscriptions);
+});
+
+const listPendingOnboardings = asyncHandler(async (_req, res) => {
+  const pending = await subscriptionService.listPendingOnboardingsForAdmin();
+  ok(res, pending);
+});
+
+module.exports = {
+  login,
+  logout,
+  me,
+  getOverview,
+  listRestaurants,
+  createRestaurant,
+  issueOwnerInvitation,
+  getRestaurantInvitation,
+  activateRestaurantInvitation,
+  listAdmins,
+  updateAdminRole,
+  listAudit,
+  getPackages,
+  updatePackages,
+  listSubscriptions,
+  listPendingOnboardings,
+};

@@ -20,4 +20,10 @@ router.get("/admins", requirePlatformAuth, requirePlatformPermission("platform.a
 router.put("/admins/:id/role", requirePlatformAuth, requirePlatformPermission("platform.admins.manage"), validateBody(platformRoleUpdateSchema), platformController.updateAdminRole);
 router.get("/audit", requirePlatformAuth, requirePlatformPermission("platform.audit.view"), platformController.listAudit);
 
+// Super Admin Package & Subscription Management
+router.get("/packages", requirePlatformAuth, platformController.getPackages);
+router.put("/packages", requirePlatformAuth, requirePlatformPermission("platform.restaurants.manage"), platformController.updatePackages);
+router.get("/subscriptions", requirePlatformAuth, requirePlatformPermission("platform.restaurants.view"), platformController.listSubscriptions);
+router.get("/pending-onboardings", requirePlatformAuth, requirePlatformPermission("platform.restaurants.view"), platformController.listPendingOnboardings);
+
 module.exports = router;

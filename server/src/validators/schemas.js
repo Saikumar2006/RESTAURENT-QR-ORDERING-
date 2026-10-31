@@ -23,11 +23,24 @@ const onboardingBaseSchema = z.object({
   adminName: z.string().trim().min(2).max(100),
   adminEmail: z.string().trim().email().max(254),
   adminPassword: z.string().min(10).max(128),
-  planKey: z.enum(["BASIC", "STANDARD", "PREMIUM"]),
+  planKey: z.enum(["STARTER", "GROWTH", "PREMIUM", "BASIC", "STANDARD"]),
+  phone: z.string().trim().max(30).optional().default(""),
+  address: z.string().trim().max(250).optional().default(""),
+  city: z.string().trim().max(100).optional().default(""),
+  state: z.string().trim().max(100).optional().default(""),
+  phoneVerificationToken: z.string().optional(),
 });
 const onboardingTrialSchema = onboardingBaseSchema;
 const onboardingCheckoutSchema = onboardingBaseSchema.extend({
   billingPeriod: z.enum(["MONTHLY", "3_MONTHS", "6_MONTHS", "YEARLY"]),
+});
+const onboardingOtpSendSchema = z.object({
+  phone: z.string().trim().min(7).max(20),
+  email: z.string().trim().email().optional(),
+});
+const onboardingOtpVerifySchema = z.object({
+  phone: z.string().trim().min(7).max(20),
+  code: z.string().trim().min(4).max(10),
 });
 const subscriptionVerifySchema = z.object({
   providerOrderId: z.string().trim().min(1).max(100),
@@ -167,7 +180,7 @@ const platformRestaurantCreateSchema = z.object({
   cuisineType: z.string().trim().max(60).optional().default(""),
   ownerName: z.string().trim().min(2).max(100),
   ownerEmail: z.string().trim().email().max(254),
-  planKey: z.enum(["BASIC", "STANDARD", "PREMIUM"]),
+  planKey: z.enum(["STARTER", "GROWTH", "PREMIUM", "BASIC", "STANDARD"]),
   reason: z.string().trim().min(8).max(500),
 });
 const accountActivationSchema = z.object({ password: z.string().min(10).max(72) });
@@ -416,7 +429,8 @@ module.exports = {
   couponCreateSchema,
   couponUpdateSchema,
   couponValidateSchema,
-  feedbackCreateSchema,
   otpSendSchema,
   otpVerifySchema,
+  onboardingOtpSendSchema,
+  onboardingOtpVerifySchema,
 };

@@ -21,7 +21,7 @@ async function requireAuth(req, res, next) {
       where: { id: payload.sub },
       include: {
         roleRecord: { include: { permissions: { include: { permission: true } } } },
-        restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+        restaurant: { select: { status: true, subscriptions: { select: { planKey: true, status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
       },
     });
     if (!user || !user.isActive || user.restaurant?.status !== "ACTIVE") {
@@ -59,6 +59,8 @@ async function requireAuth(req, res, next) {
       email: user.email,
       preferredLanguage: user.preferredLanguage || "en",
       subscriptionStatus: subscription?.status || "LEGACY",
+      subscriptionPlanKey: subscription?.planKey || "PREMIUM",
+      planKey: subscription ? (subscription.status === "GRANDFATHERED" ? "GRANDFATHERED" : subscription.planKey) : "PREMIUM",
       subscriptionEndsAt: subscription?.endsAt || null,
       subscriptionGraceEndsAt: subscription?.graceEndsAt || null,
       subscriptionAccess: !subscription || subscription.status === "GRANDFATHERED"
@@ -70,6 +72,22 @@ async function requireAuth(req, res, next) {
   } catch (err) {
     return fail(res, 401, "Invalid or expired session");
   }
+}
+
+function requireFeature(feature) {
+  return (req, res, next) => {
+    const plan = req.user?.planKey || "PREMIUM";
+    if (plan === "GRANDFATHERED" || plan === "PREMIUM") {
+      return next();
+    }
+    if (feature === "coupons" && (plan === "STARTER" || plan === "BASIC")) {
+      return fail(res, 403, "Promotional coupons are available on Growth and Premium plans. Please upgrade your subscription.");
+    }
+    if (feature === "inventory" && (plan === "STARTER" || plan === "BASIC" || plan === "GROWTH" || plan === "STANDARD")) {
+      return fail(res, 403, "Inventory management is available exclusively on the Premium plan. Please upgrade your subscription.");
+    }
+    next();
+  };
 }
 
 // Attaches req.user if a valid Bearer token is present, but does not reject
@@ -147,4 +165,4 @@ function requirePlatformPermission(...permissions) {
   };
 }
 
-module.exports = { requireAuth, requireRole, requirePermission, optionalAuth, requirePlatformAuth, requirePlatformPermission };
+module.exports = { requireAuth, requireRole, requirePermission, requireFeature, optionalAuth, requirePlatformAuth, requirePlatformPermission };

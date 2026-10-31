@@ -6,7 +6,7 @@ const { ApiError } = require("../utils/http");
 const roleService = require("./roleService");
 
 const INVITE_LIFETIME_MS = 24 * 60 * 60 * 1000;
-const PLAN_KEYS = new Set(["BASIC", "STANDARD", "PREMIUM"]);
+const PLAN_KEYS = new Set(["STARTER", "GROWTH", "PREMIUM", "BASIC", "STANDARD"]);
 
 function hashInviteToken(token) {
   return createHash("sha256").update(token).digest("hex");

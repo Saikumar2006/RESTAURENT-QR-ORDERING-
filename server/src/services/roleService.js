@@ -83,32 +83,38 @@ async function ensureRestaurantRoles(restaurantId, database = prisma) {
       permissionRows.set(key, permission.id);
     }
 
+    const createdRoles = {};
+
     for (const [name, permissionKeys] of Object.entries(PERMISSIONS_BY_ROLE)) {
       const role = await tx.role.upsert({
         where: { restaurantId_name: { restaurantId, name } },
         create: {
           restaurantId,
           name,
-          description: DEFAULT_ROLE_DESCRIPTIONS[name],
+          description: DEFAULT_ROLE_DESCRIPTIONS[name] || "",
           isSystem: true,
-          permissions: {
-            create: permissionKeys.map((key) => ({
-              permission: { connect: { id: permissionRows.get(key) } },
-            })),
-          },
         },
-        update: {},
+        update: {
+          description: DEFAULT_ROLE_DESCRIPTIONS[name] || "",
+          isSystem: true,
+        },
       });
 
-      // System role permissions are code-defined. Reconcile their links when
-      // the explicit rbac:backfill command runs so newly added capabilities
-      // reach existing tenants without overwriting custom role permissions.
+      createdRoles[name] = role;
+
+      // System role permissions are code-defined. Reconcile their links idempotently.
       if (role.isSystem) {
         await tx.rolePermission.deleteMany({ where: { roleId: role.id } });
         if (permissionKeys.length) {
-          await tx.rolePermission.createMany({
-            data: permissionKeys.map((key) => ({ roleId: role.id, permissionId: permissionRows.get(key) })),
-          });
+          const validPermissionIds = permissionKeys
+            .map((key) => permissionRows.get(key))
+            .filter(Boolean);
+          if (validPermissionIds.length) {
+            await tx.rolePermission.createMany({
+              data: validPermissionIds.map((permissionId) => ({ roleId: role.id, permissionId })),
+              skipDuplicates: true,
+            });
+          }
         }
       }
 
@@ -125,8 +131,14 @@ async function ensureRestaurantRoles(restaurantId, database = prisma) {
         });
       }
     }
+
+    return {
+      roles: createdRoles,
+      ownerRole: createdRoles.OWNER || null,
+      staffRole: createdRoles.STAFF || null,
+    };
   };
-  if (database === prisma) return prisma.$transaction(initialize);
+  if (database === prisma) return prisma.$transaction(initialize, { timeout: 15000 });
   return initialize(database);
 }
 

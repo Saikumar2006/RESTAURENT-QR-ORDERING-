@@ -54,8 +54,8 @@ export function AuthProvider({ children }) {
     restoreSession();
   }, []);
 
-  async function login(email, password) {
-    const result = await api.post("/auth/login", { email, password });
+  async function login(email, password, restaurantSlug = undefined) {
+    const result = await api.post("/auth/login", { email, password, restaurantSlug });
     if (result.accountType === "platform") {
       return result;
     }

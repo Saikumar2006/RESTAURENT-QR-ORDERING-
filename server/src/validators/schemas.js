@@ -15,6 +15,8 @@ const imageUrlField = z
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  restaurantSlug: z.string().optional(),
+  slug: z.string().optional(),
 });
 
 const onboardingBaseSchema = z.object({

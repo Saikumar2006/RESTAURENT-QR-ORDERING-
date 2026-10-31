@@ -55,7 +55,7 @@ function getGoogleAuthorizationUrl(state) {
   });
 }
 
-async function login(email, password, requestId = null) {
+async function login(email, password, requestId = null, restaurantSlug = null) {
   const startTime = Date.now();
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!normalizedEmail || typeof password !== "string" || !password) {
@@ -70,38 +70,73 @@ async function login(email, password, requestId = null) {
     throw new ApiError(401, "Invalid email or password");
   }
 
-  // Email is unique per-restaurant, not globally, so a login attempt must
-  // check every matching row rather than assuming a single global user.
+  // Email is unique per-restaurant, not globally, so check every matching row
   const users = await prisma.user.findMany({
     where: { email: { equals: normalizedEmail, mode: "insensitive" } },
     include: {
       roleRecord: { include: { permissions: { include: { permission: true } } } },
-      restaurant: { select: { status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
+      restaurant: { select: { id: true, name: true, slug: true, status: true, subscriptions: { select: { status: true, endsAt: true, trialEndsAt: true, graceEndsAt: true }, orderBy: { createdAt: "desc" }, take: 1 } } },
     },
   });
 
-  if (users.length > 1) {
-    const active = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
-    if (active.length > 1) {
-      console.log(JSON.stringify({
-        event: "auth_diagnostic",
-        requestId,
-        endpoint: "/api/auth/login",
-        emailProvided: true,
-        matchCount: users.length,
-        rejectionReason: "MULTIPLE_ACCOUNTS",
-        durationMs: Date.now() - startTime,
-      }));
-      throw new ApiError(409, "Multiple restaurant accounts match this email. Please contact support.");
+  let user = null;
+  const activeUsers = users.filter((u) => u.isActive && u.restaurant?.status === "ACTIVE");
+
+  if (activeUsers.length > 1) {
+    // 1. If an explicit restaurant slug or ID is provided, select that account
+    if (restaurantSlug) {
+      const targetSlug = String(restaurantSlug).trim().toLowerCase();
+      user = activeUsers.find((u) => u.restaurant?.slug?.toLowerCase() === targetSlug || u.restaurantId === restaurantSlug);
     }
+
+    // 2. If no slug matched or none provided, test candidate passwords
+    if (!user) {
+      const matchingPasswordUsers = [];
+      for (const candidate of activeUsers) {
+        if (await comparePassword(password, candidate.passwordHash)) {
+          matchingPasswordUsers.push(candidate);
+        }
+      }
+
+      if (matchingPasswordUsers.length === 1) {
+        user = matchingPasswordUsers[0];
+      } else if (matchingPasswordUsers.length > 1) {
+        // If multiple active restaurants share identical passwords, prioritize OWNER/ADMIN account
+        const ownerAccounts = matchingPasswordUsers.filter((u) => u.role === "ADMIN");
+        if (ownerAccounts.length === 1) {
+          user = ownerAccounts[0];
+        } else {
+          console.log(JSON.stringify({
+            event: "auth_diagnostic",
+            requestId,
+            endpoint: "/api/auth/login",
+            emailProvided: true,
+            matchCount: matchingPasswordUsers.length,
+            rejectionReason: "MULTIPLE_ACCOUNTS",
+            durationMs: Date.now() - startTime,
+          }));
+          throw new ApiError(409, "Multiple restaurant accounts match this email. Please select your restaurant.", {
+            code: "MULTIPLE_ACCOUNTS",
+            restaurants: matchingPasswordUsers.map((u) => ({
+              id: u.restaurant.id,
+              name: u.restaurant.name,
+              slug: u.restaurant.slug,
+              role: u.role,
+            })),
+          });
+        }
+      }
+    }
+  } else if (activeUsers.length === 1) {
+    user = activeUsers[0];
+  } else if (users.length > 0) {
+    user = users[0];
   }
 
-  const user = users.find((u) => u.isActive && u.restaurant?.status === "ACTIVE") || users[0];
-
   if (!user) {
-    const admin = await prisma.platformAdmin.findFirst({
+    const admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
       where: { email: { equals: normalizedEmail, mode: "insensitive" } },
-    });
+    }) : null;
     if (admin) {
       const valid = await comparePassword(password, admin.passwordHash);
       if (!valid) {
@@ -170,6 +205,23 @@ async function login(email, password, requestId = null) {
 
   const validPassword = await comparePassword(password, user.passwordHash);
   if (!validPassword) {
+    // If tenant password failed, check if this is a platform admin account
+    const admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
+      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+    }) : null;
+    if (admin && admin.isActive && await comparePassword(password, admin.passwordHash)) {
+      const platformRoleService = require("./platformRoleService");
+      const { signPlatformToken } = require("../utils/auth");
+      const token = signPlatformToken(admin);
+      const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
+      return {
+        accountType: "platform",
+        token,
+        admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
+        redirectTo: "/super-admin/dashboard",
+      };
+    }
+
     console.log(JSON.stringify({
       event: "auth_diagnostic",
       requestId,

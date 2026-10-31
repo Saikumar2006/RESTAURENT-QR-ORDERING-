@@ -24,6 +24,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [multipleRestaurants, setMultipleRestaurants] = useState(null);
 
   useEffect(() => {
     if (admin) {
@@ -43,10 +44,34 @@ export default function AdminLogin() {
     window.location.assign(`${API_ORIGIN}/api/auth/google`);
   }
 
+  async function handleLoginWithSlug(slug) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await login(email, password, slug);
+      if (result.accountType === "platform") {
+        if (setAdminFromLogin) setAdminFromLogin(result.admin);
+        navigate(result.redirectTo || "/super-admin/dashboard", { replace: true });
+        return;
+      }
+      let destination = (state?.from?.pathname && state.from.pathname !== "/admin/login" && state.from.pathname !== "/login")
+        ? state.from.pathname
+        : (result.redirectTo || "/admin");
+      if (result.user?.role === "STAFF" && (destination === "/admin" || destination === "/admin/dashboard")) {
+        destination = "/admin/orders";
+      }
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(err.message || "Invalid email or password");
+      setSubmitting(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setMultipleRestaurants(null);
     try {
       const result = await login(email, password);
       if (result.accountType === "platform") {
@@ -62,7 +87,11 @@ export default function AdminLogin() {
       }
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      if (err.details?.restaurants && err.details.restaurants.length > 0) {
+        setMultipleRestaurants(err.details.restaurants);
+      } else {
+        setError(err.message || "Invalid email or password");
+      }
       setSubmitting(false);
     }
   }
@@ -106,6 +135,41 @@ export default function AdminLogin() {
               Or sign in with email
               <span className="h-px flex-1 bg-charcoal/10" />
             </div>
+
+            {multipleRestaurants && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-4 mb-4">
+                <p className="text-xs font-semibold text-amber-900 mb-1">Multiple Restaurants Found</p>
+                <p className="text-xs text-amber-800/80 mb-3">
+                  This email is associated with multiple restaurants. Please choose which workspace to open:
+                </p>
+                <div className="space-y-2">
+                  {multipleRestaurants.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleLoginWithSlug(r.slug)}
+                      className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-200 bg-white hover:bg-amber-100/50 transition-colors text-left text-xs font-medium text-charcoal shadow-sm"
+                    >
+                      <div>
+                        <span className="font-semibold block">{r.name}</span>
+                        <span className="text-[11px] text-charcoal/50">/{r.slug}</span>
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-900">
+                        {r.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMultipleRestaurants(null)}
+                  className="mt-3 text-xs text-amber-800 underline block text-center w-full cursor-pointer"
+                >
+                  Cancel and try another account
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
               {error && <ErrorBanner message={error} />}

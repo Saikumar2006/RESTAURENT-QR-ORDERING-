@@ -38,11 +38,24 @@ function addBillingPeriod(date, period) {
 }
 
 async function ensureEmailAvailable(email) {
-  const existingUser = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } });
-  if (existingUser) throw new ApiError(409, "This email already has an account. Please sign in or contact support.");
+  const existingUser = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existingUser) {
+    throw new ApiError(409, "This email already has an active account. Please sign in or use a different email.");
+  }
   const existingPending = await prisma.pendingOnboarding.findUnique({ where: { emailClaim: email } });
-  if (existingPending && existingPending.expiresAt > new Date()) throw new ApiError(409, "An onboarding session for this email is already in progress.");
-  if (existingPending) await prisma.pendingOnboarding.update({ where: { id: existingPending.id }, data: { emailClaim: null, passwordHash: null, status: "EXPIRED" } });
+  if (existingPending) {
+    if (existingPending.status === "ACTIVATED") {
+      throw new ApiError(409, "This email already has an active restaurant account. Please sign in.");
+    }
+    // If the user is retrying or switching from payment to trial, release previous incomplete claim
+    await prisma.pendingOnboarding.update({
+      where: { id: existingPending.id },
+      data: { emailClaim: null, status: "SUPERSEDED" },
+    }).catch(() => {});
+  }
 }
 
 async function createRestaurantFromPending(tx, pending, { subscriptionStatus, period, amount, startsAt, endsAt, trialEndsAt }) {
@@ -60,6 +73,9 @@ async function createRestaurantFromPending(tx, pending, { subscriptionStatus, pe
     },
   });
 
+  // Ensure RBAC system roles and permissions are provisioned first
+  const { ownerRole } = await roleService.ensureRestaurantRoles(restaurant.id, tx);
+
   const owner = await tx.user.create({
     data: {
       restaurantId: restaurant.id,
@@ -67,11 +83,10 @@ async function createRestaurantFromPending(tx, pending, { subscriptionStatus, pe
       email: pending.adminEmail,
       passwordHash: pending.passwordHash,
       role: "ADMIN",
+      roleId: ownerRole?.id || null,
       isActive: true,
     },
   });
-
-  await roleService.ensureRestaurantRoles(restaurant.id, tx);
 
   // Initialize initial starter tables so restaurant is ready for immediate QR service
   for (const num of ["1", "2", "3", "4", "5"]) {
@@ -259,14 +274,18 @@ async function createCheckout(input) {
     throw error;
   }
 
-  // If Razorpay is unconfigured, return the pending onboarding with bill info for trial fallback
+  // If Razorpay is unconfigured, release email claim and return trial fallback notice
   if (!providerStatus.ready) {
+    await prisma.pendingOnboarding.update({
+      where: { id: pending.id },
+      data: { emailClaim: null, status: "UNCONFIGURED_GATEWAY" },
+    }).catch(() => {});
     return {
       onboardingId: pending.id,
       provider: "unconfigured",
       bill,
       expiresAt: pending.expiresAt,
-      message: "Online payment gateway is being configured. You can start the 14-day trial.",
+      message: "Online payment gateway is unconfigured. 14-day free trial is available.",
     };
   }
 

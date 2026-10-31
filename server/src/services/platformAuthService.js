@@ -4,7 +4,7 @@ const { ApiError } = require("../utils/http");
 const env = require("../config/env");
 const platformRoleService = require("./platformRoleService");
 
-async function login(email, password, requestId = null) {
+async function login(email, password, requestId = null, restaurantSlug = null) {
   const startTime = Date.now();
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!normalizedEmail || typeof password !== "string" || !password) {
@@ -78,7 +78,7 @@ async function login(email, password, requestId = null) {
 
   // Fall back to tenant user (restaurant owner or staff)
   const authService = require("./authService");
-  const tenantResult = await authService.login(email, password, requestId);
+  const tenantResult = await authService.login(email, password, requestId, restaurantSlug);
   return tenantResult;
 }
 

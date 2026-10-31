@@ -269,91 +269,95 @@ async function main() {
         process.exitCode = 1;
         return;
       }
-      console.log("Prisma migration history is current; no schema changes were run.");
-      return;
-    }
-
-    const backupConfirmed = process.env.MIGRATION_BACKUP_CONFIRMED === "true" || process.env.NODE_ENV === "production";
-    if (process.env.MIGRATION_BACKUP_CONFIRMED === "false") {
-      console.error("Schema migration stopped: MIGRATION_BACKUP_CONFIRMED is set to false.");
-      process.exitCode = 1;
-      return;
-    }
-
-    const checks = await runSafeDuplicateAndNullChecks(prisma);
-    const report = summarizeRows(checks);
-    for (const row of report) console.log(JSON.stringify(row));
-    const blockers = migrationBlockers(checks);
-    if (blockers.length) {
-      console.error(`Schema migration stopped: ${blockers.length} duplicate or invalid identifier check(s) require review. No data was changed.`);
-      process.exitCode = 1;
-      return;
-    }
-    if (invalidIndexes.length) {
-      console.log(`Unique indexes to be created by pending migrations: ${invalidIndexes.join(", ")}.`);
-    }
-
-    console.log(`Applying ${pending.length} reviewed Prisma migration(s)...`);
-    const cliPath = require.resolve("prisma/build/index.js");
-
-    if (!hasMigrationHistory) {
-      console.log("No existing Prisma migration history found. Baselining and applying pending migrations via pg client...");
-      const { Client } = require("pg");
-      const client = new Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
-      await client.connect();
-      try {
-        for (const migration of pending) {
-          const sqlFile = path.join(migrationsDir, migration, "migration.sql");
-          if (fs.existsSync(sqlFile)) {
-            const sql = fs.readFileSync(sqlFile, "utf8");
-            console.log(`Executing SQL: ${migration}`);
-            await client.query(sql);
-          }
-          console.log(`Recording migration: ${migration}`);
-          const resolveResult = spawnSync(process.execPath, [
-            cliPath, "migrate", "resolve",
-            "--applied", migration,
-            "--schema=prisma/schema.prisma"
-          ], {
-            cwd: path.join(__dirname, ".."),
-            env: process.env,
-            stdio: "inherit",
-          });
-          if (resolveResult.status !== 0) {
-            throw new Error(`Failed resolving migration ${migration}`);
-          }
-        }
-      } finally {
-        await client.end();
-      }
-      console.log("All pending migrations applied and baselined successfully!");
+      console.log("Prisma migration history is current; skipping schema migration deployment.");
     } else {
-      const result = spawnSync(process.execPath, [cliPath, "migrate", "deploy"], {
-        cwd: path.join(__dirname, ".."),
-        env: process.env,
-        stdio: "inherit",
-      });
-      if (result.error) throw result.error;
-      if (result.status !== 0) {
-        throw new Error(`prisma migrate deploy exited with code ${result.status}`);
+      const backupConfirmed = process.env.MIGRATION_BACKUP_CONFIRMED === "true" || process.env.NODE_ENV === "production";
+      if (process.env.MIGRATION_BACKUP_CONFIRMED === "false") {
+        console.error("Schema migration stopped: MIGRATION_BACKUP_CONFIRMED is set to false.");
+        process.exitCode = 1;
+        return;
       }
-    }
 
-    try {
-      const demoUser = await prisma.user.findFirst({
-        where: { email: { equals: "admin@spicegarden.test", mode: "insensitive" } },
-      });
-      if (!demoUser) {
-        console.log("Demo user admin@spicegarden.test not found; seeding baseline demo data...");
-        const seedResult = spawnSync(process.execPath, [path.join(__dirname, "..", "prisma", "seed.js")], {
+      const checks = await runSafeDuplicateAndNullChecks(prisma);
+      const report = summarizeRows(checks);
+      for (const row of report) console.log(JSON.stringify(row));
+      const blockers = migrationBlockers(checks);
+      if (blockers.length) {
+        console.error(`Schema migration stopped: ${blockers.length} duplicate or invalid identifier check(s) require review. No data was changed.`);
+        process.exitCode = 1;
+        return;
+      }
+      if (invalidIndexes.length) {
+        console.log(`Unique indexes to be created by pending migrations: ${invalidIndexes.join(", ")}.`);
+      }
+
+      console.log(`Applying ${pending.length} reviewed Prisma migration(s)...`);
+      const cliPath = require.resolve("prisma/build/index.js");
+
+      if (!hasMigrationHistory) {
+        console.log("No existing Prisma migration history found. Baselining and applying pending migrations via pg client...");
+        const { Client } = require("pg");
+        const client = new Client({ connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL });
+        await client.connect();
+        try {
+          for (const migration of pending) {
+            const sqlFile = path.join(migrationsDir, migration, "migration.sql");
+            if (fs.existsSync(sqlFile)) {
+              const sql = fs.readFileSync(sqlFile, "utf8");
+              console.log(`Executing SQL: ${migration}`);
+              await client.query(sql);
+            }
+            console.log(`Recording migration: ${migration}`);
+            const resolveResult = spawnSync(process.execPath, [
+              cliPath, "migrate", "resolve",
+              "--applied", migration,
+              "--schema=prisma/schema.prisma"
+            ], {
+              cwd: path.join(__dirname, ".."),
+              env: process.env,
+              stdio: "inherit",
+            });
+            if (resolveResult.status !== 0) {
+              throw new Error(`Failed resolving migration ${migration}`);
+            }
+          }
+        } finally {
+          await client.end();
+        }
+        console.log("All pending migrations applied and baselined successfully!");
+      } else {
+        const result = spawnSync(process.execPath, [cliPath, "migrate", "deploy"], {
           cwd: path.join(__dirname, ".."),
           env: process.env,
           stdio: "inherit",
         });
-        if (seedResult.error) console.warn("Seed execution warning:", seedResult.error.message);
+        if (result.error) throw result.error;
+        if (result.status !== 0) {
+          throw new Error(`prisma migrate deploy exited with code ${result.status}`);
+        }
       }
-    } catch (seedErr) {
-      console.warn("Baseline seed check warning:", seedErr.message);
+    }
+
+    // Post-migration task 1: Baseline demo data (strictly non-production only)
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "true") {
+      console.log("Production environment detected: demo seeding skipped.");
+    } else {
+      try {
+        const demoUser = await prisma.user.findFirst({
+          where: { email: { equals: "admin@spicegarden.test", mode: "insensitive" } },
+        });
+        if (!demoUser) {
+          console.log("Demo user admin@spicegarden.test not found; seeding baseline demo data in non-production...");
+          const seedResult = spawnSync(process.execPath, [path.join(__dirname, "..", "prisma", "seed.js")], {
+            cwd: path.join(__dirname, ".."),
+            env: process.env,
+            stdio: "inherit",
+          });
+          if (seedResult.error) console.warn("Seed execution warning:", seedResult.error.message);
+        }
+      } catch (seedErr) {
+        console.warn("Baseline seed check warning:", seedErr.message);
+      }
     }
 
     try {

@@ -109,13 +109,27 @@ module.exports = {
   whatsappApiVersion,
   platformSuperAdminEmails: required("PLATFORM_SUPER_ADMIN_EMAILS", ""),
   subscriptionPricingJson,
-  subscriptionTrialDays,
-  subscriptionGraceDays,
-  subscriptionPendingMinutes,
-  saasPaymentProvider,
-  saasRazorpayKeyId,
-  saasRazorpayKeySecret,
-  saasRazorpayWebhookSecret,
+  get subscriptionTrialDays() {
+    return Math.max(0, Math.min(30, Number.parseInt(process.env.SAAS_TRIAL_DAYS ?? required("SAAS_TRIAL_DAYS", "0"), 10) || 0));
+  },
+  get subscriptionGraceDays() {
+    return Math.max(0, Math.min(30, Number.parseInt(process.env.SAAS_GRACE_DAYS ?? required("SAAS_GRACE_DAYS", "0"), 10) || 0));
+  },
+  get subscriptionPendingMinutes() {
+    return Math.max(5, Math.min(120, Number.parseInt(process.env.SAAS_PENDING_MINUTES ?? required("SAAS_PENDING_MINUTES", "30"), 10) || 30));
+  },
+  get saasPaymentProvider() {
+    return process.env.SAAS_PAYMENT_PROVIDER ?? required("SAAS_PAYMENT_PROVIDER", "unconfigured");
+  },
+  get saasRazorpayKeyId() {
+    return process.env.SAAS_RAZORPAY_KEY_ID ?? required("SAAS_RAZORPAY_KEY_ID", "");
+  },
+  get saasRazorpayKeySecret() {
+    return process.env.SAAS_RAZORPAY_KEY_SECRET ?? required("SAAS_RAZORPAY_KEY_SECRET", "");
+  },
+  get saasRazorpayWebhookSecret() {
+    return process.env.SAAS_RAZORPAY_WEBHOOK_SECRET ?? required("SAAS_RAZORPAY_WEBHOOK_SECRET", "");
+  },
   companyLegalName: required("COMPANY_LEGAL_NAME", ""),
   companySupportEmail: required("COMPANY_SUPPORT_EMAIL", ""),
   companyAddress: required("COMPANY_ADDRESS", ""),

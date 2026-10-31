@@ -202,34 +202,36 @@ export default function AdminLogin() {
               </p>
             </div>
 
-            <div className="mt-5 space-y-2 text-center">
-              <div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("demo@svaadya.com");
-                    setPassword("admin123");
-                    setError(null);
-                  }}
-                  className="text-xs text-charcoal/70 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
-                >
-                  Fill Demo: <span className="font-mono text-[11px] font-semibold text-[#087f70]">demo@svaadya.com</span> / <span className="font-mono text-[11px] text-charcoal/80">admin123</span>
-                </button>
+            {import.meta.env.DEV && (
+              <div className="mt-5 space-y-2 text-center">
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail("demo@svaadya.com");
+                      setPassword("admin123");
+                      setError(null);
+                    }}
+                    className="text-xs text-charcoal/70 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
+                  >
+                    Fill Demo: <span className="font-mono text-[11px] font-semibold text-[#087f70]">demo@svaadya.com</span> / <span className="font-mono text-[11px] text-charcoal/80">admin123</span>
+                  </button>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail("admin@spicegarden.test");
+                      setPassword("password123");
+                      setError(null);
+                    }}
+                    className="text-[11px] text-charcoal/50 hover:text-charcoal/80 hover:underline transition-colors cursor-pointer"
+                  >
+                    Fill Legacy: <span className="font-mono text-[10px]">admin@spicegarden.test</span> / <span className="font-mono text-[10px]">password123</span>
+                  </button>
+                </div>
               </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("admin@spicegarden.test");
-                    setPassword("password123");
-                    setError(null);
-                  }}
-                  className="text-[11px] text-charcoal/50 hover:text-charcoal/80 hover:underline transition-colors cursor-pointer"
-                >
-                  Fill Legacy: <span className="font-mono text-[10px]">admin@spicegarden.test</span> / <span className="font-mono text-[10px]">password123</span>
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -3,6 +3,11 @@ const bcrypt = require("bcryptjs");
 const { ensureRestaurantRoles } = require("../src/services/roleService");
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
+    console.warn("Production environment detected: demo seeding aborted to prevent exposing test credentials.");
+    return;
+  }
+
   const passwordHash = await bcrypt.hash("password123", 10);
 
   const restaurant = await prisma.restaurant.upsert({

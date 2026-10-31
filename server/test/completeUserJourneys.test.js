@@ -206,3 +206,140 @@ test("Scenario 10: Protected platform endpoints deny unauthenticated direct acce
   const restaurantsRes = await fetch(`${baseUrl}/api/platform/restaurants`);
   assert.equal(restaurantsRes.status, 401);
 });
+
+// Scenario 11: End-to-end onboarding: Registration -> Restaurant -> Owner -> RBAC Roles & Permissions -> Subscription -> Login -> Dashboard Access
+test("Scenario 11: Full End-to-End Onboarding Journey", async () => {
+  process.env.SAAS_TRIAL_DAYS = "14";
+  const e2eEmail = "e2e_owner@verifysaas.test";
+
+  // Clean up if prior run exists
+  const existingUser = await prisma.user.findFirst({ where: { email: e2eEmail } });
+  if (existingUser) {
+    await prisma.restaurant.delete({ where: { id: existingUser.restaurantId } });
+  }
+
+  // 1. Submit Trial Registration
+  const regRes = await fetch(`${baseUrl}/api/subscriptions/onboarding/trial`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      restaurantName: "E2E Verify Bistro",
+      cuisineType: "Continental",
+      adminName: "E2E Owner Admin",
+      adminEmail: e2eEmail,
+      phone: "+919876543210",
+      adminPassword: "Password1234!",
+      planKey: "GROWTH",
+    }),
+  });
+
+  const regData = await regRes.json();
+  assert.equal(regRes.status, 201);
+  assert.equal(regData.success, true);
+  assert.ok(regData.data.token);
+  assert.ok(regData.data.restaurant.id);
+  assert.ok(regData.data.owner.id);
+  assert.equal(regData.data.trial, true);
+  assert.equal(regData.data.days, 14);
+
+  const restaurantId = regData.data.restaurant.id;
+
+  // 2. Verify Database State: Restaurant, Roles, RolePermissions, User
+  const dbUser = await prisma.user.findFirst({
+    where: { email: e2eEmail, restaurantId },
+    include: {
+      roleRecord: {
+        include: {
+          permissions: { include: { permission: true } },
+        },
+      },
+      restaurant: {
+        include: {
+          subscriptions: true,
+          roles: { include: { permissions: true } },
+        },
+      },
+    },
+  });
+
+  assert.ok(dbUser);
+  assert.equal(dbUser.role, "ADMIN");
+  assert.ok(dbUser.roleId);
+  assert.equal(dbUser.roleRecord.name, "OWNER");
+  assert.ok(dbUser.restaurant.roles.length >= 7);
+  assert.equal(dbUser.restaurant.subscriptions[0].status, "TRIALING");
+  assert.ok(dbUser.restaurant.subscriptions[0].trialEndsAt > new Date());
+
+  // 3. Login with newly created credentials
+  const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: e2eEmail, password: "Password1234!" }),
+  });
+
+  const loginData = await loginRes.json();
+  assert.equal(loginRes.status, 200);
+  assert.equal(loginData.success, true);
+  assert.equal(loginData.data.accountType, "tenant");
+  assert.ok(loginData.data.token);
+  assert.equal(loginData.data.user.email, e2eEmail);
+  assert.equal(loginData.data.user.roleName, "OWNER");
+  assert.equal(loginData.data.user.subscriptionStatus, "TRIALING");
+  assert.equal(loginData.data.user.subscriptionAccess, true);
+
+  // 4. Access Protected Dashboard Me endpoint
+  const meRes = await fetch(`${baseUrl}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${loginData.data.token}` },
+  });
+  const meData = await meRes.json();
+  assert.equal(meRes.status, 200);
+  assert.equal(meData.data.email, e2eEmail);
+  assert.equal(meData.data.restaurantId, restaurantId);
+  assert.deepEqual(meData.data.permissions, ["*"]);
+
+  // Clean up
+  await prisma.restaurant.delete({ where: { id: restaurantId } });
+});
+
+// Scenario 12: Registration Conflict 409 when email already has an active account
+test("Scenario 12: Registration returns HTTP 409 when email already exists", async () => {
+  const conflictRes = await fetch(`${baseUrl}/api/subscriptions/onboarding/trial`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      restaurantName: "Duplicate Bistro",
+      adminName: "Spice Admin",
+      adminEmail: "admin@spicegarden.test",
+      adminPassword: "Password1234!",
+      planKey: "STARTER",
+    }),
+  });
+  const conflictData = await conflictRes.json();
+  assert.equal(conflictRes.status, 409);
+  assert.equal(conflictData.success, false);
+  assert.match(conflictData.error?.message, /already has an active account/i);
+});
+
+// Scenario 13: Safely reject paid checkout when gateway is unconfigured (503)
+test("Scenario 13: Paid checkout safely rejects with 503 when payment gateway is unconfigured", async () => {
+  delete process.env.SAAS_RAZORPAY_KEY_ID;
+  delete process.env.SAAS_RAZORPAY_KEY_SECRET;
+  process.env.SAAS_PAYMENT_PROVIDER = "unconfigured";
+
+  const checkoutRes = await fetch(`${baseUrl}/api/subscriptions/onboarding/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      restaurantName: "Unconfigured Gateway Cafe",
+      adminName: "Gateway Admin",
+      adminEmail: "unconfigured@gatewaytest.test",
+      adminPassword: "Password1234!",
+      planKey: "STARTER",
+      billingPeriod: "MONTHLY",
+    }),
+  });
+  const checkoutData = await checkoutRes.json();
+  assert.equal(checkoutRes.status, 503);
+  assert.equal(checkoutData.success, false);
+  assert.match(checkoutData.error?.message, /online payments are currently disabled/i);
+});

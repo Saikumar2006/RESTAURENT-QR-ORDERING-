@@ -187,7 +187,10 @@ async function verifyOnboardingOtp({ phone, code, verificationSession }) {
 }
 
 async function startTrial(input) {
-  const trialDays = env.subscriptionTrialDays > 0 ? env.subscriptionTrialDays : 14;
+  if (env.subscriptionTrialDays <= 0) {
+    throw new ApiError(403, "Free trials are currently not enabled. Please choose a subscription plan to continue.");
+  }
+  const trialDays = env.subscriptionTrialDays;
   const email = (input.adminEmail || input.email || "").trim().toLowerCase();
   await ensureEmailAvailable(email);
   const adminName = (input.adminName || input.ownerName || input.name || "").trim();
@@ -274,19 +277,13 @@ async function createCheckout(input) {
     throw error;
   }
 
-  // If Razorpay is unconfigured, release email claim and return trial fallback notice
+  // If Razorpay is unconfigured, release email claim and return safe 503
   if (!providerStatus.ready) {
     await prisma.pendingOnboarding.update({
       where: { id: pending.id },
-      data: { emailClaim: null, status: "UNCONFIGURED_GATEWAY" },
+      data: { emailClaim: null, status: "UNCONFIGURED_GATEWAY", passwordHash: null },
     }).catch(() => {});
-    return {
-      onboardingId: pending.id,
-      provider: "unconfigured",
-      bill,
-      expiresAt: pending.expiresAt,
-      message: "Online payment gateway is unconfigured. 14-day free trial is available.",
-    };
+    throw new ApiError(503, "Online payments are currently disabled until platform payment gateway credentials and webhook configurations are provided. Please contact the platform administrator.");
   }
 
   let providerOrder;

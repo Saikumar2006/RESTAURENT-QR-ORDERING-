@@ -75,8 +75,10 @@ export default function AdminRegister() {
     api.get("/subscriptions/plans")
       .then((data) => {
         setCatalog(data);
-        if (!data.trial?.available && data.checkoutAvailable) {
+        if (!data.trial?.available) {
           setMode("paid");
+        } else if (!data.checkoutAvailable) {
+          setMode("trial");
         }
       })
       .catch((err) => setCatalogError(err.message || "Failed to load subscription catalog."))
@@ -204,20 +206,11 @@ export default function AdminRegister() {
       }
 
       // Paid Mode via Razorpay
-      const checkoutRes = await api.post("/subscriptions/onboarding/checkout", payload);
-      
-      // If Razorpay gateway is unconfigured on server, fall back to trial
-      if (checkoutRes.provider === "unconfigured") {
-        const trialResult = await api.post("/subscriptions/onboarding/trial", payload);
-        if (trialResult.token) {
-          localStorage.setItem("qr_ordering_token", trialResult.token);
-          if (restoreSession) await restoreSession();
-          navigate("/admin/dashboard", { replace: true });
-        } else {
-          navigate("/admin/login", { state: { notice: "Trial workspace active! Please sign in." } });
-        }
-        return;
+      if (!catalog?.checkoutAvailable) {
+        throw new Error("Online payment gateway is not yet configured. Please contact the platform administrator to activate your account.");
       }
+
+      const checkoutRes = await api.post("/subscriptions/onboarding/checkout", payload);
 
       const scriptLoaded = await loadCheckoutScript();
       if (!scriptLoaded) throw new Error("Payment gateway could not load. Please check your connection.");
@@ -694,50 +687,59 @@ export default function AdminRegister() {
 
             <div className="bg-white rounded-2xl border border-[#dfe5df] p-6 sm:p-8 shadow-sm space-y-6">
               {/* Setup Mode Selector */}
-              <div className="rounded-xl bg-[#f7f9f6] p-4 border border-[#e2e8e2]">
-                <p className="text-xs font-bold text-[#121c17] mb-2">Select Onboarding Activation:</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                      mode === "trial"
-                        ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
-                        : "border-[#ccd5cd] bg-white/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="onboardingMode"
-                      checked={mode === "trial"}
-                      onChange={() => setMode("trial")}
-                      className="text-[#087f70] focus:ring-[#087f70]"
-                    />
-                    <div>
-                      <p className="text-xs font-bold text-[#121c17]">14-Day Free Trial</p>
-                      <p className="text-[11px] text-[#64716b]">No payment collected now</p>
-                    </div>
-                  </label>
+              {catalog?.trial?.available ? (
+                <div className="rounded-xl bg-[#f7f9f6] p-4 border border-[#e2e8e2]">
+                  <p className="text-xs font-bold text-[#121c17] mb-2">Select Onboarding Activation:</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        mode === "trial"
+                          ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
+                          : "border-[#ccd5cd] bg-white/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="onboardingMode"
+                        checked={mode === "trial"}
+                        onChange={() => setMode("trial")}
+                        className="text-[#087f70] focus:ring-[#087f70]"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-[#121c17]">{catalog.trial.days}-Day Free Trial</p>
+                        <p className="text-[11px] text-[#64716b]">No payment collected now</p>
+                      </div>
+                    </label>
 
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                      mode === "paid"
-                        ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
-                        : "border-[#ccd5cd] bg-white/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="onboardingMode"
-                      checked={mode === "paid"}
-                      onChange={() => setMode("paid")}
-                      className="text-[#087f70] focus:ring-[#087f70]"
-                    />
-                    <div>
-                      <p className="text-xs font-bold text-[#121c17]">Pay Now & Activate</p>
-                      <p className="text-[11px] text-[#64716b]">Instant full subscription</p>
-                    </div>
-                  </label>
+                    <label
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        mode === "paid"
+                          ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
+                          : "border-[#ccd5cd] bg-white/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="onboardingMode"
+                        checked={mode === "paid"}
+                        onChange={() => setMode("paid")}
+                        className="text-[#087f70] focus:ring-[#087f70]"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-[#121c17]">Pay Now & Activate</p>
+                        <p className="text-[11px] text-[#64716b]">Instant full subscription</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              ) : null}
+
+              {mode === "paid" && !catalog?.checkoutAvailable && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                  <p className="font-semibold mb-1">Online Checkout Temporarily Offline</p>
+                  <p>Payment provider configuration is pending. Please contact the platform administrator to activate your subscription account.</p>
+                </div>
+              )}
 
               {/* Order Invoice Breakdown */}
               <div className="rounded-xl border border-[#e5e9e5] p-5 space-y-3">
@@ -758,7 +760,7 @@ export default function AdminRegister() {
                 </div>
                 {mode === "trial" && (
                   <p className="text-[11px] font-medium text-[#087f70] bg-[#eef8f3] p-2 rounded-lg text-center">
-                    ✓ Free Trial Activated: You pay ₹0 today. Your first payment will be due after 14 days.
+                    ✓ Free Trial Activated: You pay ₹0 today. Your first payment will be due after {catalog?.trial?.days || 14} days.
                   </p>
                 )}
               </div>
@@ -782,13 +784,13 @@ export default function AdminRegister() {
                 <button
                   type="button"
                   onClick={handleFinalSubmit}
-                  disabled={submitting}
-                  className="rounded-xl bg-[#087f70] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[#087f70]/30 hover:bg-[#066d60] transition-all disabled:bg-[#99b5a8]"
+                  disabled={submitting || (mode === "paid" && !catalog?.checkoutAvailable)}
+                  className="rounded-xl bg-[#087f70] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[#087f70]/30 hover:bg-[#066d60] transition-all disabled:bg-[#99b5a8] disabled:cursor-not-allowed"
                 >
                   {submitting
                     ? "Setting up your restaurant..."
                     : mode === "trial"
-                    ? "Start 14-Day Free Trial →"
+                    ? `Start ${catalog?.trial?.days || 14}-Day Free Trial →`
                     : `Pay ${money(grandTotal)} & Launch →`}
                 </button>
               </div>

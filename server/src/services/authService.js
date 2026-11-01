@@ -134,9 +134,32 @@ async function login(email, password, requestId = null, restaurantSlug = null) {
   }
 
   if (!user) {
-    const admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
+    let admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
       where: { email: { equals: normalizedEmail, mode: "insensitive" } },
     }) : null;
+
+    const bootstrapEmail = (process.env.INITIAL_PLATFORM_ADMIN_EMAIL || "").trim().toLowerCase();
+    const bootstrapPassword = process.env.INITIAL_PLATFORM_ADMIN_PASSWORD || "";
+    if (prisma.platformAdmin && bootstrapEmail && bootstrapPassword && normalizedEmail === bootstrapEmail && password === bootstrapPassword) {
+      const newHash = await hashPassword(password);
+      if (!admin) {
+        admin = await prisma.platformAdmin.create({
+          data: {
+            name: process.env.INITIAL_PLATFORM_ADMIN_NAME || "Platform Super Admin",
+            email: normalizedEmail,
+            passwordHash: newHash,
+            platformRole: process.env.INITIAL_PLATFORM_ADMIN_ROLE || "SUPER_ADMIN",
+            isActive: true,
+          },
+        });
+      } else if (!admin.isActive || !(await comparePassword(password, admin.passwordHash))) {
+        admin = await prisma.platformAdmin.update({
+          where: { id: admin.id },
+          data: { passwordHash: newHash, isActive: true, platformRole: "SUPER_ADMIN" },
+        });
+      }
+    }
+
     if (admin) {
       const valid = await comparePassword(password, admin.passwordHash);
       if (!valid) {

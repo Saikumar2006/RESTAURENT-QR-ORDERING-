@@ -362,15 +362,13 @@ async function main() {
 
     try {
       if (process.env.INITIAL_PLATFORM_ADMIN_EMAIL && process.env.INITIAL_PLATFORM_ADMIN_PASSWORD) {
-        const adminCount = await prisma.platformAdmin.count();
-        if (adminCount === 0) {
-          console.log("No platform administrator found; bootstrapping initial platform admin from environment...");
-          spawnSync(process.execPath, [path.join(__dirname, "create-platform-admin.js")], {
-            cwd: path.join(__dirname, ".."),
-            env: process.env,
-            stdio: "inherit",
-          });
-        }
+        console.log("Synchronizing platform administrator from environment variables...");
+        const adminResult = spawnSync(process.execPath, [path.join(__dirname, "create-platform-admin.js")], {
+          cwd: path.join(__dirname, ".."),
+          env: process.env,
+          stdio: "inherit",
+        });
+        if (adminResult.error) console.warn("Admin bootstrap execution warning:", adminResult.error.message);
       }
     } catch (adminErr) {
       console.warn("Initial platform admin bootstrap warning:", adminErr.message);

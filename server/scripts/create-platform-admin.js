@@ -60,32 +60,38 @@ function parseArgs(args) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  let name = args.name || process.env.INITIAL_PLATFORM_ADMIN_NAME || "";
+  let name = args.name || process.env.INITIAL_PLATFORM_ADMIN_NAME || "Platform Super Admin";
   let email = (args.email || process.env.INITIAL_PLATFORM_ADMIN_EMAIL || "").toLowerCase().trim();
   let password = args.password || process.env.INITIAL_PLATFORM_ADMIN_PASSWORD || "";
   let platformRole = args.role || process.env.INITIAL_PLATFORM_ADMIN_ROLE || "SUPER_ADMIN";
 
-  if (!name || !email || !password) {
+  if (!email || !password) {
     if (!process.stdin.isTTY) {
-      throw new Error("Interactive terminal required, or supply --name, --email, and --password arguments (or INITIAL_PLATFORM_ADMIN_* env vars).");
+      throw new Error("Interactive terminal required, or supply --email and --password arguments (or INITIAL_PLATFORM_ADMIN_* env vars).");
     }
-    name = await ask("Platform administrator name: ");
+    name = (await ask("Platform administrator name: ")) || "Platform Super Admin";
     email = (await ask("Platform administrator email: ")).toLowerCase().trim();
-    password = await askHidden("Password (minimum 12 characters): ");
+    password = await askHidden("Password (minimum 8 characters): ");
     const confirmation = await askHidden("Confirm password: ");
     if (password !== confirmation) throw new Error("The passwords did not match.");
   }
 
   if (!name || name.length > 120) throw new Error("Enter a name between 1 and 120 characters.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new Error("Enter a valid email address.");
-  if (password.length < 12) throw new Error("Use a password with at least 12 characters.");
+  if (password.length < 8) throw new Error("Use a password with at least 8 characters.");
 
-  const existing = await prisma.platformAdmin.findUnique({ where: { email } });
+  const existing = await prisma.platformAdmin.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+  const passwordHash = await bcrypt.hash(password, 12);
   if (existing) {
-    console.log(`Platform administrator already exists: ${existing.email} (id: ${existing.id})`);
+    await prisma.platformAdmin.update({
+      where: { id: existing.id },
+      data: { name: name || existing.name, passwordHash, isActive: true, platformRole },
+    });
+    console.log(`Platform administrator credentials updated: ${existing.email} (id: ${existing.id}, role: ${platformRole})`);
     return;
   }
-  const passwordHash = await bcrypt.hash(password, 12);
   const admin = await prisma.platformAdmin.create({ data: { name, email, passwordHash, platformRole } });
   console.log(`Platform administrator created: ${admin.email} (id: ${admin.id}, role: ${admin.platformRole})`);
   console.log("Sign in at /super-admin/login or /login. Store the password in an approved password manager.");

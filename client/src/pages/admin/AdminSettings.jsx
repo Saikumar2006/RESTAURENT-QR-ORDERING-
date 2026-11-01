@@ -1,35 +1,26 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
-import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
-
-function Toggle({ checked, onChange }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`shrink-0 w-11 h-6 rounded-full relative transition-colors ${checked ? "bg-clove" : "bg-charcoal/20"}`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
-      />
-    </button>
-  );
-}
+import {
+  TabGroup,
+  PageHeader,
+  Spinner,
+  ErrorBanner,
+} from "../../components/Ui.jsx";
+import {
+  SettingsIcon,
+  CheckIcon,
+} from "../../components/UiIcons.jsx";
 
 export default function AdminSettings() {
   const { user } = useAuth();
   const [restaurant, setRestaurant] = useState(null);
   const [form, setForm] = useState(null);
+  const [activeTab, setActiveTab] = useState("operations"); // "operations" | "taxes" | "ordering" | "notifications" | "gateways"
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [locateError, setLocateError] = useState(null);
   const [paymentProvider, setPaymentProvider] = useState(null);
   const [whatsappStatus, setWhatsappStatus] = useState(null);
   const [whatsappCheck, setWhatsappCheck] = useState(null);
@@ -61,13 +52,10 @@ export default function AdminSettings() {
         notificationChannel: r.notificationChannel || "whatsapp",
       });
     });
-  }, []);
+  }, [user.restaurantId]);
 
   useEffect(() => {
     api.get("/payments/provider-status").then(setPaymentProvider).catch(() => setPaymentProvider(null));
-  }, []);
-
-  useEffect(() => {
     api.get(`/restaurants/${user.restaurantId}/integrations/whatsapp/status`)
       .then(setWhatsappStatus)
       .catch((err) => setWhatsappError(err.message));
@@ -87,9 +75,8 @@ export default function AdminSettings() {
   }
 
   function useMyLocation() {
-    setLocateError(null);
     if (!("geolocation" in navigator)) {
-      setLocateError("Your browser doesn't support location.");
+      setError("Your browser doesn't support geolocation.");
       return;
     }
     setLocating(true);
@@ -103,7 +90,7 @@ export default function AdminSettings() {
         setLocating(false);
       },
       () => {
-        setLocateError("Couldn't get your location — check browser permissions and try again.");
+        setError("Could not retrieve current GPS coordinates. Check browser permissions.");
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -117,7 +104,7 @@ export default function AdminSettings() {
     setSaved(false);
 
     if (form.geofenceEnabled && (form.latitude === "" || form.longitude === "")) {
-      setError("Set the restaurant's location before turning on in-restaurant-only ordering.");
+      setError("Set GPS coordinates before enforcing in-restaurant only geofencing.");
       setSaving(false);
       return;
     }
@@ -146,6 +133,7 @@ export default function AdminSettings() {
       });
       setRestaurant(updated);
       setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -153,237 +141,397 @@ export default function AdminSettings() {
     }
   }
 
-  if (!form) return <Spinner label="Loading settings..." />;
+  if (!form) return <Spinner label="Loading restaurant settings..." />;
+
+  const tabs = [
+    { id: "operations", label: "Operations & Hours" },
+    { id: "taxes", label: "Taxes & Service Charges" },
+    { id: "ordering", label: "QR & In-Dining Geofence" },
+    { id: "notifications", label: "WhatsApp & Alerts" },
+    { id: "gateways", label: "Payment Gateways" },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-5 md:p-8">
-      <h1 className="font-display text-3xl mb-1">Settings</h1>
-      <p className="text-sm text-charcoal/50 mb-6">
-        These apply to every order, on top of any coupon a customer might use at checkout.
-      </p>
-
-      {error && <ErrorBanner message={error} />}
-
-      {paymentProvider && <section className="card mb-4 p-5"><h2 className="text-sm font-semibold">Food payment gateway</h2><p className="mt-2 text-xs text-charcoal/60">{paymentProvider.available ? `${paymentProvider.provider} is available using platform-configured credentials.` : "Online payments are not configured."} {paymentProvider.mode === "development_test_only" ? "Test mode is development-only." : ""}</p><p className="mt-2 text-xs text-charcoal/50">This restaurant does not have a linked gateway account in the current setup. Do not use this configuration for marketplace settlement or assume funds route directly to this restaurant.</p></section>}
-
-      <section className="card mb-4 space-y-4 p-5 md:p-6" aria-labelledby="whatsapp-settings-title">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div><p className="text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">Messaging connection</p><h2 id="whatsapp-settings-title" className="mt-1 text-sm font-semibold">WhatsApp Business OTP</h2><p className="mt-1 max-w-2xl text-xs leading-5 text-charcoal/55">This is Svaadya's platform-managed Meta Cloud API used for phone verification. Secrets stay in server environment settings and are never returned to this page. Restaurant order notifications use the configured messaging provider separately.</p></div>
-          <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${whatsappCheck?.connectionStatus === "CONNECTED" ? "bg-emerald-50 text-emerald-800" : whatsappStatus?.configured ? "bg-amber-50 text-amber-800" : "bg-charcoal/5 text-charcoal/60"}`}>{whatsappCheck?.connectionStatus || (whatsappStatus?.configured ? "Not tested" : "Not configured")}</span>
-        </div>
-        {whatsappStatus && <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <WhatsAppFact label="Provider" value={whatsappStatus.provider} />
-          <WhatsAppFact label="Sender ID" value={whatsappStatus.senderConfigured ? "Configured · hidden" : "Not configured"} />
-          <WhatsAppFact label="Business account" value={whatsappStatus.businessAccountConfigured ? "Configured · hidden" : "Not configured"} />
-          <WhatsAppFact label="OTP template" value={whatsappStatus.templateName || "Not configured"} />
-          <WhatsAppFact label="Credential" value={whatsappStatus.credentialConfigured ? "Stored server-side · hidden" : "Not configured"} />
-          <WhatsAppFact label="Template status" value={whatsappCheck?.templateStatus || whatsappStatus.templateStatus} />
-          {whatsappCheck?.senderPhoneMasked && <WhatsAppFact label="Sender phone" value={whatsappCheck.senderPhoneMasked} />}
-          {whatsappCheck?.verifiedName && <WhatsAppFact label="Verified business name" value={whatsappCheck.verifiedName} />}
-        </div>}
-        {whatsappStatus?.missing?.length > 0 && <p className="text-xs text-amber-800">Missing server settings: {whatsappStatus.missing.join(", ")}</p>}
-        {whatsappStatus?.invalid?.length > 0 && <p className="text-xs text-amber-800">Invalid server settings: {whatsappStatus.invalid.join(", ")}</p>}
-        {whatsappError && <ErrorBanner message={whatsappError} />}
-        {whatsappCheck?.qualityRating && <p className="text-xs text-charcoal/55">Meta phone quality: {whatsappCheck.qualityRating} · checked {new Date(whatsappCheck.checkedAt).toLocaleString()}</p>}
-        <div className="flex flex-wrap items-center gap-3"><button className="btn-secondary text-xs" type="button" onClick={testWhatsAppConnection} disabled={checkingWhatsapp || !whatsappStatus?.configured}>{checkingWhatsapp ? "Checking connection..." : "Test WhatsApp connection"}</button><span className="text-[11px] text-charcoal/45">Performs read-only checks for sender access and OTP template approval.</span></div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-      <div className={`card p-6 border-l-4 ${form.isOpen ? "border-emerald-500" : "border-red-500"}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">{form.isOpen ? "Restaurant is open" : "Restaurant is closed"}</p>
-            <p className="text-xs text-charcoal/50">
-              {form.isOpen
-                ? "Customers scanning your QR can browse and order."
-                : "Customers scanning your QR see \"Out of Service\" instead of the menu."}
-            </p>
-          </div>
-          <Toggle checked={form.isOpen} onChange={(v) => setForm({ ...form, isOpen: v })} />
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-charcoal/10">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-medium">Auto-close outside business hours</p>
-              <p className="text-xs text-charcoal/50">Shows "Out of Service" automatically outside these hours, on top of the toggle above</p>
-            </div>
-            <Toggle checked={form.autoScheduleEnabled} onChange={(v) => setForm({ ...form, autoScheduleEnabled: v })} />
-          </div>
-          {form.autoScheduleEnabled && (
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-charcoal/50 block mb-1">Opens at</label>
-                <input className="input" type="time" value={form.openTime} onChange={(e) => setForm({ ...form, openTime: e.target.value })} />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-charcoal/50 block mb-1">Closes at</label>
-                <input className="input" type="time" value={form.closeTime} onChange={(e) => setForm({ ...form, closeTime: e.target.value })} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <p className="text-sm font-medium">In-restaurant ordering only</p>
-            <p className="text-xs text-charcoal/50">Blocks ordering from outside the restaurant, even if someone has the link</p>
-          </div>
-          <Toggle checked={form.geofenceEnabled} onChange={(v) => setForm({ ...form, geofenceEnabled: v })} />
-        </div>
-        {form.geofenceEnabled && (
-          <div className="mt-4 pt-4 border-t border-charcoal/10 space-y-3">
-            <button type="button" className="btn-secondary text-xs py-2 px-3" onClick={useMyLocation} disabled={locating}>
-              {locating ? "Locating..." : "📍 Use my current location"}
-            </button>
-            {locateError && <p className="text-xs text-red-600">{locateError}</p>}
-            <p className="text-xs text-charcoal/50">
-              Stand inside the restaurant and tap this once to set its location — customers will need to be within the radius below.
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-charcoal/50 block mb-1">Latitude</label>
-                <input className="input" type="number" step="0.000001" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-charcoal/50 block mb-1">Longitude</label>
-                <input className="input" type="number" step="0.000001" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-charcoal/50 block mb-1">Allowed radius (meters)</label>
-              <input
-                className="input"
-                type="number"
-                min="20"
-                max="5000"
-                value={form.geofenceRadiusMeters}
-                onChange={(e) => setForm({ ...form, geofenceRadiusMeters: e.target.value })}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <p className="text-sm font-medium">Require phone verification</p>
-            <p className="text-xs text-charcoal/50">Customers must verify their phone with an OTP before placing an order</p>
-          </div>
-          <Toggle checked={form.phoneVerificationEnabled} onChange={(v) => setForm({ ...form, phoneVerificationEnabled: v })} />
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-charcoal/10 flex items-center justify-between mb-1">
-          <div>
-            <p className="text-sm font-medium">Order notifications</p>
-            <p className="text-xs text-charcoal/50">Send order confirmation and status updates to the customer's phone</p>
-          </div>
-          <Toggle checked={form.orderNotificationsEnabled} onChange={(v) => setForm({ ...form, orderNotificationsEnabled: v })} />
-        </div>
-
-        {(form.phoneVerificationEnabled || form.orderNotificationsEnabled) && (
-          <div className="mt-4 pt-4 border-t border-charcoal/10">
-            <label className="text-xs text-charcoal/50 block mb-1">Preferred channel</label>
-            <select
-              className="input"
-              value={form.notificationChannel}
-              onChange={(e) => setForm({ ...form, notificationChannel: e.target.value })}
-            >
-              <option value="whatsapp">WhatsApp (falls back to SMS if delivery fails)</option>
-              <option value="sms">SMS only</option>
-            </select>
-          </div>
-        )}
-      </div>
-
-      <form onSubmit={save} className="card grid gap-4 p-6 md:grid-cols-2">
-        <div>
-          <label className="text-xs text-charcoal/50 block mb-1">Restaurant name</label>
-          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </div>
-        <div>
-          <label className="text-xs text-charcoal/50 block mb-1">Cuisine / type</label>
-          <input
-            className="input"
-            placeholder="e.g. North Indian, Cafe, Fast Food"
-            value={form.cuisineType}
-            onChange={(e) => setForm({ ...form, cuisineType: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-charcoal/50 block mb-1">Tax (%)</label>
-          <input
-            className="input"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            value={form.taxPercent}
-            onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-charcoal/50 block mb-1">Service charge (%)</label>
-          <input
-            className="input"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            value={form.serviceChargePercent}
-            onChange={(e) => setForm({ ...form, serviceChargePercent: e.target.value })}
-          />
-        </div>
-        <div className={`md:col-span-2 ${form.discountEnabled ? "" : "opacity-50"}`}>
-          <div className="flex items-center justify-between pt-2 border-t border-charcoal/10 mb-3">
-            <div>
-              <p className="text-sm font-medium">Default order discount</p>
-              <p className="text-xs text-charcoal/50">Applies automatically to every order that doesn't use a coupon</p>
-            </div>
-            <Toggle checked={form.discountEnabled} onChange={(v) => setForm({ ...form, discountEnabled: v })} />
-          </div>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-charcoal/50">Discount amount</span>
-            <span className="text-sm font-semibold text-clove tabular-nums">{Number(form.discountPercent || 0).toFixed(0)}%</span>
-          </div>
-          <input
-            className="w-full accent-clove"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            disabled={!form.discountEnabled}
-            value={form.discountPercent || 0}
-            onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
-          />
-          <div className="flex justify-between text-[10px] text-charcoal/35 -mt-1">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between border-t border-charcoal/10 pt-2 md:col-span-2">
-          <div>
-            <p className="text-sm font-medium">Menu search bar</p>
-            <p className="text-xs text-charcoal/50">Let customers search the menu by name from their phone</p>
-          </div>
-          <Toggle checked={form.searchEnabled} onChange={(v) => setForm({ ...form, searchEnabled: v })} />
-        </div>
-        <div className="flex items-center gap-3 pt-2 md:col-span-2">
-          <button className="btn-primary" type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save changes"}
+    <div className="space-y-6 max-w-5xl">
+      {/* Page Header */}
+      <PageHeader
+        title="Restaurant Settings"
+        description="Configure operational hours, taxes, kitchen notifications, and table geofencing."
+        actions={
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="btn-primary flex items-center gap-1.5 text-xs"
+          >
+            <CheckIcon className="w-3.5 h-3.5" />
+            <span>{saving ? "Saving..." : "Save Settings"}</span>
           </button>
-          {saved && <span className="text-sm text-emerald-600">Saved.</span>}
+        }
+      />
+
+      {saved && (
+        <div className="p-3.5 rounded-xl bg-[#EAF7EE] border border-[#269B67]/30 text-xs font-semibold text-[#269B67] flex items-center gap-2">
+          <span>✓</span>
+          <span>All restaurant configurations saved successfully!</span>
+        </div>
+      )}
+
+      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
+      {/* Tabs */}
+      <div className="card px-4 pt-3">
+        <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+      </div>
+
+      <form onSubmit={save} className="space-y-6">
+        {/* TAB 1: Operations & Business Hours */}
+        {activeTab === "operations" && (
+          <div className="card p-6 space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B2A] mb-1">Restaurant Service State</h3>
+              <p className="text-xs text-[#788582]">Manage whether guests can place orders right now.</p>
+            </div>
+
+            <div className={`p-4 rounded-xl border flex items-center justify-between ${
+              form.isOpen ? "bg-[#EAF7EE]/50 border-[#269B67]/30" : "bg-[#FDECEC]/50 border-[#D95359]/30"
+            }`}>
+              <div>
+                <p className="text-xs font-bold text-[#172B2A]">
+                  {form.isOpen ? "🟢 Restaurant is Open" : "🔴 Restaurant is Closed"}
+                </p>
+                <p className="text-[11px] text-[#788582] mt-0.5">
+                  {form.isOpen
+                    ? "Guests scanning table QR codes can explore the menu and place live orders."
+                    : "Menu displays an 'Out of Service' message to visiting customers."}
+                </p>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={form.isOpen}
+                  onChange={(e) => setForm({ ...form, isOpen: e.target.checked })}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+            <div className="border-t border-[#E5ECE9] pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-[#172B2A]">Auto-Close Outside Business Hours</p>
+                  <p className="text-[11px] text-[#788582]">
+                    Automatically disables customer ordering outside scheduled service times.
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={form.autoScheduleEnabled}
+                    onChange={(e) => setForm({ ...form, autoScheduleEnabled: e.target.checked })}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+
+              {form.autoScheduleEnabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#F8FAF9] border border-[#E5ECE9]">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#172B2A] mb-1">Opens At</label>
+                    <input
+                      type="time"
+                      value={form.openTime}
+                      onChange={(e) => setForm({ ...form, openTime: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#172B2A] mb-1">Closes At</label>
+                    <input
+                      type="time"
+                      value={form.closeTime}
+                      onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-[#E5ECE9] pt-4 space-y-3">
+              <h4 className="text-xs font-bold text-[#172B2A]">Restaurant Identity</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                    Cuisine Speciality
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. South Indian, North Indian"
+                    value={form.cuisineType}
+                    onChange={(e) => setForm({ ...form, cuisineType: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: Taxes & Service Charges */}
+        {activeTab === "taxes" && (
+          <div className="card p-6 space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B2A] mb-1">Taxes, GST & Billing Fees</h3>
+              <p className="text-xs text-[#788582]">These charges are computed on every completed cart.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  GST / Sales Tax Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={form.taxPercent}
+                  onChange={(e) => setForm({ ...form, taxPercent: e.target.value })}
+                  className="input font-bold"
+                />
+                <p className="text-[10px] text-[#9CA8A5] mt-1">Standard 5% for Indian restaurant GST.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Service Charge Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={form.serviceChargePercent}
+                  onChange={(e) => setForm({ ...form, serviceChargePercent: e.target.value })}
+                  className="input font-bold"
+                />
+                <p className="text-[10px] text-[#9CA8A5] mt-1">Set to 0% if no service fee is charged.</p>
+              </div>
+            </div>
+
+            <div className="border-t border-[#E5ECE9] pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-[#172B2A]">Global Restaurant Flat Discount</p>
+                  <p className="text-[11px] text-[#788582]">Automatically applied across all dishes.</p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={form.discountEnabled}
+                    onChange={(e) => setForm({ ...form, discountEnabled: e.target.checked })}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+
+              {form.discountEnabled && (
+                <div className="max-w-xs">
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                    Discount Percentage (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="90"
+                    value={form.discountPercent}
+                    onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
+                    className="input font-bold text-[#087F73]"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: QR & In-Dining Geofence */}
+        {activeTab === "ordering" && (
+          <div className="card p-6 space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B2A]">Table Geofencing & Verification</h3>
+              <p className="text-xs text-[#788582]">
+                Prevent fraudulent orders by restricting dine-in orders to guests physically located on-premises.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9]">
+              <div>
+                <p className="text-xs font-bold text-[#172B2A]">Enforce In-Restaurant Location Only</p>
+                <p className="text-[11px] text-[#788582]">
+                  Customers outside your geofence radius cannot submit dine-in tickets.
+                </p>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={form.geofenceEnabled}
+                  onChange={(e) => setForm({ ...form, geofenceEnabled: e.target.checked })}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">Latitude</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 12.9716"
+                  value={form.latitude}
+                  onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">Longitude</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 77.5946"
+                  value={form.longitude}
+                  onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">Radius (Meters)</label>
+                <input
+                  type="number"
+                  min="50"
+                  max="1000"
+                  value={form.geofenceRadiusMeters}
+                  onChange={(e) => setForm({ ...form, geofenceRadiusMeters: e.target.value })}
+                  className="input"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={useMyLocation}
+              disabled={locating}
+              className="btn-secondary text-xs flex items-center gap-1.5"
+            >
+              <span>📍</span>
+              <span>{locating ? "Acquiring GPS..." : "Set Coordinates to My Current Location"}</span>
+            </button>
+          </div>
+        )}
+
+        {/* TAB 4: WhatsApp & Alerts */}
+        {activeTab === "notifications" && (
+          <div className="card p-6 space-y-5">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B2A]">Messaging & Order Notifications</h3>
+              <p className="text-xs text-[#788582]">Configure automated WhatsApp and SMS order updates.</p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9] flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#172B2A]">Customer Mobile Phone Verification</p>
+                <p className="text-[11px] text-[#788582]">Require guests to verify phone via OTP before placing order.</p>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={form.phoneVerificationEnabled}
+                  onChange={(e) => setForm({ ...form, phoneVerificationEnabled: e.target.checked })}
+                />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+
+            <div className="p-4 rounded-xl border border-[#E5ECE9] bg-white space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-[#172B2A]">WhatsApp Cloud API Integration</h4>
+                  <p className="text-[10px] text-[#788582]">Official Meta Cloud API connection</p>
+                </div>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  whatsappStatus?.configured ? "bg-[#EAF7EE] text-[#269B67]" : "bg-slate-100 text-[#788582]"
+                }`}>
+                  {whatsappStatus?.configured ? "Configured" : "Unconfigured"}
+                </span>
+              </div>
+
+              {whatsappError && <ErrorBanner message={whatsappError} />}
+
+              {whatsappCheck && (
+                <div className="p-3 rounded-lg bg-[#E7F5F1] text-xs text-[#087F73]">
+                  Connection verified: {whatsappCheck.connectionStatus} (Quality: {whatsappCheck.qualityRating || "Good"})
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={testWhatsAppConnection}
+                disabled={checkingWhatsapp || !whatsappStatus?.configured}
+                className="btn-secondary text-xs"
+              >
+                {checkingWhatsapp ? "Testing..." : "Test WhatsApp Connection"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: Payment Gateways */}
+        {activeTab === "gateways" && (
+          <div className="card p-6 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B2A]">Online Payment Gateway</h3>
+              <p className="text-xs text-[#788582]">Status of Razorpay / UPI online settlement.</p>
+            </div>
+
+            <div className="p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#172B2A]">Payment Provider</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                  paymentProvider?.available ? "bg-[#EAF7EE] text-[#269B67]" : "bg-[#FFF8E7] text-[#E7A13A]"
+                }`}>
+                  {paymentProvider?.available ? paymentProvider.provider.toUpperCase() : "MOCK / UNCONFIGURED"}
+                </span>
+              </div>
+              <p className="text-xs text-[#788582]">
+                {paymentProvider?.available
+                  ? "Live credentials are functioning on the server. Customers can pay via UPI, cards, and netbanking."
+                  : "Online payments are currently operating in mock/test mode. Configure production Razorpay credentials in Render environment to enable live processing."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary text-xs py-2.5 px-6"
+          >
+            {saving ? "Saving Changes..." : "Save Settings"}
+          </button>
         </div>
       </form>
-      </div>
     </div>
   );
-}
-
-function WhatsAppFact({ label, value }) {
-  return <div className="rounded-lg bg-[#f7f8f5] p-3"><p className="text-[10px] uppercase tracking-wide text-charcoal/45">{label}</p><p className="mt-1 break-words text-xs font-medium text-charcoal/80">{value}</p></div>;
 }

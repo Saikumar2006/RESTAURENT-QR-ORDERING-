@@ -3,6 +3,7 @@ const paymentController = require("../controllers/paymentController");
 const { validateBody } = require("../middleware/validate");
 const { paymentCreateSchema, paymentVerifySchema } = require("../validators/schemas");
 const env = require("../config/env");
+const rateLimit = require("express-rate-limit");
 const { redisRateLimit } = require("../middleware/distributedRateLimit");
 const { requireAuth, requirePermission } = require("../middleware/auth");
 
@@ -10,7 +11,9 @@ const router = express.Router();
 
 router.get("/provider-status", requireAuth, requirePermission("payments.view"), paymentController.providerStatus);
 
-const paymentCreateLimiter = env.redisUrl ? redisRateLimit({ prefix: "payments:create", windowMs: 60 * 1000, limit: 5, keyFn: (req) => req.ip }) : (req, res, next) => next();
+const paymentCreateLimiter = env.redisUrl
+  ? redisRateLimit({ prefix: "payments:create", windowMs: 60 * 1000, limit: 5, keyFn: (req) => req.ip })
+  : rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 
 router.post("/create-order", paymentCreateLimiter, validateBody(paymentCreateSchema), paymentController.createPaymentOrder);
 router.post("/verify", validateBody(paymentVerifySchema), paymentController.verifyPayment);

@@ -3,6 +3,18 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
+import {
+  ChefHatIcon,
+  CheckIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  OrdersIcon,
+  PaymentsIcon,
+  StaffIcon,
+  ReportsIcon,
+} from "../../components/UiIcons.jsx";
 
 const PERIODS = [
   { key: "MONTHLY", label: "Monthly", discountBadge: null },
@@ -38,7 +50,6 @@ export default function AdminRegister() {
   const [step, setStep] = useState(1);
   const [catalog, setCatalog] = useState(null);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
-  const [catalogError, setCatalogError] = useState("");
 
   // Form State
   const [planKey, setPlanKey] = useState(searchParams.get("plan")?.toUpperCase() || "GROWTH");
@@ -56,7 +67,11 @@ export default function AdminRegister() {
     phone: "",
     adminPassword: "",
     confirmPassword: "",
+    termsAgreed: true,
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // OTP Verification State
   const [otpSent, setOtpSent] = useState(false);
@@ -81,7 +96,7 @@ export default function AdminRegister() {
           setMode("trial");
         }
       })
-      .catch((err) => setCatalogError(err.message || "Failed to load subscription catalog."))
+      .catch((err) => setError(err.message || "Failed to load subscription catalog."))
       .finally(() => setLoadingCatalog(false));
   }, []);
 
@@ -99,15 +114,13 @@ export default function AdminRegister() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }
 
-  // Handle Step 2 -> Step 3 Validation
-  function handleDetailsNext(e) {
+  // Step 1 -> Step 2 Validation (Restaurant details)
+  function handleRestaurantNext(e) {
     e.preventDefault();
     setError("");
-    if (!formData.restaurantName.trim()) return setError("Restaurant name is required.");
-    if (!formData.adminName.trim()) return setError("Owner name is required.");
-    if (!formData.adminEmail.trim()) return setError("Business email is required.");
-    if (!formData.phone.trim()) return setError("Mobile phone number is required.");
-    setStep(3);
+    if (!formData.restaurantName.trim()) return setError("Please enter your restaurant name.");
+    if (!formData.termsAgreed) return setError("Please accept the terms and conditions to proceed.");
+    setStep(2);
   }
 
   // Handle Sending Phone OTP
@@ -123,7 +136,7 @@ export default function AdminRegister() {
       setOtpSent(true);
       setOtpSession(res.verificationSession || "");
       if (res.mockCode) {
-        setOtpNotice(`Instant Verification Code: ${res.mockCode} (Auto-filled for rapid setup)`);
+        setOtpNotice(`Instant Verification Code: ${res.mockCode}`);
         setOtpCode(res.mockCode);
       } else {
         setOtpNotice(res.message || "Verification code sent to your phone.");
@@ -157,20 +170,23 @@ export default function AdminRegister() {
     }
   }
 
-  // Handle Step 3 -> Step 4 Validation
-  function handleCredentialsNext(e) {
+  // Step 2 -> Step 3 Validation (Owner details & Password)
+  function handleOwnerNext(e) {
     e.preventDefault();
     setError("");
-    if (!formData.adminPassword || formData.adminPassword.length < 10) {
-      return setError("Password must be at least 10 characters.");
+    if (!formData.adminName.trim()) return setError("Please enter the owner's full name.");
+    if (!formData.adminEmail.trim()) return setError("Please enter a valid business email.");
+    if (!formData.phone.trim()) return setError("Please enter your mobile phone number.");
+    if (!formData.adminPassword || formData.adminPassword.length < 8) {
+      return setError("Password must be at least 8 characters.");
     }
     if (formData.adminPassword !== formData.confirmPassword) {
       return setError("Passwords do not match.");
     }
-    setStep(4);
+    setStep(3);
   }
 
-  // Handle Final Submission (Trial or Paid)
+  // Final Submission (Trial or Paid)
   async function handleFinalSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
@@ -207,11 +223,10 @@ export default function AdminRegister() {
 
       // Paid Mode via Razorpay
       if (!catalog?.checkoutAvailable) {
-        throw new Error("Online payment gateway is not yet configured. Please contact the platform administrator to activate your account.");
+        throw new Error("Online payment gateway is not yet configured. Please contact support or start with a free trial.");
       }
 
       const checkoutRes = await api.post("/subscriptions/onboarding/checkout", payload);
-
       const scriptLoaded = await loadCheckoutScript();
       if (!scriptLoaded) throw new Error("Payment gateway could not load. Please check your connection.");
 
@@ -238,7 +253,6 @@ export default function AdminRegister() {
             }
           } catch (vErr) {
             setError(vErr.message || "Payment verification failed. Please contact support.");
-            setSubmitting(false);
           }
         },
         prefill: {
@@ -246,557 +260,476 @@ export default function AdminRegister() {
           email: formData.adminEmail,
           contact: formData.phone,
         },
-        theme: { color: "#087f70" },
-        modal: { ondismiss: () => setSubmitting(false) },
+        theme: { color: "#004C46" },
       };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
     } catch (err) {
-      setError(err.message || "Onboarding failed. Please try again.");
+      setError(err.message || "Registration failed. Please check details.");
+    } finally {
       setSubmitting(false);
     }
   }
 
   if (loadingCatalog) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-[#f5f6f1]">
-        <Spinner label="Loading packages and configuration..." />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]"><Spinner label="Loading Svaadya registration..." /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6f1] text-[#202925] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
-        {/* Top Header */}
-        <header className="flex items-center justify-between pb-8 border-b border-[#dfe5df]">
-          <Link to="/" className="flex items-center gap-2.5 font-bold tracking-wide">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#087f70] font-display text-xl text-white shadow-md">
-              S
-            </span>
-            <span className="font-display text-2xl tracking-wider text-[#121c17]">SVAADYA</span>
-          </Link>
-          <div className="text-sm">
-            <span className="text-[#64716b]">Already registered? </span>
-            <Link to="/admin/login" className="font-semibold text-[#087f70] hover:underline">
-              Sign In
-            </Link>
-          </div>
-        </header>
+    <div className="min-h-screen bg-[#F5F8F7] flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* LEFT SIDE: Brand & Value Proposition matching screenshot */}
+        <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-2xl bg-[#004C46] text-white shadow-xl relative overflow-hidden min-h-[580px]">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#087F73]/40 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#D96724]/20 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Step Progress Bar */}
-        <div className="my-8">
-          <div className="flex items-center justify-between max-w-2xl mx-auto text-xs font-semibold">
-            {[
-              { num: 1, title: "Select Plan" },
-              { num: 2, title: "Restaurant Details" },
-              { num: 3, title: "Credentials" },
-              { num: 4, title: "Checkout & Launch" },
-            ].map((s) => (
-              <div key={s.num} className="flex items-center gap-2">
-                <span
-                  className={`grid h-8 w-8 place-items-center rounded-full text-sm transition-all ${
-                    step === s.num
-                      ? "bg-[#087f70] text-white shadow-lg shadow-[#087f70]/30"
-                      : step > s.num
-                      ? "bg-[#d8ece4] text-[#087f70]"
-                      : "bg-[#e5e9e5] text-[#86928b]"
-                  }`}
-                >
-                  {step > s.num ? "✓" : s.num}
-                </span>
-                <span className={`hidden sm:inline ${step === s.num ? "text-[#087f70] font-bold" : "text-[#64716b]"}`}>
-                  {s.title}
-                </span>
+          <div className="relative z-10">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-[#087F73] flex items-center justify-center text-white shadow-md">
+                <ChefHatIcon className="w-6 h-6" />
               </div>
-            ))}
-          </div>
-        </div>
-
-        {error && (
-          <div className="max-w-2xl mx-auto mb-6">
-            <ErrorBanner message={error} />
-          </div>
-        )}
-
-        {/* ================= STEP 1: SELECT PLAN ================= */}
-        {step === 1 && (
-          <div>
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f70]">Pricing & Packages</span>
-              <h1 className="mt-2 font-display text-3xl sm:text-4xl text-[#121c17]">Choose the right foundation.</h1>
-              <p className="mt-2 text-sm text-[#64716b]">
-                All plans include high-speed QR ordering, real-time live order kitchen flow, and zero commission on your orders.
-              </p>
-
-              {/* Billing Period Selector */}
-              <div className="mt-6 inline-flex p-1 rounded-xl bg-[#e8ece7] border border-[#d3dbd3]">
-                {PERIODS.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => setBillingPeriod(p.key)}
-                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                      billingPeriod === p.key
-                        ? "bg-white text-[#121c17] shadow-sm"
-                        : "text-[#64716b] hover:text-[#121c17]"
-                    }`}
-                  >
-                    {p.label}
-                    {p.discountBadge && (
-                      <span className="ml-1.5 rounded bg-[#e3f4ec] text-[#087f70] px-1.5 py-0.5 text-[10px] font-bold">
-                        {p.discountBadge}
-                      </span>
-                    )}
-                  </button>
-                ))}
+              <div>
+                <span className="text-xl font-bold tracking-tight text-white">Svaadya</span>
+                <span className="block text-[9px] uppercase tracking-widest text-[#A3C7C2] font-semibold">Restaurant SaaS</span>
               </div>
             </div>
 
-            {/* Plans Grid */}
-            <div className="grid gap-6 md:grid-cols-3">
-              {(catalog?.plans || []).map((plan) => {
-                const isSelected = planKey === plan.key;
-                const isGrowth = plan.key === "GROWTH";
-                const price = plan.prices?.[billingPeriod] || 799;
+            <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-3">
+              Start Your Restaurant Journey with Svaadya
+            </h2>
+            <p className="text-xs sm:text-sm text-[#A3C7C2] leading-relaxed mb-8">
+              Join leading dining establishments streamlining their table operations, digital QR orders, and real-time revenue analytics.
+            </p>
 
+            {/* Feature Bullets */}
+            <div className="space-y-4">
+              {[
+                { icon: OrdersIcon, title: "Digital Menu & QR Ordering", desc: "Contactless ordering with zero waiting times" },
+                { icon: PaymentsIcon, title: "Secure Payments", desc: "Instant UPI, cards, and automated reconciliation" },
+                { icon: StaffIcon, title: "Staff & Shift Management", desc: "Role-based controls for kitchen, captains & cashiers" },
+                { icon: ReportsIcon, title: "Reports & Analytics", desc: "Actionable revenue trends and top seller insights" },
+              ].map((feat) => {
+                const Icon = feat.icon;
                 return (
-                  <div
-                    key={plan.key}
-                    onClick={() => setPlanKey(plan.key)}
-                    className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? "border-[#087f70] bg-white shadow-xl shadow-[#087f70]/10 ring-2 ring-[#087f70]/20"
-                        : "border-[#dfe5df] bg-white/70 hover:border-[#b4c4b8] hover:bg-white shadow-sm"
-                    }`}
-                  >
-                    {isGrowth && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#dfa16b] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
-                        Most Popular
-                      </span>
-                    )}
-
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#087f70]">{plan.name}</p>
-                        <input
-                          type="radio"
-                          name="planSelection"
-                          checked={isSelected}
-                          onChange={() => setPlanKey(plan.key)}
-                          className="h-4 w-4 text-[#087f70] focus:ring-[#087f70]"
-                        />
-                      </div>
-
-                      <div className="mt-4 flex items-baseline gap-1">
-                        <span className="font-display text-4xl font-bold text-[#121c17]">
-                          {money(price)}
-                        </span>
-                        <span className="text-xs text-[#64716b]">
-                          / {billingPeriod.toLowerCase().replace("_", " ")}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-[#86928b]">Excl. 18% GST (added at billing review)</p>
-
-                      <hr className="my-5 border-[#e8ece7]" />
-
-                      <ul className="space-y-2.5 text-xs text-[#4b5550]">
-                        {(plan.features || []).map((feat, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-[#087f70] font-bold">✓</span>
-                            <span>{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
+                  <div key={feat.title} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon className="w-4 h-4 text-[#16A394]" />
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPlanKey(plan.key);
-                        setStep(2);
-                      }}
-                      className={`mt-6 w-full rounded-xl py-2.5 text-xs font-bold transition-all ${
-                        isSelected
-                          ? "bg-[#087f70] text-white shadow-md hover:bg-[#066d60]"
-                          : "bg-[#eef2ed] text-[#3e4843] hover:bg-[#dfe5df]"
-                      }`}
-                    >
-                      {isSelected ? "Selected · Continue →" : "Select Plan"}
-                    </button>
+                    <div>
+                      <p className="text-xs font-semibold text-white">{feat.title}</p>
+                      <p className="text-[11px] text-[#A3C7C2]">{feat.desc}</p>
+                    </div>
                   </div>
                 );
               })}
             </div>
-
-            <div className="mt-8 text-center">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="rounded-xl bg-[#087f70] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#087f70]/20 hover:bg-[#066d60] transition-all"
-              >
-                Proceed with {selectedPlan.name} Plan →
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* ================= STEP 2: RESTAURANT DETAILS ================= */}
-        {step === 2 && (
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-6">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f70]">Restaurant Information</span>
-              <h2 className="mt-1 font-display text-3xl text-[#121c17]">Tell us about your restaurant.</h2>
-              <p className="mt-1 text-xs text-[#64716b]">This information sets up your tenant workspace and customer ordering header.</p>
-            </div>
+          {/* Bottom Social Proof */}
+          <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-[#A3C7C2]">
+            <span>Already have an account?</span>
+            <Link to="/admin/login" className="font-semibold text-white hover:text-[#16A394] transition underline">
+              Sign In →
+            </Link>
+          </div>
+        </div>
 
-            <form onSubmit={handleDetailsNext} className="bg-white rounded-2xl border border-[#dfe5df] p-6 sm:p-8 shadow-sm space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Restaurant Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Svaadya Bistro, Royal Curry"
-                    value={formData.restaurantName}
-                    onChange={(e) => updateField("restaurantName", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
+        {/* RIGHT SIDE: 3-Step Interactive Registration Form Card */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E5ECE9] p-6 sm:p-10 shadow-lg relative">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#172B2A]">Create Your Restaurant Account</h1>
+            <p className="text-xs text-[#788582] mt-1">Set up your multi-tenant workspace in under 2 minutes.</p>
+          </div>
+
+          {/* 3-Step Progress Indicator */}
+          <div className="flex items-center justify-between mb-8 relative">
+            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-[#E5ECE9] -translate-y-1/2 z-0" />
+            {[
+              { num: 1, label: "Restaurant" },
+              { num: 2, label: "Owner & Auth" },
+              { num: 3, label: "Subscription" },
+            ].map((s) => {
+              const isPassed = step > s.num;
+              const isCurrent = step === s.num;
+              return (
+                <div key={s.num} className="flex flex-col items-center relative z-10">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      isPassed
+                        ? "bg-[#087F73] text-white"
+                        : isCurrent
+                        ? "bg-[#004C46] text-white ring-4 ring-[#E7F5F1]"
+                        : "bg-white text-[#788582] border-2 border-[#E5ECE9]"
+                    }`}
+                  >
+                    {isPassed ? <CheckIcon className="w-4 h-4" /> : s.num}
+                  </div>
+                  <span className={`text-[11px] font-semibold mt-1.5 ${isCurrent ? "text-[#004C46]" : "text-[#788582]"}`}>
+                    {s.label}
+                  </span>
                 </div>
+              );
+            })}
+          </div>
 
+          {error && <ErrorBanner message={error} onDismiss={() => setError("")} />}
+
+          {/* STEP 1: Restaurant Details */}
+          {step === 1 && (
+            <form onSubmit={handleRestaurantNext} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Restaurant Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Spice Garden Restaurant"
+                  value={formData.restaurantName}
+                  onChange={(e) => updateField("restaurantName", e.target.value)}
+                  className="input"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Cuisine / Category</label>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">Cuisine Type</label>
                   <input
                     type="text"
-                    placeholder="e.g. North Indian, Cafe, Fast Food"
+                    placeholder="e.g. South Indian, Continental"
                     value={formData.cuisineType}
                     onChange={(e) => updateField("cuisineType", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
+                    className="input"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Street Address</label>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">City</label>
                   <input
                     type="text"
-                    placeholder="e.g. 12 Main St, Jubilee Hills"
-                    value={formData.address}
-                    onChange={(e) => updateField("address", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">City</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Hyderabad"
+                    placeholder="e.g. Bengaluru"
                     value={formData.city}
                     onChange={(e) => updateField("city", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">State / Province</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Telangana"
-                    value={formData.state}
-                    onChange={(e) => updateField("state", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 pt-2 border-t border-[#edf2ed]">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#087f70] mb-2">Owner Contact</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Owner Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Your full name"
-                    value={formData.adminName}
-                    onChange={(e) => updateField("adminName", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Business Email *</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="owner@restaurant.com"
-                    value={formData.adminEmail}
-                    onChange={(e) => updateField("adminEmail", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-[#3e4843] mb-1">Mobile Phone (for OTP & alerts) *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+91 9876543210"
-                    value={formData.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
-                    className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none font-mono"
+                    className="input"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[#64716b] hover:text-[#121c17]"
-                >
-                  ← Back to Plans
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#087f70] px-6 py-2.5 text-xs font-bold text-white shadow hover:bg-[#066d60]"
-                >
-                  Next: Security & Verification →
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">State</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Karnataka"
+                    value={formData.state}
+                    onChange={(e) => updateField("state", e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">Address</label>
+                  <input
+                    type="text"
+                    placeholder="Street / Area"
+                    value={formData.address}
+                    onChange={(e) => updateField("address", e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-start gap-2 cursor-pointer text-xs text-[#788582]">
+                  <input
+                    type="checkbox"
+                    checked={formData.termsAgreed}
+                    onChange={(e) => updateField("termsAgreed", e.target.checked)}
+                    className="mt-0.5 rounded text-[#004C46] focus:ring-[#087F73]"
+                  />
+                  <span>
+                    I agree to the <Link to="/terms" target="_blank" className="text-[#087F73] underline">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="text-[#087F73] underline">Privacy Policy</Link>.
+                  </span>
+                </label>
+              </div>
+
+              <div className="pt-4">
+                <button type="submit" className="btn-primary w-full flex items-center justify-center gap-2">
+                  <span>Continue to Owner Details</span>
+                  <ChevronRightIcon className="w-4 h-4" />
                 </button>
               </div>
             </form>
-          </div>
-        )}
+          )}
 
-        {/* ================= STEP 3: CREDENTIALS & PHONE OTP ================= */}
-        {step === 3 && (
-          <div className="max-w-xl mx-auto">
-            <div className="text-center mb-6">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f70]">Security & Verification</span>
-              <h2 className="mt-1 font-display text-3xl text-[#121c17]">Secure your restaurant workspace.</h2>
-              <p className="mt-1 text-xs text-[#64716b]">Create your master admin password and verify your mobile number.</p>
-            </div>
-
-            <form onSubmit={handleCredentialsNext} className="bg-white rounded-2xl border border-[#dfe5df] p-6 sm:p-8 shadow-sm space-y-5">
+          {/* STEP 2: Owner Details & Password */}
+          {step === 2 && (
+            <form onSubmit={handleOwnerNext} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#3e4843] mb-1">Create Admin Password *</label>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Owner Full Name <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="password"
+                  type="text"
                   required
-                  minLength={10}
-                  placeholder="Min 10 characters"
-                  value={formData.adminPassword}
-                  onChange={(e) => updateField("adminPassword", e.target.value)}
-                  className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
-                />
-                <span className="mt-1 block text-[11px] text-[#86928b]">Use at least 10 letters, numbers, and symbols.</span>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#3e4843] mb-1">Confirm Admin Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={10}
-                  placeholder="Re-enter password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => updateField("confirmPassword", e.target.value)}
-                  className="w-full rounded-xl border border-[#ccd5cd] px-3.5 py-2.5 text-sm focus:border-[#087f70] focus:ring-1 focus:ring-[#087f70] outline-none"
+                  placeholder="e.g. Sai Kumar"
+                  value={formData.adminName}
+                  onChange={(e) => updateField("adminName", e.target.value)}
+                  className="input"
                 />
               </div>
 
-              {/* Mobile Phone Verification Box */}
-              <div className="rounded-xl border border-[#d8ece4] bg-[#f2f9f6] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-[#087f70]">Phone Verification</p>
-                    <p className="text-[11px] text-[#4b5550]">Mobile: <span className="font-mono font-semibold">{formData.phone}</span></p>
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Business Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@restaurant.com"
+                  value={formData.adminEmail}
+                  onChange={(e) => updateField("adminEmail", e.target.value)}
+                  className="input"
+                />
+              </div>
+
+              {/* Mobile Phone + OTP verification */}
+              <div>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-2.5 text-xs text-[#788582] font-semibold">+91</span>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="98765 43210"
+                      value={formData.phone}
+                      onChange={(e) => updateField("phone", e.target.value)}
+                      className="input pl-11"
+                    />
                   </div>
-                  {otpVerified ? (
-                    <span className="rounded-full bg-[#1b8a5a] px-3 py-1 text-xs font-bold text-white shadow-sm flex items-center gap-1">
-                      ✓ Verified
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={otpSending}
-                      className="rounded-lg bg-[#087f70] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#066d60] disabled:bg-[#99b5a8]"
-                    >
-                      {otpSending ? "Sending code..." : otpSent ? "Resend Code" : "Send Verification Code"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={otpSending || !formData.phone.trim()}
+                    className="btn-secondary text-xs shrink-0"
+                  >
+                    {otpSending ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                  </button>
                 </div>
+                {otpNotice && <p className="mt-1 text-xs text-[#087F73] font-medium">{otpNotice}</p>}
+              </div>
 
-                {otpNotice && (
-                  <p className="mt-2 text-xs font-medium text-[#087f70] bg-white/60 p-2 rounded-lg border border-[#c1e2d4]">
-                    {otpNotice}
-                  </p>
-                )}
-
-                {otpSent && !otpVerified && (
-                  <div className="mt-3 flex items-center gap-2">
+              {otpSent && !otpVerified && (
+                <div className="p-3 rounded-lg bg-[#E7F5F1] border border-[#087F73]/20 space-y-2">
+                  <label className="block text-xs font-semibold text-[#004C46]">
+                    Enter OTP Code
+                  </label>
+                  <div className="flex gap-2">
                     <input
                       type="text"
-                      maxLength={6}
-                      placeholder="6-digit OTP"
+                      placeholder="6-digit code"
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value)}
-                      className="w-36 rounded-lg border border-[#ccd5cd] px-3 py-2 text-sm text-center font-mono tracking-widest focus:border-[#087f70] outline-none bg-white"
+                      className="input bg-white text-center tracking-widest font-bold"
                     />
                     <button
                       type="button"
                       onClick={handleVerifyOtp}
                       disabled={otpVerifying || !otpCode}
-                      className="rounded-lg bg-[#087f70] px-4 py-2 text-xs font-bold text-white shadow hover:bg-[#066d60] disabled:bg-[#99b5a8]"
+                      className="btn-primary text-xs shrink-0"
                     >
-                      {otpVerifying ? "Verifying..." : "Verify Code"}
+                      {otpVerifying ? "Verifying..." : "Verify"}
                     </button>
                   </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[#64716b] hover:text-[#121c17]"
-                >
-                  ← Back to Details
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#087f70] px-6 py-2.5 text-xs font-bold text-white shadow hover:bg-[#066d60]"
-                >
-                  Next: Review & Launch →
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* ================= STEP 4: REVIEW & LAUNCH ================= */}
-        {step === 4 && (
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-6">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f70]">Order Review & Launch</span>
-              <h2 className="mt-1 font-display text-3xl text-[#121c17]">Ready to open your workspace.</h2>
-              <p className="mt-1 text-xs text-[#64716b]">Review your subscription details and start your restaurant workspace.</p>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-[#dfe5df] p-6 sm:p-8 shadow-sm space-y-6">
-              {/* Setup Mode Selector */}
-              {catalog?.trial?.available ? (
-                <div className="rounded-xl bg-[#f7f9f6] p-4 border border-[#e2e8e2]">
-                  <p className="text-xs font-bold text-[#121c17] mb-2">Select Onboarding Activation:</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label
-                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        mode === "trial"
-                          ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
-                          : "border-[#ccd5cd] bg-white/50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="onboardingMode"
-                        checked={mode === "trial"}
-                        onChange={() => setMode("trial")}
-                        className="text-[#087f70] focus:ring-[#087f70]"
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-[#121c17]">{catalog.trial.days}-Day Free Trial</p>
-                        <p className="text-[11px] text-[#64716b]">No payment collected now</p>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        mode === "paid"
-                          ? "border-[#087f70] bg-white ring-1 ring-[#087f70]"
-                          : "border-[#ccd5cd] bg-white/50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="onboardingMode"
-                        checked={mode === "paid"}
-                        onChange={() => setMode("paid")}
-                        className="text-[#087f70] focus:ring-[#087f70]"
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-[#121c17]">Pay Now & Activate</p>
-                        <p className="text-[11px] text-[#64716b]">Instant full subscription</p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              ) : null}
-
-              {mode === "paid" && !catalog?.checkoutAvailable && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                  <p className="font-semibold mb-1">Online Checkout Temporarily Offline</p>
-                  <p>Payment provider configuration is pending. Please contact the platform administrator to activate your subscription account.</p>
                 </div>
               )}
 
-              {/* Order Invoice Breakdown */}
-              <div className="rounded-xl border border-[#e5e9e5] p-5 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-[#121c17]">
-                    {selectedPlan.name} Plan ({billingPeriod.toLowerCase().replace("_", " ")})
-                  </span>
-                  <span className="font-mono font-medium">{money(subtotal)}</span>
+              {/* Passwords */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="Min 8 characters"
+                      value={formData.adminPassword}
+                      onChange={(e) => updateField("adminPassword", e.target.value)}
+                      className="input pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-2.5 text-[#788582] hover:text-[#172B2A]"
+                    >
+                      {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs text-[#64716b]">
-                  <span>Applicable GST (18%)</span>
-                  <span className="font-mono">{money(gst)}</span>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      placeholder="Re-enter password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => updateField("confirmPassword", e.target.value)}
+                      className="input pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2.5 top-2.5 text-[#788582] hover:text-[#172B2A]"
+                    >
+                      {showConfirmPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-                <hr className="border-[#edf2ed]" />
-                <div className="flex justify-between text-base font-bold text-[#121c17]">
-                  <span>Total Amount</span>
-                  <span className="font-mono text-[#087f70] text-xl">{money(grandTotal)}</span>
+              </div>
+
+              <div className="pt-4 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="btn-secondary flex items-center gap-1.5 text-xs"
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+                <button type="submit" className="btn-primary flex items-center gap-1.5 text-xs">
+                  <span>Continue to Plan</span>
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 3: Plan & Subscription Selection */}
+          {step === 3 && (
+            <form onSubmit={handleFinalSubmit} className="space-y-5">
+              {/* Plan Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {catalog?.plans?.map((plan) => {
+                  const isSelected = planKey === plan.key;
+                  const price = plan.prices?.[billingPeriod] || 0;
+                  return (
+                    <button
+                      key={plan.key}
+                      type="button"
+                      onClick={() => setPlanKey(plan.key)}
+                      className={`p-3.5 rounded-xl border text-left transition ${
+                        isSelected
+                          ? "border-[#087F73] bg-[#E7F5F1]/50 ring-2 ring-[#087F73]"
+                          : "border-[#E5ECE9] bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <p className="text-xs font-bold text-[#172B2A]">{plan.name}</p>
+                      <p className="text-lg font-bold text-[#004C46] mt-1">₹{price}</p>
+                      <p className="text-[10px] text-[#788582] mt-0.5">per {billingPeriod.toLowerCase()}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Billing Period Selector */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {PERIODS.map((period) => (
+                  <button
+                    key={period.key}
+                    type="button"
+                    onClick={() => setBillingPeriod(period.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shrink-0 ${
+                      billingPeriod === period.key
+                        ? "bg-[#004C46] text-white"
+                        : "bg-[#F5F8F7] text-[#788582] hover:bg-slate-200"
+                    }`}
+                  >
+                    {period.label} {period.discountBadge && `(${period.discountBadge})`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Trial vs Paid Toggle */}
+              {catalog?.trial?.available && (
+                <div className="p-3.5 rounded-xl bg-[#EAF7EE] border border-[#269B67]/30 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-[#269B67]">
+                      🎉 {catalog.trial.durationDays}-Day Free Trial Included
+                    </p>
+                    <p className="text-[11px] text-[#788582]">
+                      Zero charges today. Explore all enterprise features without commitment.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#004C46]">
+                    <input
+                      type="radio"
+                      name="onboardingMode"
+                      checked={mode === "trial"}
+                      onChange={() => setMode("trial")}
+                      className="text-[#004C46] focus:ring-[#087F73]"
+                    />
+                    <span>Start Free Trial</span>
+                  </label>
                 </div>
-                {mode === "trial" && (
-                  <p className="text-[11px] font-medium text-[#087f70] bg-[#eef8f3] p-2 rounded-lg text-center">
-                    ✓ Free Trial Activated: You pay ₹0 today. Your first payment will be due after {catalog?.trial?.days || 14} days.
-                  </p>
+              )}
+
+              {/* Summary */}
+              <div className="p-4 rounded-xl bg-[#F5F8F7] border border-[#E5ECE9] space-y-1.5 text-xs">
+                <div className="flex justify-between text-[#788582]">
+                  <span>Plan: {selectedPlan.name} ({billingPeriod})</span>
+                  <span>{mode === "trial" ? "Free Trial" : money(subtotal)}</span>
+                </div>
+                {mode === "paid" && (
+                  <>
+                    <div className="flex justify-between text-[#788582]">
+                      <span>GST (18%)</span>
+                      <span>{money(gst)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-[#172B2A] pt-2 border-t border-[#E5ECE9] text-sm">
+                      <span>Total Due Today</span>
+                      <span>{money(grandTotal)}</span>
+                    </div>
+                  </>
                 )}
               </div>
 
-              {/* Summary Details */}
-              <div className="grid gap-2 text-xs text-[#4b5550] bg-[#fbfcfb] p-4 rounded-xl border border-[#eef2ed]">
-                <p><strong>Restaurant:</strong> {formData.restaurantName} ({formData.cuisineType || "General"})</p>
-                <p><strong>Location:</strong> {formData.city ? `${formData.city}, ${formData.state}` : "Premises to be set"}</p>
-                <p><strong>Admin Owner:</strong> {formData.adminName} ({formData.adminEmail})</p>
-                <p><strong>Mobile:</strong> {formData.phone} {otpVerified ? "✓ Verified" : ""}</p>
-              </div>
-
-              <div className="flex items-center justify-between pt-4">
+              <div className="pt-2 flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-[#64716b] hover:text-[#121c17]"
+                  onClick={() => setStep(2)}
+                  className="btn-secondary flex items-center gap-1.5 text-xs"
                 >
-                  ← Back
+                  <ChevronLeftIcon className="w-4 h-4" />
+                  <span>Back</span>
                 </button>
                 <button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={submitting || (mode === "paid" && !catalog?.checkoutAvailable)}
-                  className="rounded-xl bg-[#087f70] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[#087f70]/30 hover:bg-[#066d60] transition-all disabled:bg-[#99b5a8] disabled:cursor-not-allowed"
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary flex items-center justify-center gap-2 text-xs flex-1"
                 >
-                  {submitting
-                    ? "Setting up your restaurant..."
-                    : mode === "trial"
-                    ? `Start ${catalog?.trial?.days || 14}-Day Free Trial →`
-                    : `Pay ${money(grandTotal)} & Launch →`}
+                  {submitting ? (
+                    "Processing..."
+                  ) : mode === "trial" ? (
+                    "Complete Registration & Launch Workspace"
+                  ) : (
+                    `Pay ${money(grandTotal)} & Start`
+                  )}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

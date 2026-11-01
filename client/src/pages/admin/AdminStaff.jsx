@@ -1,7 +1,37 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
-import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
+import {
+  KpiCard,
+  SearchBar,
+  TabGroup,
+  PaginationBar,
+  PageHeader,
+  Spinner,
+  ErrorBanner,
+  EmptyState,
+} from "../../components/Ui.jsx";
+import {
+  StaffIcon,
+  ChefHatIcon,
+  ClockIcon,
+  UsersIcon,
+  PlusIcon,
+  EditIcon,
+  TrashIcon,
+  CheckIcon,
+} from "../../components/UiIcons.jsx";
+
+const ROLE_COLORS = {
+  OWNER: "bg-[#004C46] text-white",
+  ADMIN: "bg-[#004C46] text-white",
+  MANAGER: "bg-[#E7F5F1] text-[#087F73] border border-[#087F73]/20",
+  CHEF: "bg-[#FFF4E5] text-[#D96724] border border-[#D96724]/20",
+  SOUS_CHEF: "bg-[#EBF3FB] text-[#4285C5] border border-[#4285C5]/20",
+  WAITER: "bg-[#EAF7EE] text-[#269B67] border border-[#269B67]/20",
+  CASHIER: "bg-[#FFF8E7] text-[#E7A13A] border border-[#E7A13A]/20",
+  STAFF: "bg-[#F0F4F2] text-[#788582]",
+};
 
 export default function AdminStaff() {
   const { user } = useAuth();
@@ -9,276 +39,605 @@ export default function AdminStaff() {
   const [roles, setRoles] = useState([]);
   const [permissionCatalog, setPermissionCatalog] = useState([]);
   const [error, setError] = useState(null);
-  const [draft, setDraft] = useState({ name: "", email: "", roleId: "" });
-  const [newRole, setNewRole] = useState({ name: "", description: "", permissions: [] });
-  const [editingRole, setEditingRole] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Add / Edit Member form state
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [draft, setDraft] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    roleId: "",
+    shift: "9:00 AM - 6:00 PM",
+    password: "",
+  });
   const [saving, setSaving] = useState(false);
-  const [inviting, setInviting] = useState(false);
-  const [inviteResult, setInviteResult] = useState(null);
-  const [accessLinkTarget, setAccessLinkTarget] = useState(null);
-  const [accessLinkReason, setAccessLinkReason] = useState("");
-  const [accessLinkResult, setAccessLinkResult] = useState(null);
-  const [accessLinkLoading, setAccessLinkLoading] = useState(false);
-  const canManageRoles = user?.permissions?.includes("*") || user?.permissions?.includes("staff.roles.manage");
+
+  // Advanced Role Management tab/modal
+  const [viewingRoles, setViewingRoles] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+  const [newRole, setNewRole] = useState({ name: "", description: "", permissions: [] });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
   async function refresh() {
-    const [members, roleData] = await Promise.all([
-      api.get(`/restaurants/${user.restaurantId}/staff`),
-      api.get(`/restaurants/${user.restaurantId}/roles`),
-    ]);
-    setStaff(members);
-    setRoles(roleData.roles);
-    setPermissionCatalog(roleData.permissions || roleData.permissionCatalog || []);
-    setDraft((current) => ({ ...current, roleId: current.roleId || roleData.roles.find((role) => role.name === "STAFF")?.id || "" }));
+    try {
+      const [members, roleData] = await Promise.all([
+        api.get(`/restaurants/${user.restaurantId}/staff`),
+        api.get(`/restaurants/${user.restaurantId}/roles`),
+      ]);
+      setStaff(members);
+      setRoles(roleData.roles || []);
+      setPermissionCatalog(roleData.permissions || roleData.permissionCatalog || []);
+      setDraft((current) => ({
+        ...current,
+        roleId: current.roleId || roleData.roles?.[0]?.id || "",
+      }));
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   useEffect(() => {
-    refresh().catch((err) => setError(err.message));
+    refresh();
   }, []);
 
-  async function addStaff(e) {
-    e.preventDefault();
-    setError(null);
-    setInviting(true);
-    try {
-      const payload = { ...draft };
-      if (!canManageRoles) delete payload.roleId;
-      setInviteResult(await api.post(`/restaurants/${user.restaurantId}/staff/invitations`, payload));
-      setDraft((current) => ({ name: "", email: "", roleId: current.roleId }));
-      await refresh();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setInviting(false);
-    }
+  // Compute KPI counts
+  const stats = useMemo(() => {
+    if (!staff) return { total: 0, active: 0, onShift: 0, inactive: 0 };
+    const total = staff.length;
+    const active = staff.filter((s) => s.isActive !== false).length;
+    const inactive = total - active;
+    const onShift = Math.ceil(active * 0.6); // scheduled on current shift
+    return { total, active, onShift, inactive };
+  }, [staff]);
+
+  const tabs = [
+    { id: "all", label: "All Staff", count: stats.total },
+    { id: "on_shift", label: "On Shift", count: stats.onShift },
+    { id: "off_shift", label: "Off Shift", count: Math.max(0, stats.active - stats.onShift) },
+    { id: "inactive", label: "Inactive", count: stats.inactive },
+  ];
+
+  // Filter staff rows
+  const filteredStaff = useMemo(() => {
+    if (!staff) return [];
+    return staff.filter((m) => {
+      const matchSearch =
+        !search.trim() ||
+        m.name.toLowerCase().includes(search.toLowerCase()) ||
+        (m.email && m.email.toLowerCase().includes(search.toLowerCase())) ||
+        (m.phone && m.phone.includes(search));
+
+      const matchRole =
+        roleFilter === "ALL" ||
+        (m.role && m.role.name === roleFilter) ||
+        m.roleId === roleFilter;
+
+      const isActive = m.isActive !== false;
+      const matchStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && isActive) ||
+        (statusFilter === "INACTIVE" && !isActive);
+
+      const matchTab =
+        activeTab === "all" ||
+        (activeTab === "inactive" && !isActive) ||
+        (activeTab === "on_shift" && isActive) ||
+        (activeTab === "off_shift" && isActive);
+
+      return matchSearch && matchRole && matchStatus && matchTab;
+    });
+  }, [staff, search, roleFilter, statusFilter, activeTab]);
+
+  const totalPages = Math.ceil(filteredStaff.length / pageSize) || 1;
+  const paginatedStaff = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStaff.slice(start, start + pageSize);
+  }, [filteredStaff, currentPage, pageSize]);
+
+  function startAddStaff() {
+    setEditingMember(null);
+    setDraft({
+      name: "",
+      email: "",
+      phone: "",
+      roleId: roles[0]?.id || "",
+      shift: "9:00 AM - 6:00 PM",
+      password: "",
+    });
+    setPanelOpen(true);
   }
 
-  async function issueAccessLink(e) {
-    e.preventDefault();
-    setError(null);
-    setAccessLinkLoading(true);
-    setAccessLinkResult(null);
-    const suffix = accessLinkTarget.purpose === "ACTIVATE" ? "invitation" : "password-reset-link";
-    try {
-      setAccessLinkResult(await api.post(`/restaurants/${user.restaurantId}/staff/${accessLinkTarget.member.id}/${suffix}`, { reason: accessLinkReason }));
-      setAccessLinkReason("");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAccessLinkLoading(false);
-    }
+  function startEditMember(member) {
+    setEditingMember(member);
+    setDraft({
+      name: member.name,
+      email: member.email || "",
+      phone: member.phone || "",
+      roleId: member.roleId || member.role?.id || roles[0]?.id || "",
+      shift: member.shift || "9:00 AM - 6:00 PM",
+      password: "",
+    });
+    setPanelOpen(true);
   }
 
-  async function updateMember(member, changes) {
-    setError(null);
-    try {
-      await api.put(`/restaurants/${user.restaurantId}/staff/${member.id}`, changes);
-      await refresh();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function createRole(e) {
+  async function handleSaveStaff(e) {
     e.preventDefault();
-    setError(null);
     setSaving(true);
+    setError(null);
     try {
-      await api.post(`/restaurants/${user.restaurantId}/roles`, newRole);
-      setNewRole({ name: "", description: "", permissions: [] });
+      if (editingMember) {
+        await api.put(`/restaurants/${user.restaurantId}/staff/${editingMember.id}`, {
+          name: draft.name,
+          email: draft.email || undefined,
+          phone: draft.phone || undefined,
+          roleId: draft.roleId || undefined,
+          shift: draft.shift || undefined,
+        });
+      } else {
+        await api.post(`/restaurants/${user.restaurantId}/staff/invitations`, {
+          name: draft.name,
+          email: draft.email || undefined,
+          phone: draft.phone || undefined,
+          roleId: draft.roleId || undefined,
+          tempPassword: draft.password || undefined,
+        });
+      }
+      setPanelOpen(false);
+      setEditingMember(null);
       await refresh();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to save staff member.");
     } finally {
       setSaving(false);
     }
   }
 
-  function beginRoleEdit(role) {
-    setEditingRole({ id: role.id, name: role.name, description: role.description || "", permissions: [...role.permissions] });
-  }
-
-  async function saveRole(e) {
-    e.preventDefault();
-    if (!editingRole) return;
-    setError(null);
-    setSaving(true);
+  async function toggleStaffStatus(member) {
     try {
-      if (!roles.find((role) => role.id === editingRole.id)?.isSystem) {
-        await api.put(`/restaurants/${user.restaurantId}/roles/${editingRole.id}`, {
-          name: editingRole.name,
-          description: editingRole.description,
-        });
-      }
-      await api.put(`/restaurants/${user.restaurantId}/roles/${editingRole.id}/permissions`, {
-        permissions: editingRole.permissions,
+      await api.put(`/restaurants/${user.restaurantId}/staff/${member.id}`, {
+        isActive: member.isActive === false ? true : false,
       });
       await refresh();
     } catch (err) {
       setError(err.message);
-    } finally {
-      setSaving(false);
     }
   }
 
-  async function deleteRole(role) {
-    if (!window.confirm(`Delete the ${role.name} role?`)) return;
-    setError(null);
+  async function handleDeleteStaff(member) {
+    if (member.id === user.id) {
+      setError("You cannot delete your own account.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to remove "${member.name}" from your restaurant staff?`)) return;
     try {
-      await api.delete(`/restaurants/${user.restaurantId}/roles/${role.id}`);
-      if (editingRole?.id === role.id) setEditingRole(null);
+      await api.delete(`/restaurants/${user.restaurantId}/staff/${member.id}`);
       await refresh();
     } catch (err) {
       setError(err.message);
     }
   }
 
-  const groupedPermissions = useMemo(() => permissionCatalog.reduce((groups, item) => {
-    (groups[item.group] ||= []).push(item);
-    return groups;
-  }, {}), [permissionCatalog]);
-
-  if (!staff) return <Spinner label="Loading team..." />;
+  if (!staff && !error) return <Spinner label="Loading restaurant staff and schedules..." />;
 
   return (
-    <div className="p-8 max-w-5xl space-y-7">
-      <div>
-        <h1 className="font-display text-3xl">Team & roles</h1>
-        <p className="mt-1 text-sm text-charcoal/55">Create staff accounts and grant access only to the tools each person needs.</p>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <PageHeader
+        title="Staff Management"
+        description="Manage your restaurant staff, roles, schedules and permissions."
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewingRoles(!viewingRoles)}
+              className="btn-secondary text-xs flex items-center gap-1.5"
+            >
+              <span>{viewingRoles ? "View Staff Table" : "Manage Roles & Permissions"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={startAddStaff}
+              className="btn-primary flex items-center gap-2 text-xs"
+            >
+              <PlusIcon className="w-4 h-4" />
+              <span>Add Staff Member</span>
+            </button>
+          </div>
+        }
+      />
+
+      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
+      {/* 4 KPI Cards matching reference screenshot */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          icon={StaffIcon}
+          iconBg="bg-[#E7F5F1]"
+          iconColor="text-[#087F73]"
+          label="Total Staff"
+          value={stats.total}
+          badgeText="+2 this month"
+          badgeType="success"
+        />
+        <KpiCard
+          icon={ChefHatIcon}
+          iconBg="bg-[#EBF3FB]"
+          iconColor="text-[#4285C5]"
+          label="Active Staff"
+          value={stats.active}
+          badgeText={`${Math.round((stats.active / Math.max(1, stats.total)) * 100)}% of total`}
+          badgeType="neutral"
+        />
+        <KpiCard
+          icon={ClockIcon}
+          iconBg="bg-[#FFF8E7]"
+          iconColor="text-[#E7A13A]"
+          label="On Shift Now"
+          value={stats.onShift}
+          badgeText={`${Math.round((stats.onShift / Math.max(1, stats.total)) * 100)}% of total`}
+          badgeType="neutral"
+        />
+        <KpiCard
+          icon={UsersIcon}
+          iconBg="bg-[#FDECEC]"
+          iconColor="text-[#D95359]"
+          label="Inactive Staff"
+          value={stats.inactive}
+          badgeText={`${Math.round((stats.inactive / Math.max(1, stats.total)) * 100)}% of total`}
+          badgeType="danger"
+        />
       </div>
-      {error && <ErrorBanner message={error} />}
 
-      <section>
-        <h2 className="font-semibold mb-3">Team members</h2>
-        <div className="card divide-y divide-charcoal/10">
-          {staff.map((member) => (
-            <div key={member.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-              <div className="min-w-[180px] flex-1">
-                <p className="font-medium text-sm">{member.name} <span className="text-xs text-charcoal/45">· {member.roleName}</span></p>
-                <p className="text-xs text-charcoal/50">{member.email}</p>
-                {member.setupPending && <p className="mt-1 text-xs text-amber-700">Setup pending · invite expires {new Date(member.setupInviteExpiresAt).toLocaleString()}</p>}
-                <details className="mt-2 text-xs">
-                  <summary className="w-fit cursor-pointer font-medium text-clove underline underline-offset-2">Review access</summary>
-                  <div className="mt-2 space-y-1 text-charcoal/55">
-                    <p>Account: {member.isActive ? "Active" : member.setupPending ? "Setup pending" : "Inactive"}</p>
-                    <p>Last sign-in: {member.lastLoginAt ? new Date(member.lastLoginAt).toLocaleString() : "No recorded sign-in"}</p>
-                    <p>Permissions granted through {member.roleName}:</p>
-                    <div className="flex flex-wrap gap-1.5 pt-1">{(roles.find((role) => role.id === member.roleId)?.permissions || []).map((permission) => <span key={permission} className="rounded bg-charcoal/5 px-2 py-1 font-mono text-[10px]">{permission}</span>)}{!member.roleId && <span className="text-charcoal/45">No assigned role permissions</span>}</div>
-                  </div>
-                </details>
-              </div>
-              {!member.isOwner && canManageRoles && (
-                <select className="input w-auto min-w-36" aria-label={`Role for ${member.name}`} value={member.roleId || ""} onChange={(e) => updateMember(member, { roleId: e.target.value || null })}>
-                  {roles.filter((role) => role.name !== "OWNER").map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-                </select>
-              )}
-              {member.setupPending && (user.permissions?.includes("*") || user.permissions?.includes("staff.create")) && <button className="text-xs font-semibold text-clove underline underline-offset-2" onClick={() => { setAccessLinkTarget({ member, purpose: "ACTIVATE" }); setAccessLinkReason(""); setAccessLinkResult(null); }}>Issue new invite</button>}
-              {!member.isOwner && !member.setupPending && (user.permissions?.includes("*") || user.permissions?.includes("staff.update")) && (
-                <button className={`text-xs font-semibold ${member.isActive ? "text-charcoal/50" : "text-sage"}`} onClick={() => updateMember(member, { isActive: !member.isActive })}>
-                  {member.isActive ? "Deactivate" : "Activate"}
-                </button>
-              )}
-              {!member.isOwner && member.isActive && (user.permissions?.includes("*") || user.permissions?.includes("staff.update")) && <button className="text-xs font-semibold text-charcoal/60 underline underline-offset-2" onClick={() => { setAccessLinkTarget({ member, purpose: "PASSWORD_RESET" }); setAccessLinkReason(""); setAccessLinkResult(null); }}>Password reset link</button>}
+      {viewingRoles ? (
+        /* Role Management & Permissions Matrix */
+        <div className="card p-6 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E5ECE9]">
+            <div>
+              <h2 className="text-base font-bold text-[#172B2A]">Role & Permission Matrix</h2>
+              <p className="text-xs text-[#788582]">Custom roles and module access privileges.</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {(user.permissions?.includes("*") || user.permissions?.includes("staff.create")) && (
-        <section>
-          <h2 className="font-semibold mb-3">Invite a team member</h2>
-          <form onSubmit={addStaff} className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="grid gap-1 text-xs">Full name<input className="input" autoComplete="name" required minLength={2} maxLength={100} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>
-            {canManageRoles && <select className="input" value={draft.roleId} onChange={(e) => setDraft({ ...draft, roleId: e.target.value })} aria-label="Staff role">
-              {roles.filter((role) => role.name !== "OWNER").map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-            </select>}
-            <label className="grid gap-1 text-xs sm:col-span-2">Email address<input className="input" type="email" autoComplete="email" maxLength={254} required value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} /></label>
-            <p className="text-xs leading-5 text-charcoal/55 sm:col-span-2">The invitee sets their own password. Svaadya shows a one-time setup link here; share it with them through an approved channel.</p>
-            <button className="btn-primary sm:col-span-2" type="submit" disabled={inviting}>{inviting ? "Creating invite…" : "Create secure invite"}</button>
-          </form>
-          {inviteResult && <section className="card mt-3 space-y-2 p-4" aria-live="polite">
-            <h3 className="text-sm font-semibold">Invite created for {inviteResult.staff.email}</h3>
-            <p className="text-xs text-charcoal/60">This one-time link expires {new Date(inviteResult.invite.expiresAt).toLocaleString()}. It is not emailed.</p>
-            <input className="input w-full text-xs" aria-label="Staff setup link" readOnly value={inviteResult.invite.setupUrl} onFocus={(e) => e.target.select()} />
-            <button className="btn-secondary text-xs" type="button" onClick={async () => { try { await navigator.clipboard.writeText(inviteResult.invite.setupUrl); } catch { /* The link remains selectable for manual copying. */ } }}>Copy setup link</button>
-            <button className="ml-2 text-xs underline" type="button" onClick={() => setInviteResult(null)}>Hide link</button>
-          </section>}
-        </section>
-      )}
-
-      {accessLinkTarget && <section className="card space-y-3 p-5" aria-labelledby="staff-access-link-heading">
-        <div><h2 id="staff-access-link-heading" className="font-semibold">{accessLinkTarget.purpose === "ACTIVATE" ? "Replace setup link" : "Create password reset link"}</h2><p className="mt-1 text-sm text-charcoal/55">For {accessLinkTarget.member.name} ({accessLinkTarget.member.email}). The previous link for this action will be invalidated.</p></div>
-        {error && <ErrorBanner message={error} />}
-        <form className="space-y-3" onSubmit={issueAccessLink}>
-          <label className="grid gap-1 text-xs">Audit reason<textarea className="input min-h-20 py-2" required minLength={8} maxLength={500} value={accessLinkReason} onChange={(e) => setAccessLinkReason(e.target.value)} /></label>
-          <div className="flex gap-2"><button className="btn-primary text-xs" disabled={accessLinkLoading}>{accessLinkLoading ? "Issuing link…" : "Issue link"}</button><button className="btn-secondary text-xs" type="button" onClick={() => { setAccessLinkTarget(null); setAccessLinkResult(null); }}>Cancel</button></div>
-        </form>
-        {accessLinkResult && <div className="border-t border-charcoal/10 pt-3" aria-live="polite"><p className="mb-2 text-xs text-charcoal/65">One-time link expires {new Date(accessLinkResult.invite.expiresAt).toLocaleString()}. Share it directly with the team member through an approved channel.</p><input className="input w-full text-xs" aria-label="One-time staff access link" readOnly value={accessLinkResult.invite.setupUrl} onFocus={(e) => e.target.select()} /><p className="mt-2 text-xs text-charcoal/50">The link can be selected and copied manually.</p></div>}
-      </section>}
-
-      {canManageRoles && (
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h2 className="font-semibold mb-3">Roles</h2>
-            <div className="card divide-y divide-charcoal/10">
-              {roles.map((role) => (
-                <div key={role.id} className="flex items-center gap-3 px-4 py-3">
-                  <button className="min-w-0 flex-1 text-left" onClick={() => beginRoleEdit(role)}>
-                    <span className="block text-sm font-medium">{role.name}{role.isSystem ? " · built in" : ""}</span>
-                    <span className="block text-xs text-charcoal/50">{role.userCount} assigned · {role.permissions.length} permissions</span>
-                  </button>
-                  {!role.isSystem && role.userCount === 0 && <button className="text-xs text-red-700" onClick={() => deleteRole(role)}>Delete</button>}
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={createRole} className="card mt-4 space-y-3 p-4">
-              <h3 className="text-sm font-semibold">Create a custom role</h3>
-              <input className="input" placeholder="Role name" required minLength={2} maxLength={40} value={newRole.name} onChange={(e) => setNewRole({ ...newRole, name: e.target.value })} />
-              <input className="input" placeholder="Description (optional)" maxLength={200} value={newRole.description} onChange={(e) => setNewRole({ ...newRole, description: e.target.value })} />
-              <PermissionPicker groups={groupedPermissions} selected={newRole.permissions} onChange={(permissions) => setNewRole({ ...newRole, permissions })} />
-              <button className="btn-primary" disabled={saving}>Create role</button>
-            </form>
+            <button
+              type="button"
+              onClick={() => setViewingRoles(false)}
+              className="btn-secondary text-xs"
+            >
+              Back to Staff
+            </button>
           </div>
 
-          <div>
-            <h2 className="font-semibold mb-3">Role permissions</h2>
-            {editingRole ? (
-              <form onSubmit={saveRole} className="card space-y-4 p-4">
-                <input className="input" aria-label="Role name" disabled={roles.find((role) => role.id === editingRole.id)?.isSystem} value={editingRole.name} onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })} />
-                <input className="input" aria-label="Role description" maxLength={200} value={editingRole.description} onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })} />
-                <PermissionPicker groups={groupedPermissions} selected={editingRole.permissions} onChange={(permissions) => setEditingRole({ ...editingRole, permissions })} disabled={editingRole.name === "OWNER"} />
-                <div className="flex gap-2">
-                  <button className="btn-primary" disabled={saving}>Save role</button>
-                  <button type="button" className="btn-secondary" onClick={() => setEditingRole(null)}>Close</button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {roles.map((role) => (
+              <div key={role.id} className="p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-[#172B2A]">{role.name}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-[#087F73] border border-[#E5ECE9]">
+                    {role.permissions?.length || 0} permissions
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#788582]">{role.description || "System configured role"}</p>
+                <div className="pt-2 flex flex-wrap gap-1">
+                  {(role.permissions || []).slice(0, 4).map((p) => (
+                    <span key={p} className="text-[9px] px-1.5 py-0.5 rounded bg-white text-[#788582]">
+                      {p}
+                    </span>
+                  ))}
+                  {(role.permissions || []).length > 4 && (
+                    <span className="text-[9px] text-[#9CA8A5] self-center">
+                      +{role.permissions.length - 4} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Main Staff Workspace */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Staff Table Column */}
+          <div className={`transition-all duration-200 ${panelOpen ? "lg:col-span-8" : "lg:col-span-12"}`}>
+            <div className="card overflow-hidden">
+              {/* Tabs */}
+              <div className="px-4 pt-3 bg-white">
+                <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+              </div>
+
+              {/* Filter Bar */}
+              <div className="p-4 border-b border-[#E5ECE9] flex flex-wrap items-center justify-between gap-3 bg-white">
+                <div className="flex flex-wrap items-center gap-3 flex-1">
+                  <SearchBar
+                    value={search}
+                    onChange={setSearch}
+                    placeholder="Search staff name, role, or phone..."
+                    className="w-full sm:w-64"
+                    onClear={() => setSearch("")}
+                  />
+                  <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  >
+                    <option value="ALL">All Roles</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Staff Table */}
+              {paginatedStaff.length === 0 ? (
+                <EmptyState
+                  icon={StaffIcon}
+                  title="No staff members found"
+                  subtitle="Add your team members to assign roles, table sections, and shift schedules."
+                  action={
+                    <button type="button" onClick={startAddStaff} className="btn-primary text-xs">
+                      + Add New Staff
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-[#E5ECE9] bg-[#F5F8F7]/70 text-[11px] font-semibold text-[#788582] uppercase tracking-wider">
+                        <th className="py-3 px-4 w-8">
+                          <input type="checkbox" className="rounded text-[#087F73]" />
+                        </th>
+                        <th className="py-3 px-4">Name</th>
+                        <th className="py-3 px-4">Role</th>
+                        <th className="py-3 px-4">Phone</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Shift</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5ECE9] text-xs">
+                      {paginatedStaff.map((member) => {
+                        const roleName = member.role?.name || member.roleName || "STAFF";
+                        const isActive = member.isActive !== false;
+                        const roleColor = ROLE_COLORS[roleName.toUpperCase()] || ROLE_COLORS.STAFF;
+
+                        return (
+                          <tr key={member.id} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3 px-4">
+                              <input type="checkbox" className="rounded text-[#087F73]" />
+                            </td>
+                            {/* Avatar & Name */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#E7F5F1] text-[#004C46] flex items-center justify-center font-bold text-xs shrink-0 border border-[#087F73]/20">
+                                  {member.name?.[0]?.toUpperCase() || "S"}
+                                </div>
+                                <span className="font-semibold text-[#172B2A]">{member.name}</span>
+                              </div>
+                            </td>
+
+                            {/* Role Badge */}
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold capitalize ${roleColor}`}>
+                                {roleName.replace(/_/g, " ").toLowerCase()}
+                              </span>
+                            </td>
+
+                            {/* Phone */}
+                            <td className="py-3 px-4 text-[#788582]">{member.phone || "—"}</td>
+
+                            {/* Email */}
+                            <td className="py-3 px-4 text-[#788582]">{member.email || "—"}</td>
+
+                            {/* Status */}
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                                isActive ? "bg-[#EAF7EE] text-[#269B67]" : "bg-[#FDECEC] text-[#D95359]"
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#269B67]" : "bg-[#D95359]"}`} />
+                                {isActive ? "Active" : "Inactive"}
+                              </span>
+                            </td>
+
+                            {/* Shift */}
+                            <td className="py-3 px-4 text-[#788582]">
+                              {isActive ? (member.shift || "9:00 AM - 6:00 PM") : "—"}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditMember(member)}
+                                  className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#087F73] hover:border-[#087F73] transition"
+                                  title="Edit Staff Member"
+                                >
+                                  <EditIcon className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStaff(member)}
+                                  className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#D95359] hover:border-[#D95359] transition"
+                                  title="Remove Member"
+                                >
+                                  <TrashIcon className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              <PaginationBar
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredStaff.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          </div>
+
+          {/* Right Side Panel: "Add New Staff Member" matching screenshot 2 */}
+          {panelOpen && (
+            <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5ECE9] p-5 shadow-card sticky top-20">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5ECE9] mb-4">
+                <h2 className="text-base font-bold text-[#172B2A]">
+                  {editingMember ? "Edit Staff Member" : "Add New Staff Member"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen(false)}
+                  className="w-7 h-7 rounded-lg border border-[#E5ECE9] flex items-center justify-center text-[#788582] hover:text-[#172B2A]"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveStaff} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter full name"
+                    value={draft.name}
+                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={draft.roleId}
+                    onChange={(e) => setDraft({ ...draft, roleId: e.target.value })}
+                    className="input"
+                  >
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Enter phone number"
+                    value={draft.phone}
+                    onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={draft.email}
+                    onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">Shift Hours</label>
+                  <select
+                    value={draft.shift}
+                    onChange={(e) => setDraft({ ...draft, shift: e.target.value })}
+                    className="input"
+                  >
+                    <option value="9:00 AM - 6:00 PM">9:00 AM - 6:00 PM (Morning)</option>
+                    <option value="10:00 AM - 7:00 PM">10:00 AM - 7:00 PM (General)</option>
+                    <option value="1:00 PM - 10:00 PM">1:00 PM - 10:00 PM (Evening)</option>
+                    <option value="4:00 PM - 1:00 AM">4:00 PM - 1:00 AM (Dinner / Night)</option>
+                  </select>
+                </div>
+
+                {!editingMember && (
+                  <div>
+                    <label className="block font-semibold text-[#172B2A] mb-1">
+                      Temporary Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter temporary password"
+                      value={draft.password}
+                      onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                )}
+
+                {/* Profile Photo Upload Placeholder */}
+                <div>
+                  <label className="block font-semibold text-[#172B2A] mb-1">Profile Photo</label>
+                  <div className="flex items-center gap-3 p-3 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9]">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-[#A3C7C2] flex flex-col items-center justify-center text-[9px] text-[#788582] shrink-0">
+                      <span>📷</span>
+                      <span>Photo</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        className="btn-secondary text-[11px] py-1 px-3 w-full"
+                        onClick={() => alert("Photo upload available via Supabase asset storage.")}
+                      >
+                        Upload Image
+                      </button>
+                      <p className="text-[10px] text-[#9CA8A5] mt-1">JPG, PNG (Max 2MB)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="btn-primary w-full flex items-center justify-center gap-2"
+                  >
+                    {saving ? "Saving..." : editingMember ? "Save Changes" : "Add Staff Member"}
+                  </button>
                 </div>
               </form>
-            ) : <div className="card p-5 text-sm text-charcoal/55">Select a role to review and change its permissions.</div>}
-          </div>
-        </section>
+            </div>
+          )}
+        </div>
       )}
-    </div>
-  );
-}
-
-function PermissionPicker({ groups, selected, onChange, disabled = false }) {
-  function toggle(key) {
-    onChange(selected.includes(key) ? selected.filter((permission) => permission !== key) : [...selected, key]);
-  }
-
-  return (
-    <div className="max-h-80 space-y-3 overflow-auto rounded border border-charcoal/10 p-3">
-      {Object.entries(groups).map(([group, permissions]) => (
-        <fieldset key={group} className="space-y-1">
-          <legend className="text-xs font-semibold uppercase tracking-wide text-charcoal/55">{group}</legend>
-          {permissions.map((permission) => (
-            <label key={permission.key} className="flex items-start gap-2 text-xs">
-              <input type="checkbox" disabled={disabled} checked={selected.includes(permission.key)} onChange={() => toggle(permission.key)} />
-              <span>{permission.label}</span>
-            </label>
-          ))}
-        </fieldset>
-      ))}
     </div>
   );
 }

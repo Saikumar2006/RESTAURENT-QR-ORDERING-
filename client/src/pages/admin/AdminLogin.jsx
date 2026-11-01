@@ -3,6 +3,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
+import {
+  ChefHatIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ChevronRightIcon,
+  CheckIcon,
+} from "../../components/UiIcons.jsx";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const googleErrorMessages = {
@@ -20,9 +27,12 @@ export default function AdminLogin() {
   const { admin, setAdminFromLogin } = usePlatformAuth();
   const navigate = useNavigate();
   const { state, hash } = useLocation();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(state?.notice || null);
   const [submitting, setSubmitting] = useState(false);
   const [multipleRestaurants, setMultipleRestaurants] = useState(null);
 
@@ -71,6 +81,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setNotice(null);
     setMultipleRestaurants(null);
     try {
       const result = await login(email, password);
@@ -97,142 +108,188 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="restaurant-auth min-h-screen px-5 py-10 sm:px-8">
-      <div className="mx-auto grid max-w-5xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="hidden lg:block rounded-[32px] border border-white/15 bg-[#111814]/50 p-8 shadow-[0_30px_80px_rgba(8,15,12,0.42)] backdrop-blur-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#F7C873]">Restaurant Dashboard</p>
-          <h1 className="mt-4 max-w-md font-display text-5xl leading-tight text-white">Welcome back to your restaurant.</h1>
-          <p className="mt-5 max-w-md text-base text-[#edf2ed]/75">
-            Manage orders, tables, menu updates, and live customer flow from one beautiful control center.
-          </p>
+    <div className="min-h-screen bg-[#F5F8F7] flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+        {/* LEFT COLUMN: Visual Brand Card */}
+        <div className="md:col-span-5 p-8 rounded-2xl bg-[#004C46] text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-[#087F73]/40 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#D96724]/20 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="mt-8 grid max-w-md gap-3 text-sm text-[#edf2ed]/80">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Live order queue</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Smart table management</div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">Faster customer checkout</div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-[#087F73] flex items-center justify-center text-white shadow-md">
+                <ChefHatIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-xl font-bold tracking-tight text-white">Svaadya</span>
+                <span className="block text-[9px] uppercase tracking-widest text-[#A3C7C2] font-semibold">Restaurant SaaS</span>
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-3">Welcome Back to Your Kitchen Hub</h2>
+            <p className="text-xs text-[#A3C7C2] leading-relaxed mb-6">
+              Sign in to manage live tables, view guest orders, configure your digital menu, and monitor daily revenue.
+            </p>
+
+            <div className="p-3.5 rounded-xl bg-white/[0.08] border border-white/10 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+                <span>Multi-tenant Restaurant Isolation</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+                <span>Role-Based Permissions (RBAC)</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+                <span>Live Socket Order Streaming</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-6 pt-4 border-t border-white/10 text-xs text-[#A3C7C2]">
+            <span>Need a platform admin account? </span>
+            <Link to="/platform/login" className="font-semibold text-white hover:text-[#16A394] transition underline">
+              Platform Login →
+            </Link>
           </div>
         </div>
 
-        <div className="w-full max-w-md justify-self-center lg:justify-self-end">
-          <div className="glass-panel rounded-[28px] p-6 shadow-[0_24px_70px_rgba(19,26,22,0.2)] sm:p-7">
-            <div className="mb-6 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#087f70]">Restaurant Dashboard</p>
-              <h2 className="mt-3 font-display text-3xl text-charcoal">Welcome back</h2>
+        {/* RIGHT COLUMN: Sign In Form */}
+        <div className="md:col-span-7 bg-white rounded-2xl border border-[#E5ECE9] p-6 sm:p-10 shadow-lg">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-[#172B2A]">Sign in to your restaurant</h1>
+            <p className="text-xs text-[#788582] mt-1">Enter your account credentials to access your workspace.</p>
+          </div>
+
+          {notice && (
+            <div className="bg-[#EAF7EE] border border-[#269B67]/30 text-[#269B67] text-xs rounded-lg px-4 py-3 mb-4">
+              {notice}
             </div>
+          )}
 
-            <button type="button" className="google-button w-full" onClick={beginGoogleLogin} disabled={submitting}>
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-                  <path fill="#4285F4" d="M21.6 12.23c0-.7-.06-1.37-.18-2.02H12v3.82h5.39a4.61 4.61 0 0 1-2 3.02v2.5h3.24c1.89-1.74 2.97-4.3 2.97-7.32Z"/>
-                  <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.44l-3.24-2.5c-.9.6-2.05.96-3.37.96-2.6 0-4.8-1.76-5.58-4.13H.74v2.62A10 10 0 0 0 12 22Z"/>
-                  <path fill="#FBBC05" d="M6.42 19.89A6 6 0 0 1 6 17.1V14.5H2.8A10 10 0 0 0 2 12c0-1.6.38-3.12 1.07-4.5L6.42 10V7.78A7.98 7.98 0 0 1 12 5.8c1.37 0 2.6.38 3.68 1.13l2.77-2.77A9.97 9.97 0 0 0 12 2a10 10 0 0 0-9.2 5.5l3.62 2.8A6.03 6.03 0 0 1 12 8.4c1.8 0 3.46.67 4.7 1.77l2.83-2.83A9.95 9.95 0 0 0 12 2a10 10 0 0 0-9.2 5.5L6.42 10a6 6 0 0 1 11.12 0l3.62-2.8A10 10 0 0 0 12 2c5.52 0 10 4.48 10 10 0 1.02-.12 2-.36 2.96l-2.33-1.7A9.94 9.94 0 0 1 12 22Z" opacity="0.12"/>
-                  <path fill="#EA4335" d="M12 8.4c1.8 0 3.46.67 4.7 1.77l2.83-2.83A9.95 9.95 0 0 0 12 2a10 10 0 0 0-9.2 5.5l3.62 2.8A6.03 6.03 0 0 1 12 8.4Z"/>
-                </svg>
-                Continue with Google
-              </button>
+          {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-            <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-charcoal/35">
-              <span className="h-px flex-1 bg-charcoal/10" />
-              Or sign in with email
-              <span className="h-px flex-1 bg-charcoal/10" />
-            </div>
-
-            {multipleRestaurants && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50/70 p-4 mb-4">
-                <p className="text-xs font-semibold text-amber-900 mb-1">Multiple Restaurants Found</p>
-                <p className="text-xs text-amber-800/80 mb-3">
-                  This email is associated with multiple restaurants. Please choose which workspace to open:
+          {/* Multiple Restaurants Chooser */}
+          {multipleRestaurants ? (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-[#FFF8E7] border border-[#E7A13A]/30">
+                <p className="text-xs font-bold text-[#E7A13A]">Multiple Restaurant Memberships Found</p>
+                <p className="text-[11px] text-[#788582] mt-0.5">
+                  Select which restaurant workspace you want to enter:
                 </p>
-                <div className="space-y-2">
-                  {multipleRestaurants.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      disabled={submitting}
-                      onClick={() => handleLoginWithSlug(r.slug)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-200 bg-white hover:bg-amber-100/50 transition-colors text-left text-xs font-medium text-charcoal shadow-sm"
-                    >
-                      <div>
-                        <span className="font-semibold block">{r.name}</span>
-                        <span className="text-[11px] text-charcoal/50">/{r.slug}</span>
-                      </div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-900">
-                        {r.role}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMultipleRestaurants(null)}
-                  className="mt-3 text-xs text-amber-800 underline block text-center w-full cursor-pointer"
-                >
-                  Cancel and try another account
-                </button>
               </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {error && <ErrorBanner message={error} />}
-              <div>
-                <label className="mb-1 block text-xs font-medium text-charcoal/60">Email</label>
-                <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
+              <div className="space-y-2">
+                {multipleRestaurants.map((rest) => (
+                  <button
+                    key={rest.slug}
+                    type="button"
+                    onClick={() => handleLoginWithSlug(rest.slug)}
+                    disabled={submitting}
+                    className="w-full p-3.5 rounded-xl border border-[#E5ECE9] bg-white hover:border-[#087F73] hover:bg-[#E7F5F1]/30 transition flex items-center justify-between text-left"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-[#172B2A]">{rest.name}</p>
+                      <p className="text-[10px] text-[#788582]">Workspace: {rest.slug}</p>
+                    </div>
+                    <ChevronRightIcon className="w-4 h-4 text-[#087F73]" />
+                  </button>
+                ))}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setMultipleRestaurants(null)}
+                className="btn-secondary w-full text-xs"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-charcoal/60">Password</label>
+                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                  Email Address
+                </label>
                 <input
-                  className="input"
-                  type="password"
+                  type="email"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  placeholder="name@restaurant.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input"
                 />
               </div>
-              <button className="btn-primary mt-2 w-full" type="submit" disabled={submitting}>
-                {submitting ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
 
-            <div className="mt-5 rounded-2xl border border-charcoal/10 bg-[#f7f9f6] p-4 text-center">
-              <p className="text-xs text-charcoal/70">
-                New restaurant owner?{" "}
-                <Link to="/admin/register" className="font-semibold text-[#087f70] hover:underline">
-                  Create an account →
-                </Link>
-              </p>
-            </div>
-
-            {import.meta.env.DEV && (
-              <div className="mt-5 space-y-2 text-center">
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("demo@svaadya.com");
-                      setPassword("admin123");
-                      setError(null);
-                    }}
-                    className="text-xs text-charcoal/70 hover:text-emerald-700 hover:underline transition-colors cursor-pointer"
-                  >
-                    Fill Demo: <span className="font-mono text-[11px] font-semibold text-[#087f70]">demo@svaadya.com</span> / <span className="font-mono text-[11px] text-charcoal/80">admin123</span>
-                  </button>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-[#172B2A]">
+                    Password
+                  </label>
+                  <span className="text-[11px] text-[#788582]">Forgot password? Ask your manager</span>
                 </div>
-                <div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input pr-9"
+                  />
                   <button
                     type="button"
-                    onClick={() => {
-                      setEmail("admin@spicegarden.test");
-                      setPassword("password123");
-                      setError(null);
-                    }}
-                    className="text-[11px] text-charcoal/50 hover:text-charcoal/80 hover:underline transition-colors cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-2.5 text-[#788582] hover:text-[#172B2A]"
                   >
-                    Fill Legacy: <span className="font-mono text-[10px]">admin@spicegarden.test</span> / <span className="font-mono text-[10px]">password123</span>
+                    {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  {submitting ? "Signing in..." : "Sign in to Workspace"}
+                </button>
+              </div>
+
+              {/* Google Sign In option */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#E5ECE9]" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white text-[#9CA8A5]">or continue with</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={beginGoogleLogin}
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border border-[#E5ECE9] bg-white text-xs font-semibold text-[#172B2A] hover:bg-slate-50 transition shadow-xs"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Sign in with Google</span>
+              </button>
+
+              <div className="pt-4 text-center text-xs text-[#788582]">
+                <span>Don't have a restaurant account? </span>
+                <Link to="/admin/register" className="font-semibold text-[#087F73] hover:underline">
+                  Register new restaurant
+                </Link>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

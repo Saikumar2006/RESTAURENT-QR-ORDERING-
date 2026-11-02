@@ -6,22 +6,23 @@
 
 :root {
   color-scheme: light;
-  --app-bg: #F5F8F7;
+  --app-bg: #F8FAFC;
   --surface: #FFFFFF;
   --surface-raised: #FFFFFF;
-  --border: #E5ECE9;
-  --text-primary: #172B2A;
-  --text-secondary: #788582;
-  --text-muted: #9CA8A5;
-  --brand: #004C46;
-  --brand-secondary: #087F73;
-  --brand-accent: #16A394;
-  --brand-orange: #D96724;
-  --brand-mint: #E7F5F1;
-  --success: #269B67;
-  --warning: #E7A13A;
-  --danger: #D95359;
-  --info: #4285C5;
+  --border: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --brand: #4F46E5;
+  --brand-secondary: #7C3AED;
+  --brand-accent: #6366F1;
+  --brand-purple: #8B5CF6;
+  --brand-orange: #F59E0B;
+  --brand-mint: #EEF2FF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
 }
 
 html,
@@ -36,12 +37,12 @@ body {
 }
 
 ::selection {
-  background: rgba(8, 127, 115, 0.2);
+  background: rgba(79, 70, 229, 0.2);
 }
 
 /* Visible keyboard focus everywhere, per accessibility requirement */
 :focus-visible {
-  outline: 2px solid #087F73;
+  outline: 2px solid #6366F1;
   outline-offset: 2px;
 }
 
@@ -62,51 +63,51 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1DCD6;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #A9B8B0;
+  background: #94A3B8;
 }
 
 .restaurant-hero {
   background-image:
-    linear-gradient(135deg, rgba(13, 18, 15, 0.8), rgba(15, 20, 18, 0.6)),
-    radial-gradient(circle at top left, rgba(246, 188, 92, 0.28), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(9, 127, 112, 0.32), transparent 28%),
-    linear-gradient(120deg, #201d1a 0%, #17221e 42%, #0f1714 100%);
+    linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 27, 75, 0.85)),
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.35), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.35), transparent 32%),
+    linear-gradient(120deg, #0F172A 0%, #1E1B4B 50%, #312E81 100%);
   background-size: cover;
   background-position: center;
 }
 
 .restaurant-auth {
-  background-color: #F8FAF9;
+  background-color: #F8FAFC;
   background-size: cover;
   background-position: center;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #E5ECE9;
-  box-shadow: 0 10px 30px rgba(0, 76, 70, 0.06);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .btn-primary {
-  @apply bg-brand-primary text-white font-medium py-2.5 px-4 rounded-lg shadow-sm transition hover:bg-brand-secondary active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none text-sm;
+  @apply bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white font-medium py-2 px-4 rounded-xl shadow-sm transition hover:from-indigo-700 hover:to-purple-700 hover:shadow-md hover:shadow-indigo-500/20 active:scale-[0.99] disabled:opacity-40 disabled:pointer-events-none text-sm;
 }
 
 .btn-secondary {
-  @apply bg-white text-brand-dark border border-brand-border font-medium py-2 px-3.5 rounded-lg transition hover:bg-slate-50 hover:border-slate-300 active:scale-[0.99] disabled:opacity-40 text-sm shadow-sm;
+  @apply bg-white text-slate-800 border border-slate-200 font-medium py-2 px-3.5 rounded-xl transition hover:bg-slate-50 hover:border-slate-300 hover:text-indigo-600 active:scale-[0.99] disabled:opacity-40 text-sm shadow-xs;
 }
 
 .btn-outline {
-  @apply bg-transparent text-brand-secondary border border-brand-secondary/40 font-medium py-2 px-3.5 rounded-lg transition hover:bg-brand-mint/50 active:scale-[0.99] disabled:opacity-40 text-sm;
+  @apply bg-transparent text-indigo-600 border border-indigo-200 font-medium py-2 px-3.5 rounded-xl transition hover:bg-indigo-50/80 active:scale-[0.99] disabled:opacity-40 text-sm;
 }
 
 .input {
-  @apply w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-brand-dark focus:border-brand-secondary focus:ring-1 focus:ring-brand-secondary outline-none transition shadow-sm;
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition shadow-xs;
 }
 
 /* Tenant website themes are presentation-only */
@@ -137,13 +138,14 @@ body {
 }
 
 .card {
-  @apply bg-white rounded-xl border border-brand-border shadow-card;
+  @apply bg-white rounded-2xl border border-slate-200/80 shadow-card transition-shadow;
 }
 
-/* Redesigned Sidebar & Navigation matching reference screenshot */
+/* Redesigned Attractive Modern Blue-Purple Sidebar */
 .admin-sidebar {
-  background: #004C46; /* Deep teal brand color */
+  background: linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%); /* Deep Midnight Indigo Navy */
   color: #FFFFFF;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nav-link {
@@ -151,12 +153,12 @@ body {
   min-height: 40px;
   align-items: center;
   gap: 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 0 12px;
-  color: #A3C7C2;
+  color: #94A3B8;
   font-size: 13.5px;
   font-weight: 500;
-  transition: all 0.16s ease;
+  transition: all 0.18s ease;
 }
 
 .nav-link:hover {
@@ -166,20 +168,21 @@ body {
 
 .nav-link-active,
 .nav-link-active:hover {
-  background: #087F73; /* Active pill background */
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); /* Electric Indigo to Royal Purple */
   color: #FFFFFF;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
 }
 
 .nav-badge-count {
   border-radius: 9999px;
-  background: #D95359;
+  background: #EF4444;
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
   padding: 1px 7px;
   line-height: 1.3;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
 }
 
 .admin-topbar {
@@ -190,8 +193,9 @@ body {
   height: 64px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #E5ECE9;
-  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
   padding: 0 24px;
 }
 
@@ -260,7 +264,7 @@ body {
 }
 
 input:checked + .toggle-slider {
-  background-color: #087F73;
+  background-color: #4F46E5;
 }
 
 input:checked + .toggle-slider:before {

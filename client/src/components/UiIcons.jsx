@@ -323,3 +323,185 @@ export function NonVegBadge({ className = "w-4 h-4" }) {
     </span>
   );
 }
+
+// Svaadya Official Logo Component
+export function SvaadyaLogo({ variant = "dark", size = "default", className = "" }) {
+  const isLight = variant === "light";
+  const isCompact = size === "compact";
+
+  return (
+    <div className={`flex items-center gap-2.5 ${className}`}>
+      {/* Chef Hat with Green Leaf Icon */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        <svg
+          className={isCompact ? "w-8 h-8" : "w-10 h-10"}
+          viewBox="0 0 64 64"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Chef Hat Silhouette */}
+          <path
+            d="M32 10C24 10 18 15 17 21C13 22 10 26 10 31C10 36.5 14 41 19.5 41.8L21 48H43L44.5 41.8C50 41 54 36.5 54 31C54 26 51 22 47 21C46 15 40 10 32 10Z"
+            stroke="#6366F1"
+            strokeWidth="3.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          {/* Hat Pleats */}
+          <path d="M25 48V42C25 36 27 30 27 24" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M32 48V39C32 33 32 26 32 20" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M39 48V42C39 36 37 30 37 24" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Hat Base Band */}
+          <path d="M20 48H44" stroke="#6366F1" strokeWidth="3" strokeLinecap="round" />
+          {/* Green Leaf Accent on Right */}
+          <path
+            d="M48 18C48 18 55 16 57 11C59 18 54 24 49 25C47 25 48 20 48 18Z"
+            fill="#10B981"
+          />
+          <path
+            d="M50 20C54 16 56 12 56 12"
+            stroke="#059669"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      {/* Typography */}
+      <div className="flex flex-col leading-tight select-none">
+        <span
+          className={`font-display font-bold tracking-tight ${
+            isCompact ? "text-lg" : "text-xl"
+          } ${isLight ? "text-white" : "text-gray-900"}`}
+        >
+          Svaadya
+        </span>
+        <span
+          className={`text-[9px] tracking-wider uppercase font-semibold ${
+            isLight ? "text-indigo-300/80" : "text-gray-500"
+          }`}
+        >
+          Restaurant Management
+        </span>
+        {variant !== "sidebar" && (
+          <span className="text-[9px] font-bold text-indigo-400 tracking-wide">
+            Enterprise SaaS
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Warm Restaurant Hero Illustration for Auth Screens
+export function HeroRestaurantBanner({ headline, subtitle }) {
+  return (
+    <div className="relative w-full h-full min-h-[580px] rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between p-8 sm:p-12 text-white">
+      {/* Background Layer with Dark Warm Gradient & Atmosphere */}
+      <div className="absolute inset-0 bg-[#0F172A]">
+        {/* Ambient Lights & Restaurant Vibe */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-45 mix-blend-screen scale-105"
+          style={{
+            backgroundImage: `radial-gradient(circle at 65% 20%, rgba(99, 102, 241, 0.45) 0%, transparent 45%),
+                              radial-gradient(circle at 20% 80%, rgba(124, 58, 237, 0.35) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 85%, rgba(139, 92, 246, 0.4) 0%, transparent 55%)`,
+          }}
+        />
+        {/* Curated High-Res Atmosphere Photo */}
+        <img
+          src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80"
+          alt="Restaurant Ambiance"
+          className="w-full h-full object-cover object-center opacity-30 brightness-75 contrast-125"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/35" />
+      </div>
+
+      {/* Top Section: Logo */}
+      <div className="relative z-10">
+        <SvaadyaLogo variant="light" />
+      </div>
+
+      {/* Middle/Bottom Section: Headline, Subtext, Feature Pills */}
+      <div className="relative z-10 space-y-6 max-w-xl">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight font-display leading-[1.15]">
+          {headline}
+        </h1>
+        <p className="text-sm sm:text-base text-gray-200/90 leading-relaxed max-w-lg font-light">
+          {subtitle}
+        </p>
+
+        {/* 4 Feature Badges with Circular Icons */}
+        <div className="grid grid-cols-2 gap-3.5 pt-2">
+          <FeatureBadge
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+                <path d="M7 2v20" />
+                <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
+              </svg>
+            }
+            title="Digital Menu & QR Ordering"
+          />
+          <FeatureBadge
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect width="20" height="14" x="2" y="5" rx="2" />
+                <line x1="2" x2="22" y1="10" y2="10" />
+              </svg>
+            }
+            title="Secure Payments"
+          />
+          <FeatureBadge
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            }
+            title="Staff Management"
+          />
+          <FeatureBadge
+            icon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" x2="18" y1="20" y2="10" />
+                <line x1="12" x2="12" y1="20" y2="4" />
+                <line x1="6" x2="6" y1="20" y2="14" />
+              </svg>
+            }
+            title="Reports & Analytics"
+          />
+        </div>
+
+        {/* Realistic Table Card Graphic Overlay */}
+        <div className="pt-2 flex items-center gap-4 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 max-w-sm">
+          <div className="w-12 h-12 bg-white rounded-xl p-1.5 shadow flex items-center justify-center shrink-0">
+            {/* Mini QR code pattern */}
+            <svg viewBox="0 0 24 24" className="w-full h-full text-gray-900" fill="currentColor">
+              <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm10 0h2v2h-2v-2zm4 0h4v2h-4v-2zm-4 4h4v2h-4v-2zm6-2h2v4h-2v-4z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Quick QR Setup</p>
+            <p className="text-xs text-white/90">Instant contactless table ordering enabled</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FeatureBadge({ icon, title }) {
+  return (
+    <div className="flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/10">
+      <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow">
+        {icon}
+      </div>
+      <span className="text-xs font-medium text-white/95 leading-tight">{title}</span>
+    </div>
+  );
+}
+

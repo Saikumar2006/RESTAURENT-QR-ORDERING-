@@ -76,7 +76,7 @@ export default function AdminSubscription() {
           }
         },
         modal: { ondismiss: () => setWorking(false) },
-        theme: { color: "#004C46" },
+        theme: { color: "#4F46E5" },
       });
       checkout.open();
     } catch (err) {
@@ -114,7 +114,7 @@ export default function AdminSubscription() {
           <div className="lg:col-span-7 card p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#E5ECE9]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#087F73]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
                   Active SaaS Tier
                 </span>
                 <h2 className="text-2xl font-bold text-[#172B2A] mt-1">{subscription.planKey} Plan</h2>
@@ -123,7 +123,7 @@ export default function AdminSubscription() {
                 subscription.status === "ACTIVE"
                   ? "bg-[#EAF7EE] text-[#269B67]"
                   : subscription.status === "TRIALING"
-                  ? "bg-[#E7F5F1] text-[#087F73]"
+                  ? "bg-indigo-50 text-indigo-700"
                   : "bg-[#FFF8E7] text-[#E7A13A]"
               }`}>
                 {subscription.status}
@@ -193,7 +193,7 @@ export default function AdminSubscription() {
 
                 <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5ECE9] flex items-center justify-between">
                   <span className="text-xs text-[#788582]">Total Renewal Due:</span>
-                  <span className="text-base font-bold text-[#004C46]">
+                  <span className="text-base font-bold text-indigo-600">
                     {amount ? `${subscription.currency} ${Number(amount).toLocaleString("en-IN")}` : "Unavailable"}
                   </span>
                 </div>

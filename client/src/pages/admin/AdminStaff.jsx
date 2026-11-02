@@ -23,14 +23,14 @@ import {
 } from "../../components/UiIcons.jsx";
 
 const ROLE_COLORS = {
-  OWNER: "bg-[#004C46] text-white",
-  ADMIN: "bg-[#004C46] text-white",
-  MANAGER: "bg-[#E7F5F1] text-[#087F73] border border-[#087F73]/20",
+  OWNER: "bg-indigo-700 text-white shadow-xs",
+  ADMIN: "bg-purple-700 text-white shadow-xs",
+  MANAGER: "bg-indigo-50 text-indigo-700 border border-indigo-200/60",
   CHEF: "bg-[#FFF4E5] text-[#D96724] border border-[#D96724]/20",
-  SOUS_CHEF: "bg-[#EBF3FB] text-[#4285C5] border border-[#4285C5]/20",
-  WAITER: "bg-[#EAF7EE] text-[#269B67] border border-[#269B67]/20",
-  CASHIER: "bg-[#FFF8E7] text-[#E7A13A] border border-[#E7A13A]/20",
-  STAFF: "bg-[#F0F4F2] text-[#788582]",
+  SOUS_CHEF: "bg-sky-50 text-sky-700 border border-sky-200/60",
+  WAITER: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+  CASHIER: "bg-amber-50 text-amber-700 border border-amber-200/60",
+  STAFF: "bg-slate-100 text-slate-700",
 };
 
 export default function AdminStaff() {
@@ -259,12 +259,12 @@ export default function AdminStaff() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={StaffIcon}
-          iconBg="bg-[#E7F5F1]"
-          iconColor="text-[#087F73]"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
           label="Total Staff"
           value={stats.total}
           badgeText="+2 this month"
-          badgeType="success"
+          badgeType="purple"
         />
         <KpiCard
           icon={ChefHatIcon}
@@ -317,7 +317,7 @@ export default function AdminStaff() {
               <div key={role.id} className="p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-[#172B2A]">{role.name}</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-[#087F73] border border-[#E5ECE9]">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-indigo-700 border border-indigo-200">
                     {role.permissions?.length || 0} permissions
                   </span>
                 </div>
@@ -362,7 +362,7 @@ export default function AdminStaff() {
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
-                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                   >
                     <option value="ALL">All Roles</option>
                     {roles.map((r) => (
@@ -374,7 +374,7 @@ export default function AdminStaff() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                   >
                     <option value="ALL">All Status</option>
                     <option value="ACTIVE">Active</option>
@@ -401,7 +401,7 @@ export default function AdminStaff() {
                     <thead>
                       <tr className="border-b border-[#E5ECE9] bg-[#F5F8F7]/70 text-[11px] font-semibold text-[#788582] uppercase tracking-wider">
                         <th className="py-3 px-4 w-8">
-                          <input type="checkbox" className="rounded text-[#087F73]" />
+                          <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-500" />
                         </th>
                         <th className="py-3 px-4">Name</th>
                         <th className="py-3 px-4">Role</th>
@@ -421,12 +421,12 @@ export default function AdminStaff() {
                         return (
                           <tr key={member.id} className="hover:bg-slate-50/80 transition">
                             <td className="py-3 px-4">
-                              <input type="checkbox" className="rounded text-[#087F73]" />
+                              <input type="checkbox" className="rounded text-indigo-600 focus:ring-indigo-500" />
                             </td>
                             {/* Avatar & Name */}
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-[#E7F5F1] text-[#004C46] flex items-center justify-center font-bold text-xs shrink-0 border border-[#087F73]/20">
+                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0 border border-indigo-200">
                                   {member.name?.[0]?.toUpperCase() || "S"}
                                 </div>
                                 <span className="font-semibold text-[#172B2A]">{member.name}</span>

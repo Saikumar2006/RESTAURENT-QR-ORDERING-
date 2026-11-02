@@ -45,9 +45,15 @@ async function createTable(restaurantId, data) {
     }
   }
 
-  const existing = await prisma.table.findFirst({ where: { restaurantId, tableNumber: data.tableNumber } });
+  const existing = await prisma.table.findFirst({ where: { restaurantId, tableNumber: String(data.tableNumber).trim() } });
   if (existing) throw new ApiError(409, "A table with this number already exists");
-  const table = await prisma.table.create({ data: { ...data, restaurantId } });
+  const table = await prisma.table.create({
+    data: {
+      restaurantId,
+      tableNumber: String(data.tableNumber).trim(),
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+    },
+  });
   await invalidatePublicTables(restaurantId);
   return table;
 }
@@ -55,7 +61,10 @@ async function createTable(restaurantId, data) {
 async function updateTable(restaurantId, tableId, data) {
   const table = await prisma.table.findFirst({ where: { id: tableId, restaurantId } });
   if (!table) throw new ApiError(404, "Table not found");
-  const updated = await prisma.table.update({ where: { id: tableId }, data });
+  const updateData = {};
+  if (data.tableNumber !== undefined) updateData.tableNumber = String(data.tableNumber).trim();
+  if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
+  const updated = await prisma.table.update({ where: { id: tableId }, data: updateData });
   await invalidatePublicTables(restaurantId);
   return updated;
 }

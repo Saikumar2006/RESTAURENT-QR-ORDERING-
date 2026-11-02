@@ -20,6 +20,7 @@ import {
   NonVegBadge,
 } from "../../components/UiIcons.jsx";
 import { resolveAssetUrl } from "../../utils/assetUrl.js";
+import { getDishImage } from "../../utils/foodImages.js";
 
 const emptyItemDraft = (categoryId = "") => ({
   id: null,
@@ -276,26 +277,26 @@ export default function AdminMenu() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={MenuIcon}
-          iconBg="bg-[#E7F5F1]"
-          iconColor="text-[#087F73]"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
           label="Total Categories"
           value={stats.totalCats}
           badgeText="+2 this month"
-          badgeType="success"
+          badgeType="purple"
         />
         <KpiCard
           icon={MenuIcon}
-          iconBg="bg-[#EBF3FB]"
-          iconColor="text-[#4285C5]"
+          iconBg="bg-blue-50"
+          iconColor="text-blue-600"
           label="Total Menu Items"
           value={stats.totalItems}
           badgeText="+5 this month"
-          badgeType="success"
+          badgeType="info"
         />
         <KpiCard
           icon={CheckIcon}
-          iconBg="bg-[#EAF7EE]"
-          iconColor="text-[#269B67]"
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
           label="Active Items"
           value={stats.activeItems}
           badgeText={`${Math.round((stats.activeItems / Math.max(1, stats.totalItems)) * 100)}% of total`}
@@ -307,8 +308,8 @@ export default function AdminMenu() {
         />
         <KpiCard
           icon={MenuIcon}
-          iconBg="bg-[#FDECEC]"
-          iconColor="text-[#D95359]"
+          iconBg="bg-rose-50"
+          iconColor="text-rose-600"
           label="Inactive Items"
           value={stats.inactiveItems}
           badgeText={`${Math.round((stats.inactiveItems / Math.max(1, stats.totalItems)) * 100)}% of total`}
@@ -323,13 +324,13 @@ export default function AdminMenu() {
       {/* 3-Column Main Menu Workspace matching Screenshots 4 & 5 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* COLUMN 1: Categories Sidebar (3 Cols) */}
-        <div className="lg:col-span-3 card p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-[#E5ECE9]">
-            <h2 className="text-sm font-bold text-[#172B2A]">Categories</h2>
+        <div className="lg:col-span-3 card p-4 space-y-3 border-slate-200">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <h2 className="text-sm font-bold text-slate-900">Categories</h2>
             <button
               type="button"
               onClick={() => setCategoryModalOpen(true)}
-              className="text-xs font-semibold text-[#087F73] hover:underline"
+              className="text-xs font-semibold text-indigo-600 hover:underline"
             >
               + Add
             </button>
@@ -342,15 +343,15 @@ export default function AdminMenu() {
               onClick={() => setSelectedCategory("ALL")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
                 selectedCategory === "ALL"
-                  ? "bg-[#E7F5F1] text-[#087F73]"
-                  : "text-[#172B2A] hover:bg-slate-50"
+                  ? "bg-indigo-50 text-indigo-700 shadow-2xs"
+                  : "text-slate-800 hover:bg-slate-50"
               }`}
             >
               <div className="flex items-center gap-2">
                 <span>🍽️</span>
                 <span>All Items</span>
               </div>
-              <span className="text-[11px] font-bold text-[#788582]">{allItemCount} ›</span>
+              <span className="text-[11px] font-bold text-slate-500">{allItemCount} ›</span>
             </button>
 
             {/* Category Items */}
@@ -364,15 +365,15 @@ export default function AdminMenu() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
                     isSelected
-                      ? "bg-[#E7F5F1] text-[#087F73]"
-                      : "text-[#172B2A] hover:bg-slate-50"
+                      ? "bg-indigo-50 text-indigo-700 shadow-2xs"
+                      : "text-slate-800 hover:bg-slate-50"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span>🍲</span>
                     <span className="truncate">{cat.name}</span>
                   </div>
-                  <span className="text-[11px] font-bold text-[#788582] shrink-0">{count} ›</span>
+                  <span className="text-[11px] font-bold text-slate-500 shrink-0">{count} ›</span>
                 </button>
               );
             })}
@@ -441,53 +442,48 @@ export default function AdminMenu() {
                     key={item.id}
                     onClick={() => selectForEdit(item)}
                     className={`card p-3.5 cursor-pointer transition flex items-center justify-between gap-3 ${
-                      isSelected ? "ring-2 ring-[#087F73] shadow-md" : "hover:border-slate-300"
+                      isSelected ? "ring-2 ring-indigo-600 border-indigo-600 shadow-glow" : "hover:border-indigo-300"
                     }`}
                   >
                     {/* Item Thumbnail */}
-                    <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-[#E5ECE9] relative">
-                      {item.imageUrl ? (
-                        <img
-                          src={resolveAssetUrl(item.imageUrl)}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xl bg-[#E7F5F1]">
-                          🍛
-                        </div>
-                      )}
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 relative">
+                      <img
+                        src={item.imageUrl ? resolveAssetUrl(item.imageUrl) : getDishImage(item.name)}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
 
                     {/* Item Title & Tags */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-[#172B2A] truncate">
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                           {item.name}
                         </span>
                         {item.isVeg ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#269B67] bg-[#EAF7EE] px-1.5 py-0.5 rounded">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200/60">
                             <VegBadge className="w-2.5 h-2.5" /> Veg
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#D95359] bg-[#FDECEC] px-1.5 py-0.5 rounded">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-200/60">
                             <NonVegBadge className="w-2.5 h-2.5" /> Non Veg
                           </span>
                         )}
                         {item.isBestseller && (
-                          <span className="text-[10px] font-bold text-[#087F73] bg-[#E7F5F1] px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60">
                             Bestseller
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#788582] truncate mt-0.5 max-w-[260px]">
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5 max-w-[260px]">
                         {item.description || "Freshly cooked to order with authentic spices."}
                       </p>
                     </div>
 
                     {/* Price */}
                     <div className="text-right shrink-0">
-                      <span className="font-bold text-sm text-[#172B2A]">₹ {item.price}</span>
+                      <span className="font-bold text-sm text-slate-900">₹ {item.price}</span>
                     </div>
 
                     {/* Toggle Availability Switch */}
@@ -507,7 +503,7 @@ export default function AdminMenu() {
                       <button
                         type="button"
                         onClick={() => selectForEdit(item)}
-                        className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#087F73] transition"
+                        className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition"
                         title="Edit Item"
                       >
                         <EditIcon className="w-3.5 h-3.5" />
@@ -515,7 +511,7 @@ export default function AdminMenu() {
                       <button
                         type="button"
                         onClick={() => handleDeleteItem(item)}
-                        className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#D95359] transition"
+                        className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-rose-600 hover:border-rose-200 transition"
                         title="Delete Item"
                       >
                         <TrashIcon className="w-3.5 h-3.5" />
@@ -650,16 +646,22 @@ export default function AdminMenu() {
                         alt="Uploaded"
                         className="w-full h-full object-cover"
                       />
+                    ) : itemDraft.name ? (
+                      <img
+                        src={getDishImage(itemDraft.name)}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <span className="text-2xl">📷</span>
                     )}
                   </div>
                   <label className="flex-1 cursor-pointer">
-                    <div className="py-2 px-3 border border-dashed border-[#087F73] rounded-xl text-center hover:bg-[#E7F5F1]/30 transition">
-                      <span className="text-[11px] font-semibold text-[#087F73]">
+                    <div className="py-2 px-3 border border-dashed border-indigo-400 rounded-xl text-center hover:bg-indigo-50/50 transition">
+                      <span className="text-[11px] font-semibold text-indigo-600">
                         {uploadingImage ? "Uploading..." : "+ Upload Image"}
                       </span>
-                      <p className="text-[10px] text-[#9CA8A5]">JPG, PNG (Max 5MB)</p>
+                      <p className="text-[10px] text-slate-400">JPG, PNG (Max 5MB)</p>
                     </div>
                     <input
                       type="file"
@@ -673,9 +675,9 @@ export default function AdminMenu() {
               </div>
 
               {/* Toggles & Checkboxes */}
-              <div className="space-y-2 pt-1 border-t border-[#E5ECE9]">
+              <div className="space-y-2 pt-1 border-t border-slate-200">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#172B2A]">Available in Menu</span>
+                  <span className="font-semibold text-slate-800">Available in Menu</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
@@ -687,7 +689,7 @@ export default function AdminMenu() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-[#172B2A]">Vegetarian Dish</span>
+                  <span className="font-semibold text-slate-800">Vegetarian Dish</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
@@ -703,9 +705,9 @@ export default function AdminMenu() {
                     type="checkbox"
                     checked={itemDraft.isBestseller}
                     onChange={(e) => setItemDraft({ ...itemDraft, isBestseller: e.target.checked })}
-                    className="rounded text-[#004C46] focus:ring-[#087F73]"
+                    className="rounded text-indigo-600 focus:ring-indigo-500"
                   />
-                  <span className="font-semibold text-[#172B2A]">Show as Bestseller</span>
+                  <span className="font-semibold text-slate-800">Show as Bestseller</span>
                 </label>
               </div>
 

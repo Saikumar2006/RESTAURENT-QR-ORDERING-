@@ -299,19 +299,19 @@ export default function AdminOrders() {
                     }}
                     className={`w-full p-3.5 text-left transition border-l-4 ${
                       isSelected
-                        ? "border-[#087F73] bg-[#E7F5F1]/30"
+                        ? "border-indigo-600 bg-indigo-50/50 shadow-xs"
                         : "border-transparent hover:bg-slate-50"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#172B2A]">{o.orderNumber}</span>
+                      <span className="font-bold text-xs text-slate-900">{o.orderNumber}</span>
                       <StatusPill status={o.status} />
                     </div>
-                    <div className="flex items-center justify-between text-xs text-[#788582]">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
                       <span>{o.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${o.table?.tableNumber || "—"}`}</span>
-                      <span className="font-bold text-[#172B2A]">₹{Number(o.totalAmount).toFixed(0)}</span>
+                      <span className="font-bold text-slate-900">₹{Number(o.totalAmount).toFixed(0)}</span>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-[#9CA8A5] mt-1.5">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
                       <span>{o.customerName || "Dine-In Guest"}</span>
                       <span>{timeAgo(o.createdAt)}</span>
                     </div>
@@ -335,7 +335,7 @@ export default function AdminOrders() {
         </div>
 
         {/* COLUMN 2: Selected Order Ticket Details (5 Cols) */}
-        <div className="lg:col-span-5 card p-5 min-h-[640px]">
+        <div className="lg:col-span-5 card p-5 min-h-[640px] border-slate-200">
           {!selected ? (
             <EmptyState
               icon={OrdersIcon}
@@ -345,15 +345,15 @@ export default function AdminOrders() {
           ) : (
             <div className="space-y-4">
               {/* Order Header */}
-              <div className="flex items-start justify-between pb-3 border-b border-[#E5ECE9]">
+              <div className="flex items-start justify-between pb-3 border-b border-slate-200">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-[#172B2A]">{selected.orderNumber}</h2>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#F0F4F2] text-[#788582]">
+                    <h2 className="text-xl font-bold text-slate-900">{selected.orderNumber}</h2>
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
                       {selected.orderType}
                     </span>
                   </div>
-                  <p className="text-xs text-[#788582] mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {selected.orderType === "TAKEAWAY" ? "Takeaway Order" : `Table ${selected.table?.tableNumber || "—"}`}
                     {selected.customerName ? ` · ${selected.customerName}` : ""}
                   </p>
@@ -362,8 +362,8 @@ export default function AdminOrders() {
               </div>
 
               {/* Status Stepper Progression */}
-              <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5ECE9]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#788582] mb-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                   Kitchen Progress State
                 </p>
                 <div className="flex items-center justify-between gap-1 text-[11px] font-bold">
@@ -372,10 +372,10 @@ export default function AdminOrders() {
                     return (
                       <span
                         key={st}
-                        className={`px-2 py-1 rounded-md transition ${
+                        className={`px-2 py-1 rounded-lg transition ${
                           isDone
-                            ? "bg-[#087F73] text-white"
-                            : "bg-white text-[#9CA8A5] border border-[#E5ECE9]"
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "bg-white text-slate-400 border border-slate-200"
                         }`}
                       >
                         {st}
@@ -386,20 +386,20 @@ export default function AdminOrders() {
               </div>
 
               {/* Order Items Table */}
-              <div className="border border-[#E5ECE9] rounded-xl overflow-hidden">
-                <div className="p-3 bg-[#F5F8F7] border-b border-[#E5ECE9] text-xs font-bold text-[#172B2A] flex justify-between">
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="p-3 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-900 flex justify-between">
                   <span>Ordered Items ({selected.items?.length || 0})</span>
                   <span>Amount</span>
                 </div>
-                <div className="p-3 space-y-2 text-xs divide-y divide-[#E5ECE9]">
+                <div className="p-3 space-y-2 text-xs divide-y divide-slate-100">
                   {selected.items?.map((item) => (
                     <div key={item.id} className="pt-2 first:pt-0">
-                      <div className="flex justify-between font-semibold text-[#172B2A]">
+                      <div className="flex justify-between font-semibold text-slate-900">
                         <span>{item.quantity}x {item.itemName}</span>
                         <span>₹{Number(item.lineTotal).toFixed(0)}</span>
                       </div>
                       {item.instructions && (
-                        <p className="text-[11px] text-[#087F73] italic mt-0.5">
+                        <p className="text-[11px] text-indigo-600 italic mt-0.5">
                           Note: "{item.instructions}"
                         </p>
                       )}

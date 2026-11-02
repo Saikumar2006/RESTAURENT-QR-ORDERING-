@@ -359,7 +359,7 @@ export default function AdminSettings() {
                     max="90"
                     value={form.discountPercent}
                     onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
-                    className="input font-bold text-[#087F73]"
+                    className="input font-bold text-indigo-600"
                   />
                 </div>
               )}
@@ -479,7 +479,7 @@ export default function AdminSettings() {
               {whatsappError && <ErrorBanner message={whatsappError} />}
 
               {whatsappCheck && (
-                <div className="p-3 rounded-lg bg-[#E7F5F1] text-xs text-[#087F73]">
+                <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200 text-xs text-indigo-700">
                   Connection verified: {whatsappCheck.connectionStatus} (Quality: {whatsappCheck.qualityRating || "Good"})
                 </div>
               )}

@@ -379,8 +379,8 @@ function Footer() {
 
 export default function Home() {
   useEffect(() => {
-    document.title = "Svaadya — The Operating System for Modern Restaurants";
-    const description = "Orders, tables, payments, kitchen operations, staff and analytics — everything your restaurant needs, connected in one powerful platform.";
+    document.title = "Svaadya — Restaurant service, in harmony";
+    const description = "Bring QR ordering, digital menus, kitchen operations and table management together in one thoughtful restaurant workspace.";
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -391,56 +391,152 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="landing-page minimal-home">
-      <header className="minimal-nav">
-        <div className="minimal-nav-inner">
-          <Link className="minimal-brand" to="/" aria-label="Svaadya home"><span>S</span>Svaadya</Link>
+    <main className="nature-home">
+      <header className="nature-nav">
+        <div className="nature-nav-inner">
+          <Link className="nature-brand" to="/" aria-label="Svaadya home">
+            <span className="nature-brand-mark" aria-hidden="true">S</span>
+            <span>Svaadya<small>RESTAURANT OPERATIONS</small></span>
+          </Link>
           <nav aria-label="Main navigation">
-            <a href="#features">Features</a>
-            <Link to="/pricing">Pricing</Link>
+            <a href="#features">What you can do</a>
+            <a href="#how-it-works">How it works</a>
+            <Link to="/pricing">Plans</Link>
             <LanguageSwitcher className="landing-language-control" />
-            <Link className="minimal-signin" to="/admin/login">Sign in</Link>
+            <Link className="nature-signin" to="/admin/login">Sign in</Link>
+            <Link className="nature-nav-cta" to="/pricing">Find your plan <span aria-hidden="true">↗</span></Link>
           </nav>
         </div>
       </header>
 
-      <section className="minimal-hero">
-        <div className="minimal-hero-copy">
-          <span className="minimal-kicker"><i /> RESTAURANT OPERATIONS, IN SYNC</span>
-          <h1>More care on the floor.<br /><em>Less work behind it.</em></h1>
-          <p>Orders, tables, menus and your team, brought together in one calm workspace.</p>
-          <div className="minimal-actions">
-            <Link className="minimal-button" to="/admin/login">Open your workspace <span>→</span></Link>
-            <Link className="minimal-text-link" to="/pricing">Explore Svaadya <span>↗</span></Link>
+      <section className="nature-hero">
+        <div className="nature-hero-grain" aria-hidden="true" />
+        <div className="nature-hero-inner">
+          <div className="nature-hero-copy">
+            <span className="nature-kicker"><i /> A LITTLE MORE FLOW IN EVERY SHIFT</span>
+            <h1>Make every service <em>feel effortless.</em></h1>
+            <p>Give your team room to focus on what matters: welcoming guests, making good food, and creating moments worth coming back for.</p>
+            <div className="nature-hero-actions">
+              <Link className="nature-button" to="/pricing">Bring it all together <span aria-hidden="true">→</span></Link>
+              <a className="nature-secondary-link" href="#features">Take a look around <span aria-hidden="true">↓</span></a>
+            </div>
+            <div className="nature-hero-proof">
+              <span><b aria-hidden="true">✓</b> Guests order in their browser</span>
+              <span><b aria-hidden="true">✓</b> Your team sees the same picture</span>
+            </div>
           </div>
-          <div className="minimal-proof"><span>QR ordering</span><b>·</b><span>Live operations</span><b>·</b><span>Built for your team</span></div>
-        </div>
-        <div className="minimal-preview-wrap" aria-label="Illustrative Svaadya workspace preview">
-          <div className="minimal-preview">
-            <div className="minimal-preview-top"><div className="minimal-preview-brand"><span>S</span><b>Workspace</b></div><span className="minimal-demo-pill">PREVIEW</span></div>
-            <div className="minimal-preview-heading"><div><small>YOUR RESTAURANT</small><h2>Good afternoon</h2></div><span className="minimal-live-dot">Ready for service</span></div>
-            <div className="minimal-preview-stats"><div><small>Orders</small><b>All in one queue</b><span>QR · Website · Counter</span></div><div><small>Floor</small><b>Tables at a glance</b><span>Live service view</span></div></div>
-            <div className="minimal-order-row"><span className="minimal-order-icon">↗</span><div><b>Order management</b><small>Follow each order from new to ready</small></div><span className="minimal-row-arrow">→</span></div>
-            <div className="minimal-preview-footer"><span>One clear view of the shift</span><span>SV&nbsp; · &nbsp;01</span></div>
+
+          <div className="nature-scene" aria-label="Illustrative restaurant operations dashboard">
+            <div className="nature-sun-disc" aria-hidden="true" />
+            <svg className="nature-leaves" viewBox="0 0 390 410" fill="none" aria-hidden="true">
+              <path d="M183 393C191 303 220 205 323 69" stroke="#D8E9A0" strokeOpacity=".7" strokeWidth="3" />
+              <path d="M206 321C143 306 119 262 126 222C177 224 207 257 206 321Z" fill="#9BBC62" />
+              <path d="M225 278C284 269 315 232 315 191C265 190 229 222 225 278Z" fill="#D1DE8C" />
+              <path d="M245 231C184 214 166 171 181 132C229 144 251 181 245 231Z" fill="#759C54" />
+              <path d="M270 190C327 171 347 131 337 93C290 108 267 147 270 190Z" fill="#AFC878" />
+              <path d="M294 144C245 119 238 80 258 48C296 67 310 105 294 144Z" fill="#E0E6A3" />
+              <path d="M203 324L155 258M228 278L294 217M245 232L197 159M270 191L326 122M294 144L272 76" stroke="#557A49" strokeOpacity=".55" strokeWidth="2" />
+            </svg>
+            <div className="nature-preview">
+              <div className="nature-preview-top">
+                <div className="nature-preview-logo"><span>S</span><b>Good afternoon</b></div>
+                <span className="nature-demo-label"><i /> WORKSPACE PREVIEW</span>
+              </div>
+              <div className="nature-preview-head">
+                <div><small>MONDAY · LUNCH SERVICE</small><h2>A lovely day to serve.</h2></div>
+                <span className="nature-open-pill"><i /> Open</span>
+              </div>
+              <div className="nature-preview-stats">
+                <div className="nature-stat-orders"><span>Orders today</span><b>28</b><small>All in one queue <i>↗</i></small></div>
+                <div className="nature-stat-tables"><span>Tables in service</span><b>08 <small>/ 12</small></b><small>Your floor, at a glance</small></div>
+                <div className="nature-stat-menu"><span>Menu</span><b>Looking fresh</b><small>Update anytime</small></div>
+              </div>
+              <div className="nature-preview-activity">
+                <div className="nature-activity-heading"><b>Kitchen flow</b><span>Just now <i /></span></div>
+                <div className="nature-activity-row"><span className="nature-activity-icon">↗</span><span><b>New order · Table 04</b><small>Paneer tikka · Jeera rice</small></span><em>NEW</em></div>
+                <div className="nature-activity-row"><span className="nature-activity-icon is-ready">✓</span><span><b>Order ready · Table 08</b><small>Masala dosa · Filter coffee</small></span><em className="is-cooking">READY</em></div>
+              </div>
+              <div className="nature-preview-bottom"><span>One workspace, a more thoughtful service.</span><span>SV · 01</span></div>
+            </div>
+            <div className="nature-float-card nature-float-qr"><span>⌗</span><b>One quick scan<small>Guests order their way</small></b></div>
+            <div className="nature-float-card nature-float-fresh"><span>✿</span><b>Made for your rhythm<small>From menu to the kitchen</small></b></div>
+            <p className="nature-scene-caption">A calmer view of the whole shift.</p>
           </div>
-          <span className="minimal-preview-caption">A quieter way to run a busy day.</span>
         </div>
+        <div className="nature-hero-bottom" aria-hidden="true"><span>ORDER</span><i /><span>PREPARE</span><i /><span>SERVE</span><i /><span>REPEAT, BEAUTIFULLY</span></div>
       </section>
 
-      <section className="minimal-features" id="features">
-        <div className="minimal-section-head"><div><span className="minimal-kicker">THE ESSENTIALS, TOGETHER</span><h2>Everything in its place.</h2></div><p>Simple tools for the small moments that make service feel seamless.</p></div>
-        <div className="minimal-feature-grid">
+      <section className="nature-intro">
+        <p>THE LITTLE THINGS ADD UP</p>
+        <h2>Less back-and-forth.<br /><em>More good moments.</em></h2>
+        <span>One connected space for the everyday details that make a restaurant feel like yours.</span>
+        <div className="nature-sprig" aria-hidden="true"><i /><i /><i /><i /><b /></div>
+      </section>
+
+      <section className="nature-features" id="features">
+        <div className="nature-section-head">
+          <div><span className="nature-section-kicker">GOOD SERVICE, GROWING TOGETHER</span><h2>Everything in its <em>right place.</em></h2></div>
+          <p>Simple tools, thoughtfully connected, for the busy moments and the ones in between.</p>
+        </div>
+        <div className="nature-feature-grid">
           {[
-            ["01", "Orders", "Keep new, active and completed orders easy to follow."],
-            ["02", "Digital menu", "Give guests a clear menu that your team can update."],
-            ["03", "Tables", "See the floor at a glance and keep service moving."],
-            ["04", "Your team", "Give each person the access they need for their role."],
-          ].map(([number, title, description]) => <article key={number}><span>{number}</span><div><h3>{title}</h3><p>{description}</p></div><b aria-hidden="true">↗</b></article>)}
+            ["01", "QR ordering", "Let guests browse, choose dine-in or takeaway, and place an order from their phone.", "⌗", "sage"],
+            ["02", "A menu that moves with you", "Update dishes and availability in one place, whenever the day calls for it.", "✿", "peach"],
+            ["03", "A steadier kitchen rhythm", "Keep new, preparing and ready orders easy for the whole team to follow.", "↗", "butter"],
+            ["04", "Your floor, at a glance", "See tables and dine-in orders together, so small details don't get missed.", "▦", "sky"],
+            ["05", "Checkout, made clear", "See online payment status alongside the order, with a provider configured for your restaurant.", "₹", "peach"],
+            ["06", "A team that knows its role", "Give staff and admins the access they need for their part of the service.", "♙", "sage"],
+            ["07", "Keep an eye on supplies", "Track ingredients, stock movements and purchases from your restaurant workspace.", "◌", "butter"],
+            ["08", "Learn from the day", "Review orders and sales, and use offers to invite guests back.", "⌁", "sky"],
+          ].map(([number, title, description, icon, tone]) => (
+            <article className={`nature-feature-card tone-${tone}`} key={number}>
+              <div className="nature-feature-top"><span>{number}</span><i aria-hidden="true">{icon}</i></div>
+              <div><h3>{title}</h3><p>{description}</p></div>
+              <span className="nature-feature-more" aria-hidden="true">Made for the flow <b>↗</b></span>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="minimal-cta"><div><span className="minimal-kicker">A BETTER FLOW STARTS HERE</span><h2>Make room for great hospitality.</h2></div><Link className="minimal-button" to="/admin/login">Sign in to Svaadya <span>→</span></Link></section>
-      <footer className="minimal-footer"><Link className="minimal-brand" to="/"><span>S</span>Svaadya</Link><p>Thoughtfully made for restaurant teams.</p><div><Link to="/about">About</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div><small>© 2026 Svaadya</small></footer>
+      <section className="nature-how" id="how-it-works">
+        <div className="nature-how-inner">
+          <div className="nature-how-heading"><span className="nature-section-kicker">A NATURAL NEXT STEP</span><h2>From first scan<br />to <em>“coming right up.”</em></h2><p>One restaurant QR brings guests to your menu. From there, the order and your team stay connected through each step of service.</p></div>
+          <div className="nature-steps">
+            {[
+              ["01", "Make it yours", "Set up your restaurant, add dishes and prices, then add your dine-in tables.", "⌂"],
+              ["02", "Put your QR to work", "Guests scan, browse your menu and choose a table or takeaway.", "⌗"],
+              ["03", "Bring the order to your team", "New orders appear in the workspace. Staff move each one through kitchen statuses.", "↗"],
+              ["04", "Close the loop", "Guests can follow order progress; your team can review payment and business activity.", "✓"],
+            ].map(([number, title, description, icon]) => (
+              <article className="nature-step" key={number}><span className="nature-step-number">{number}</span><i aria-hidden="true">{icon}</i><h3>{title}</h3><p>{description}</p></article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="nature-service">
+        <div className="nature-service-inner">
+          <div className="nature-service-heading"><span className="nature-section-kicker">THERE FOR THE WHOLE SHIFT</span><h2>Useful before, during<br />and <em>after service.</em></h2><p>Small, practical details help your team stay on top of the day without switching between disconnected tools.</p></div>
+          <div className="nature-service-list">
+            <article><span className="nature-service-time">BEFORE THE DOORS OPEN</span><div><i aria-hidden="true">01</i><div><h3>Get the essentials ready</h3><p>Arrange your menu and tables, set item availability, and make your restaurant QR easy to find.</p><small>MENU <b>·</b> TABLES <b>·</b> QR ORDERING</small></div></div></article>
+            <article><span className="nature-service-time">WHILE GUESTS ARE HERE</span><div><i aria-hidden="true">02</i><div><h3>Keep everyone in the loop</h3><p>See new and active orders, follow kitchen progress, and keep table context close at hand.</p><small>LIVE ORDERS <b>·</b> KITCHEN FLOW <b>·</b> FLOOR VIEW</small></div></div></article>
+            <article><span className="nature-service-time">AS THE DAY COMES TOGETHER</span><div><i aria-hidden="true">03</i><div><h3>Look after the details</h3><p>Review order and sales activity, manage stock, and give your team access suited to their role.</p><small>REPORTS <b>·</b> INVENTORY <b>·</b> TEAM ACCESS</small></div></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section className="nature-cta">
+        <div className="nature-cta-leaf" aria-hidden="true">✿</div>
+        <div><span className="nature-section-kicker">MAKE SPACE FOR HOSPITALITY</span><h2>Your next shift could<br /><em>feel a little lighter.</em></h2><p>See what fits your restaurant. Start with the tools your team needs today.</p></div>
+        <div className="nature-cta-actions"><Link className="nature-button nature-button-light" to="/pricing">Explore plans <span aria-hidden="true">→</span></Link><Link className="nature-cta-signin" to="/admin/login">Already have an account? Sign in</Link></div>
+      </section>
+
+      <footer className="nature-footer">
+        <Link className="nature-brand" to="/" aria-label="Svaadya home"><span className="nature-brand-mark" aria-hidden="true">S</span><span>Svaadya<small>RESTAURANT OPERATIONS</small></span></Link>
+        <p>Thoughtfully made for the people behind good food.</p>
+        <nav aria-label="Footer navigation"><Link to="/about">About</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link><Link to="/super-admin/login">Platform sign in</Link></nav>
+        <small>© {new Date().getFullYear()} Svaadya</small>
+      </footer>
     </main>
   );
 }

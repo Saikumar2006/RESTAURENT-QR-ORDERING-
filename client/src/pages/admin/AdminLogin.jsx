@@ -5,6 +5,7 @@ import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
 import {
   ChefHatIcon,
+  SvaadyaLogo,
   EyeIcon,
   EyeOffIcon,
   ChevronRightIcon,
@@ -108,58 +109,52 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F8F7] flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-        {/* LEFT COLUMN: Visual Brand Card */}
-        <div className="md:col-span-5 p-8 rounded-2xl bg-[#004C46] text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-[#087F73]/40 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#D96724]/20 rounded-full blur-2xl pointer-events-none" />
+        {/* LEFT COLUMN: Visual Brand Card - Modern Blue & Purple Theme */}
+        <div className="md:col-span-5 p-8 rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[480px] border border-white/10">
+          <div className="absolute top-0 right-0 w-52 h-52 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-52 h-52 bg-purple-600/25 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-[#087F73] flex items-center justify-center text-white shadow-md">
-                <ChefHatIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xl font-bold tracking-tight text-white">Svaadya</span>
-                <span className="block text-[9px] uppercase tracking-widest text-[#A3C7C2] font-semibold">Restaurant SaaS</span>
-              </div>
+            <div className="mb-6">
+              <SvaadyaLogo variant="light" />
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-3">Welcome Back to Your Kitchen Hub</h2>
-            <p className="text-xs text-[#A3C7C2] leading-relaxed mb-6">
+            <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">Welcome Back to Your Restaurant Suite</h2>
+            <p className="text-xs text-indigo-200/80 leading-relaxed mb-6">
               Sign in to manage live tables, view guest orders, configure your digital menu, and monitor daily revenue.
             </p>
 
-            <div className="p-3.5 rounded-xl bg-white/[0.08] border border-white/10 space-y-2">
-              <div className="flex items-center gap-2 text-xs text-white">
-                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+            <div className="p-4 rounded-2xl bg-white/[0.07] border border-white/10 space-y-2.5 backdrop-blur-xs">
+              <div className="flex items-center gap-2.5 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-indigo-400" />
                 <span>Multi-tenant Restaurant Isolation</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-white">
-                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+              <div className="flex items-center gap-2.5 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-indigo-400" />
                 <span>Role-Based Permissions (RBAC)</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-white">
-                <CheckIcon className="w-4 h-4 text-[#16A394]" />
+              <div className="flex items-center gap-2.5 text-xs text-white">
+                <CheckIcon className="w-4 h-4 text-indigo-400" />
                 <span>Live Socket Order Streaming</span>
               </div>
             </div>
           </div>
 
-          <div className="relative z-10 mt-6 pt-4 border-t border-white/10 text-xs text-[#A3C7C2]">
+          <div className="relative z-10 mt-6 pt-4 border-t border-white/10 text-xs text-indigo-300">
             <span>Need a platform admin account? </span>
-            <Link to="/platform/login" className="font-semibold text-white hover:text-[#16A394] transition underline">
+            <Link to="/platform/login" className="font-semibold text-white hover:text-indigo-200 transition underline">
               Platform Login →
             </Link>
           </div>
         </div>
 
         {/* RIGHT COLUMN: Sign In Form */}
-        <div className="md:col-span-7 bg-white rounded-2xl border border-[#E5ECE9] p-6 sm:p-10 shadow-lg">
+        <div className="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xl">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-[#172B2A]">Sign in to your restaurant</h1>
-            <p className="text-xs text-[#788582] mt-1">Enter your account credentials to access your workspace.</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sign in to your restaurant</h1>
+            <p className="text-xs text-slate-500 mt-1">Enter your account credentials to access your workspace.</p>
           </div>
 
           {notice && (
@@ -187,13 +182,13 @@ export default function AdminLogin() {
                     type="button"
                     onClick={() => handleLoginWithSlug(rest.slug)}
                     disabled={submitting}
-                    className="w-full p-3.5 rounded-xl border border-[#E5ECE9] bg-white hover:border-[#087F73] hover:bg-[#E7F5F1]/30 transition flex items-center justify-between text-left"
+                    className="w-full p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-500 hover:bg-indigo-50/50 transition flex items-center justify-between text-left"
                   >
                     <div>
-                      <p className="text-xs font-bold text-[#172B2A]">{rest.name}</p>
-                      <p className="text-[10px] text-[#788582]">Workspace: {rest.slug}</p>
+                      <p className="text-xs font-bold text-slate-900">{rest.name}</p>
+                      <p className="text-[10px] text-slate-500">Workspace: {rest.slug}</p>
                     </div>
-                    <ChevronRightIcon className="w-4 h-4 text-[#087F73]" />
+                    <ChevronRightIcon className="w-4 h-4 text-indigo-600" />
                   </button>
                 ))}
               </div>
@@ -209,7 +204,7 @@ export default function AdminLogin() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#172B2A] mb-1">
+                <label className="block text-xs font-semibold text-slate-900 mb-1">
                   Email Address
                 </label>
                 <input
@@ -224,10 +219,10 @@ export default function AdminLogin() {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[#172B2A]">
+                  <label className="text-xs font-semibold text-slate-900">
                     Password
                   </label>
-                  <span className="text-[11px] text-[#788582]">Forgot password? Ask your manager</span>
+                  <span className="text-[11px] text-slate-500">Forgot password? Ask your manager</span>
                 </div>
                 <div className="relative">
                   <input
@@ -241,7 +236,7 @@ export default function AdminLogin() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-2.5 text-[#788582] hover:text-[#172B2A]"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700"
                   >
                     {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>
@@ -261,17 +256,17 @@ export default function AdminLogin() {
               {/* Google Sign In option */}
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#E5ECE9]" />
+                  <div className="w-full border-t border-slate-200" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="px-2 bg-white text-[#9CA8A5]">or continue with</span>
+                  <span className="px-2 bg-white text-slate-400">or continue with</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={beginGoogleLogin}
-                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-lg border border-[#E5ECE9] bg-white text-xs font-semibold text-[#172B2A] hover:bg-slate-50 transition shadow-xs"
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 hover:bg-slate-50 transition shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -282,9 +277,9 @@ export default function AdminLogin() {
                 <span>Sign in with Google</span>
               </button>
 
-              <div className="pt-4 text-center text-xs text-[#788582]">
+              <div className="pt-4 text-center text-xs text-slate-500">
                 <span>Don't have a restaurant account? </span>
-                <Link to="/admin/register" className="font-semibold text-[#087F73] hover:underline">
+                <Link to="/admin/register" className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
                   Register new restaurant
                 </Link>
               </div>

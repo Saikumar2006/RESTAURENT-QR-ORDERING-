@@ -5,6 +5,7 @@ import { joinRestaurantRoom } from "../sockets/socket";
 import { LanguageSwitcher, useTranslation } from "../i18n.jsx";
 import {
   ChefHatIcon,
+  SvaadyaLogo,
   OverviewIcon,
   OrdersIcon,
   TablesIcon,
@@ -32,10 +33,10 @@ const NAV_ITEMS = [
   { to: "/admin/menu", label: "Menu", icon: MenuIcon, permission: "menu.view" },
   { to: "/admin/coupons", label: "Promotions", icon: PromotionsIcon, adminOnly: true, permission: "coupons.view" },
   { to: "/admin/reports", label: "Analytics", icon: AnalyticsIcon, permission: "analytics.view" },
-  { to: "/admin/orders?tab=customers", label: "Customers", icon: CustomersIcon, permission: "orders.view" },
+  { to: "/admin/customers", label: "Customers", icon: CustomersIcon, permission: "orders.view" },
   { to: "/admin/staff", label: "Staff", icon: StaffIcon, adminOnly: true, permission: "staff.view" },
   { to: "/admin/inventory", label: "Inventory", icon: InventoryIcon, permission: "inventory.view" },
-  { to: "/admin/integrations", label: "Payments", icon: PaymentsIcon, permission: "orders.view" },
+  { to: "/admin/payments", label: "Payments", icon: PaymentsIcon, permission: "analytics.view" },
   { to: "/admin/reports", label: "Reports", icon: ReportsIcon, permission: "analytics.view" },
   { to: "/admin/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, permission: "settings.view" },
 ];
@@ -121,16 +122,8 @@ export default function AdminLayout() {
         } ${collapsed ? "lg:w-[78px]" : "lg:w-[240px]"}`}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center px-5 gap-3 border-b border-white/10 shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-[#087F73] flex items-center justify-center text-white shrink-0 shadow-sm">
-            <ChefHatIcon className="w-5 h-5" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <h1 className="text-base font-bold text-white tracking-wide leading-tight">Svaadya</h1>
-              <p className="text-[9px] uppercase tracking-wider text-[#A3C7C2] font-semibold">Restaurant Management</p>
-            </div>
-          )}
+        <div className="flex h-16 items-center px-4 gap-2 border-b border-white/10 shrink-0">
+          <SvaadyaLogo variant="sidebar" size={collapsed ? "compact" : "default"} />
           <button
             type="button"
             className="ml-auto text-white/60 hover:text-white lg:hidden"
@@ -141,7 +134,7 @@ export default function AdminLayout() {
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 no-scrollbar">
           {availableNav.map((item) => {
             const Icon = item.icon;
             return (
@@ -166,12 +159,12 @@ export default function AdminLayout() {
         <div className="p-3 border-t border-white/10 shrink-0 space-y-2">
           {!collapsed && (
             <div className="p-2.5 rounded-xl bg-white/[0.06] border border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0 text-xs font-bold">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 text-xs font-bold">
                 🍽️
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-white truncate">{restaurantName}</p>
-                <p className="text-[10px] text-[#A3C7C2]">Restaurant</p>
+                <p className="text-[10px] text-indigo-300">Restaurant</p>
               </div>
               <ChevronRightIcon className="w-3.5 h-3.5 text-white/50" />
             </div>
@@ -181,7 +174,7 @@ export default function AdminLayout() {
             <button
               type="button"
               onClick={() => navigate("/admin/login")}
-              className="text-[11px] text-[#A3C7C2] hover:text-white px-2 py-1 flex items-center justify-between w-full transition"
+              className="text-[11px] text-indigo-200 hover:text-white px-2 py-1 flex items-center justify-between w-full transition"
             >
               <span>Switch Restaurant</span>
               <span className="text-xs">›</span>
@@ -190,13 +183,13 @@ export default function AdminLayout() {
 
           {/* User Profile Row */}
           <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition">
-            <div className="w-8 h-8 rounded-full bg-[#087F73] text-white flex items-center justify-center text-xs font-bold shrink-0 border border-white/20">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0 border border-white/20 shadow-xs">
               {user?.name?.[0]?.toUpperCase() || "S"}
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-white truncate">{user?.name || "Admin User"}</p>
-                <p className="text-[10px] text-[#A3C7C2] capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
+                <p className="text-[10px] text-indigo-200 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
               </div>
             )}
           </div>
@@ -205,7 +198,7 @@ export default function AdminLayout() {
           <button
             type="button"
             onClick={handleLogout}
-            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#A3C7C2] hover:text-white hover:bg-white/[0.08] transition ${
+            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition ${
               collapsed ? "justify-center" : ""
             }`}
             title="Logout"
@@ -218,13 +211,13 @@ export default function AdminLayout() {
 
       {/* Main Content Area */}
       <div className="min-w-0 flex-1 flex flex-col">
-        {/* Top Navigation Bar matching reference screenshot */}
+        {/* Top Navigation Bar */}
         <header className="admin-topbar sticky top-0 z-20">
           {/* Left: Mobile hamburger + Restaurant selector pill */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
-              className="w-8 h-8 rounded-lg border border-[#E5ECE9] flex items-center justify-center lg:hidden text-[#172B2A]"
+              className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center lg:hidden text-slate-800"
               onClick={() => setMobileOpen(true)}
               aria-label="Open sidebar"
             >
@@ -233,18 +226,18 @@ export default function AdminLayout() {
 
             {/* Restaurant Selector & Status Pill */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#E5ECE9] bg-white text-xs font-semibold text-[#172B2A] shadow-xs">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-2xs">
                 <span className="text-sm">🍃</span>
                 <span className="truncate max-w-[160px] sm:max-w-[220px]">{restaurantName}</span>
                 <button
                   type="button"
                   onClick={toggleOpenStatus}
-                  className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1 ${
-                    isOpen ? "bg-[#EAF7EE] text-[#269B67]" : "bg-[#FDECEC] text-[#D95359]"
+                  className={`ml-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1.5 ${
+                    isOpen ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                   }`}
                   title="Click to toggle restaurant status"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-[#269B67]" : "bg-[#D95359]"}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-500" : "bg-rose-500"}`} />
                   {isOpen ? "Open" : "Closed"}
                 </button>
               </div>
@@ -254,8 +247,8 @@ export default function AdminLayout() {
           {/* Right Controls: Date Range, Notifications, Language, Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Date Range Selector Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E5ECE9] bg-white text-xs font-medium text-[#788582] shadow-xs">
-              <CalendarIcon className="w-3.5 h-3.5 text-[#087F73]" />
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-2xs">
+              <CalendarIcon className="w-3.5 h-3.5 text-indigo-600" />
               <span>Oct 16, 2026 - Oct 22, 2026</span>
             </div>
 
@@ -263,10 +256,10 @@ export default function AdminLayout() {
             <button
               type="button"
               aria-label="Notifications"
-              className="relative w-8 h-8 rounded-full border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#172B2A] hover:border-slate-300 transition"
+              className="relative w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition"
             >
               <BellIcon className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#D95359] text-white text-[9px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs">
                 3
               </span>
             </button>
@@ -275,13 +268,13 @@ export default function AdminLayout() {
             <LanguageSwitcher className="admin-language-switcher hidden sm:block" />
 
             {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-[#E5ECE9]">
-              <div className="w-8 h-8 rounded-full bg-[#004C46] text-white flex items-center justify-center text-xs font-bold shadow-xs">
+            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                 {user?.name?.[0]?.toUpperCase() || "S"}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-[#172B2A] leading-tight truncate max-w-[100px]">{user?.name || "Admin"}</p>
-                <p className="text-[10px] text-[#788582] capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
+                <p className="text-xs font-semibold text-slate-900 leading-tight truncate max-w-[100px]">{user?.name || "Admin"}</p>
+                <p className="text-[10px] text-slate-500 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
               </div>
             </div>
           </div>

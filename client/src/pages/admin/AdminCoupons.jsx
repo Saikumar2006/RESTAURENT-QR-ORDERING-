@@ -223,12 +223,12 @@ export default function AdminCoupons() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={PromotionsIcon}
-          iconBg="bg-[#E7F5F1]"
-          iconColor="text-[#087F73]"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
           label="Total Coupons"
           value={stats.total}
           badgeText={`${stats.active} active, ${stats.inactive} inactive`}
-          badgeType="neutral"
+          badgeType="purple"
         />
         <KpiCard
           icon={UsersIcon}
@@ -277,7 +277,7 @@ export default function AdminCoupons() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                 >
                   <option value="ALL">All Status</option>
                   <option value="ACTIVE">Active</option>
@@ -286,7 +286,7 @@ export default function AdminCoupons() {
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                 >
                   <option value="ALL">All Types</option>
                   <option value="PERCENT">Percentage Off</option>
@@ -307,7 +307,7 @@ export default function AdminCoupons() {
                     setStatusFilter("ALL");
                     setTypeFilter("ALL");
                   }}
-                  className="text-xs text-[#087F73] font-semibold hover:underline"
+                  className="text-xs text-indigo-600 font-semibold hover:underline"
                 >
                   Clear
                 </button>
@@ -380,15 +380,15 @@ export default function AdminCoupons() {
                           <td className="py-3.5 px-4">
                             <span className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold ${
                               isPercent
-                                ? "bg-[#E7F5F1] text-[#087F73]"
-                                : "bg-[#FFF4E5] text-[#D96724]"
+                                ? "bg-indigo-50 text-indigo-700 border border-indigo-200/60"
+                                : "bg-amber-50 text-amber-700 border border-amber-200/60"
                             }`}>
                               {isPercent ? `${coupon.value}% OFF` : `₹ ${coupon.value} OFF`}
                             </span>
                           </td>
 
                           {/* Validity */}
-                          <td className="py-3.5 px-4 text-[#788582]">
+                          <td className="py-3.5 px-4 text-slate-500">
                             {coupon.expiresAt
                               ? new Date(coupon.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                               : "No expiration"}
@@ -397,13 +397,13 @@ export default function AdminCoupons() {
                           {/* Usage Progress */}
                           <td className="py-3.5 px-4">
                             <div className="w-24">
-                              <div className="flex justify-between text-[11px] font-semibold text-[#172B2A] mb-1">
+                              <div className="flex justify-between text-[11px] font-semibold text-slate-900 mb-1">
                                 <span>{used}</span>
-                                <span className="text-[#9CA8A5]">/ {coupon.usageLimit || "∞"}</span>
+                                <span className="text-slate-400">/ {coupon.usageLimit || "∞"}</span>
                               </div>
-                              <div className="w-full h-1.5 bg-[#E5ECE9] rounded-full overflow-hidden">
+                              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-[#087F73] rounded-full"
+                                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
                                   style={{ width: `${percentUsed}%` }}
                                 />
                               </div>
@@ -421,7 +421,7 @@ export default function AdminCoupons() {
                                 />
                                 <span className="toggle-slider" />
                               </label>
-                              <span className={`text-[11px] font-semibold ${coupon.isActive ? "text-[#087F73]" : "text-[#9CA8A5]"}`}>
+                              <span className={`text-[11px] font-semibold ${coupon.isActive ? "text-indigo-600" : "text-slate-400"}`}>
                                 {coupon.isActive ? "Active" : "Inactive"}
                               </span>
                             </div>
@@ -433,7 +433,7 @@ export default function AdminCoupons() {
                               <button
                                 type="button"
                                 onClick={() => startEdit(coupon)}
-                                className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#087F73] hover:border-[#087F73] transition"
+                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition"
                                 title="Edit Coupon"
                               >
                                 <EditIcon className="w-3.5 h-3.5" />
@@ -441,7 +441,7 @@ export default function AdminCoupons() {
                               <button
                                 type="button"
                                 onClick={() => duplicateCoupon(coupon)}
-                                className="w-7 h-7 rounded-lg border border-[#E5ECE9] bg-white flex items-center justify-center text-[#788582] hover:text-[#087F73] hover:border-[#087F73] transition"
+                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition"
                                 title="Duplicate Coupon"
                               >
                                 <CopyIcon className="w-3.5 h-3.5" />
@@ -498,7 +498,7 @@ export default function AdminCoupons() {
                 onClick={() => setActivePanelTab("basic")}
                 className={`pb-2 transition border-b-2 -mb-px ${
                   activePanelTab === "basic"
-                    ? "border-[#087F73] text-[#087F73]"
+                    ? "border-indigo-600 text-indigo-600"
                     : "border-transparent text-[#788582]"
                 }`}
               >
@@ -509,7 +509,7 @@ export default function AdminCoupons() {
                 onClick={() => setActivePanelTab("advanced")}
                 className={`pb-2 transition border-b-2 -mb-px ${
                   activePanelTab === "advanced"
-                    ? "border-[#087F73] text-[#087F73]"
+                    ? "border-indigo-600 text-indigo-600"
                     : "border-transparent text-[#788582]"
                 }`}
               >

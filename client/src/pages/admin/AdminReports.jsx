@@ -86,7 +86,7 @@ export default function AdminReports() {
         actions={
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5ECE9] bg-white text-xs font-semibold text-[#172B2A]">
-              <CalendarIcon className="w-3.5 h-3.5 text-[#087F73]" />
+              <CalendarIcon className="w-3.5 h-3.5 text-indigo-600" />
               <select
                 value={dateRangeDays}
                 onChange={(e) => setDateRangeDays(Number(e.target.value))}
@@ -115,13 +115,13 @@ export default function AdminReports() {
       {/* 4 Core KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          icon={() => <span className="font-bold text-base text-[#087F73]">₹</span>}
-          iconBg="bg-[#E7F5F1]"
-          iconColor="text-[#087F73]"
+          icon={() => <span className="font-bold text-base text-indigo-600">₹</span>}
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
           label="Total Paid Revenue"
           value={`₹ ${stats.revenue.toLocaleString("en-IN")}`}
           badgeText="+18.5% growth"
-          badgeType="success"
+          badgeType="purple"
         />
         <KpiCard
           icon={OrdersIcon}
@@ -170,7 +170,7 @@ export default function AdminReports() {
                     ₹{Math.round(d.revenue)}
                   </span>
                   <div
-                    className="w-full max-w-[28px] rounded-t-md bg-[#087F73] hover:bg-[#004C46] transition-all"
+                    className="w-full max-w-[28px] rounded-t-md bg-gradient-to-t from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all shadow-xs"
                     style={{ height: `${Math.max(10, Math.round((d.revenue / maxDailyRevenue) * 100))}%` }}
                     title={`${d.date}: ₹${d.revenue}`}
                   />
@@ -218,10 +218,10 @@ export default function AdminReports() {
                   <div key={pk.time}>
                     <div className="flex justify-between mb-1">
                       <span className="font-semibold text-[#172B2A]">{pk.time}</span>
-                      <span className="text-[#087F73] font-bold">{pk.pct}</span>
+                      <span className="text-indigo-600 font-bold">{pk.pct}</span>
                     </div>
                     <div className="w-full bg-[#E5ECE9] h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#087F73] h-full" style={{ width: pk.pct }} />
+                      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full" style={{ width: pk.pct }} />
                     </div>
                   </div>
                 ))}

@@ -5,6 +5,7 @@ import { useAuth } from "../../store/AuthContext.jsx";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
 import {
   ChefHatIcon,
+  SvaadyaLogo,
   CheckIcon,
   EyeIcon,
   EyeOffIcon,
@@ -260,7 +261,7 @@ export default function AdminRegister() {
           email: formData.adminEmail,
           contact: formData.phone,
         },
-        theme: { color: "#004C46" },
+        theme: { color: "#4F46E5" },
       };
 
       const razorpay = new window.Razorpay(options);
@@ -277,30 +278,24 @@ export default function AdminRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F8F7] flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* LEFT SIDE: Brand & Value Proposition matching screenshot */}
-        <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-2xl bg-[#004C46] text-white shadow-xl relative overflow-hidden min-h-[580px]">
+        <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white shadow-2xl relative overflow-hidden min-h-[580px] border border-white/10">
           {/* Subtle background glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#087F73]/40 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#D96724]/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-600/25 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10">
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-[#087F73] flex items-center justify-center text-white shadow-md">
-                <ChefHatIcon className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-xl font-bold tracking-tight text-white">Svaadya</span>
-                <span className="block text-[9px] uppercase tracking-widest text-[#A3C7C2] font-semibold">Restaurant SaaS</span>
-              </div>
+            <div className="mb-8">
+              <SvaadyaLogo variant="light" />
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-3">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-3 tracking-tight">
               Start Your Restaurant Journey with Svaadya
             </h2>
-            <p className="text-xs sm:text-sm text-[#A3C7C2] leading-relaxed mb-8">
+            <p className="text-xs sm:text-sm text-indigo-200/80 leading-relaxed mb-8">
               Join leading dining establishments streamlining their table operations, digital QR orders, and real-time revenue analytics.
             </p>
 
@@ -316,7 +311,7 @@ export default function AdminRegister() {
                 return (
                   <div key={feat.title} className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <Icon className="w-4 h-4 text-[#16A394]" />
+                      <Icon className="w-4 h-4 text-indigo-400" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-white">{feat.title}</p>
@@ -360,15 +355,15 @@ export default function AdminRegister() {
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       isPassed
-                        ? "bg-[#087F73] text-white"
+                        ? "bg-indigo-600 text-white shadow-xs"
                         : isCurrent
-                        ? "bg-[#004C46] text-white ring-4 ring-[#E7F5F1]"
-                        : "bg-white text-[#788582] border-2 border-[#E5ECE9]"
+                        ? "bg-indigo-600 text-white ring-4 ring-indigo-100 shadow-xs"
+                        : "bg-white text-slate-400 border-2 border-slate-200"
                     }`}
                   >
                     {isPassed ? <CheckIcon className="w-4 h-4" /> : s.num}
                   </div>
-                  <span className={`text-[11px] font-semibold mt-1.5 ${isCurrent ? "text-[#004C46]" : "text-[#788582]"}`}>
+                  <span className={`text-[11px] font-semibold mt-1.5 ${isCurrent ? "text-indigo-600" : "text-slate-400"}`}>
                     {s.label}
                   </span>
                 </div>

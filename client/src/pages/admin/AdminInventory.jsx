@@ -284,12 +284,12 @@ export default function AdminInventory() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={InventoryIcon}
-          iconBg="bg-[#E7F5F1]"
-          iconColor="text-[#087F73]"
+          iconBg="bg-indigo-50"
+          iconColor="text-indigo-600"
           label="Total Items"
           value={stats.total}
           badgeText="+5 this month"
-          badgeType="success"
+          badgeType="purple"
         />
         <KpiCard
           icon={InventoryIcon}
@@ -343,7 +343,7 @@ export default function AdminInventory() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                 >
                   <option value="ALL">All Categories</option>
                   <option value="Vegetables">Vegetables</option>
@@ -355,7 +355,7 @@ export default function AdminInventory() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-[#087F73]"
+                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
                 >
                   <option value="ALL">All Status</option>
                   <option value="IN_STOCK">In Stock</option>
@@ -575,7 +575,7 @@ export default function AdminInventory() {
           <div className="card p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-[#172B2A]">Recent Stock Activity</h3>
-              <button type="button" className="text-xs text-[#087F73] font-semibold hover:underline">
+              <button type="button" className="text-xs text-indigo-600 font-semibold hover:underline">
                 View All →
               </button>
             </div>

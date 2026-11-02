@@ -55,6 +55,9 @@ const getOverview = asyncHandler(async (req, res) => {
   if (!req.platformAdmin.permissions.includes("platform.finance.view")) {
     delete stats.totalRevenue;
     delete stats.revenueToday;
+    delete stats.monthlyRecurringRevenue;
+    delete stats.subscriptionRevenue;
+    delete stats.subscriptionRevenueMonth;
   }
   if (!req.platformAdmin.permissions.includes("platform.restaurants.view")) {
     delete stats.totalRestaurants;
@@ -67,7 +70,14 @@ const getOverview = asyncHandler(async (req, res) => {
     delete stats.totalOrders;
     delete stats.ordersToday;
     delete stats.restaurantsByCuisine;
+    delete stats.pendingOnboardings;
+    delete stats.activeSubscriptions;
+    delete stats.trialingSubscriptions;
+    delete stats.planDistribution;
+    delete stats.restaurantRegistrations;
+    delete stats.subscriptionRegistrations;
   }
+  if (!req.platformAdmin.permissions.includes("platform.admins.manage")) delete stats.totalPlatformUsers;
   ok(res, stats);
 });
 

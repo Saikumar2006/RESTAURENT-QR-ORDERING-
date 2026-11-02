@@ -207,9 +207,52 @@ async function createOrder({
         phone: customerPhone,
         purpose: "order_confirmation",
         preferredChannel: restaurant.notificationChannel,
+        templateKey: "ORDER_CONFIRMATION",
+        templateData: {
+          restaurantName: restaurant.name,
+          orderNumber: order.orderNumber,
+          itemsSummary,
+          totalAmount: Number(order.totalAmount).toFixed(0),
+          trackingUrl,
+        },
         body: `${restaurant.name}: Order ${order.orderNumber} confirmed! ${itemsSummary}. Total ₹${Number(order.totalAmount).toFixed(0)}. Track: ${trackingUrl}`,
       })
       .catch((err) => console.error("Order confirmation notification failed:", err.message));
+  }
+
+  // Restaurant Owner Alert for new orders
+  if (restaurant.ownerAlertsEnabled !== false) {
+    (async () => {
+      try {
+        const ownerPhone = restaurant.notificationPhone || (await prisma.user.findFirst({
+          where: { restaurantId: restaurant.id, role: "ADMIN", phone: { not: null } },
+          select: { phone: true },
+        }))?.phone;
+
+        if (ownerPhone) {
+          const tableNumber = order.table?.tableNumber ? `Table ${order.table.tableNumber}` : "Takeaway";
+          const itemsSummary = order.items.map((i) => `${i.quantity}x ${i.itemName}`).join(", ");
+          await messagingService.sendMessage({
+            restaurantId: restaurant.id,
+            orderId: order.id,
+            phone: ownerPhone,
+            purpose: "owner_order_alert",
+            preferredChannel: "whatsapp",
+            templateKey: "OWNER_NEW_ORDER",
+            templateData: {
+              restaurantName: restaurant.name,
+              orderNumber: order.orderNumber,
+              tableNumber,
+              totalAmount: Number(order.totalAmount).toFixed(0),
+              itemsSummary,
+            },
+            body: `🔔 New Order #${order.orderNumber} at ${restaurant.name}! ${tableNumber} | Total ₹${Number(order.totalAmount).toFixed(0)} | Items: ${itemsSummary}`,
+          });
+        }
+      } catch (err) {
+        console.error("Owner order alert notification failed:", err.message);
+      }
+    })();
   }
 
   return order;

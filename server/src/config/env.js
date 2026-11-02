@@ -21,7 +21,7 @@ const jwtSecret = required("JWT_SECRET", "");
 if (!jwtSecret) {
   throw new Error("JWT_SECRET is required. Set it in server/.env or your host environment before starting the app.");
 }
-const defaultProductionOrigin = "https://restaurant-qr-ordering.onrender.com";
+const defaultProductionOrigin = "https://restaurent-qr-ordering.onrender.com";
 const serverUrl = required(
   "SERVER_URL",
   nodeEnv === "production" ? defaultProductionOrigin : "http://localhost:4000"
@@ -140,7 +140,10 @@ module.exports = {
   twilioAuthToken: required("TWILIO_AUTH_TOKEN", ""),
   // Twilio's own format, e.g. "whatsapp:+14155238886" and "+14155550123"
   twilioWhatsappFrom: required("TWILIO_WHATSAPP_FROM", ""),
-  twilioSmsFrom: required("TWILIO_SMS_FROM", ""),
+  twilioSmsFrom: required("TWILIO_PHONE_NUMBER", required("TWILIO_SMS_FROM", "")),
+  twilioPhoneNumber: required("TWILIO_PHONE_NUMBER", required("TWILIO_SMS_FROM", "")),
+  twilioEnabled: required("TWILIO_ENABLED", "false") === "true" || (Boolean(required("TWILIO_ACCOUNT_SID", "")) && required("TWILIO_ENABLED", "auto") !== "false"),
+  whatsappProvider: required("WHATSAPP_PROVIDER", "auto"), // "auto" | "twilio" | "meta"
   storageProvider: required("STORAGE_PROVIDER", "local"), // "local" | "supabase"
   supabaseUrl: required("SUPABASE_URL", ""),
   supabaseServiceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY", ""),

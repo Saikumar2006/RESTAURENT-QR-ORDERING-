@@ -18,6 +18,18 @@ services:
         sync: false
       - key: MESSAGING_PROVIDER
         sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: TWILIO_ENABLED
+        sync: false
+      - key: WHATSAPP_PROVIDER
+        value: auto
       - key: REDIS_URL
         sync: false
       - key: DATABASE_URL
@@ -41,7 +53,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_CALLBACK_URL
-        value: https://restaurant-qr-ordering.onrender.com/api/auth/google/callback
+        value: https://restaurent-qr-ordering.onrender.com/api/auth/google/callback
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: WHATSAPP_BUSINESS_ACCOUNT_ID
@@ -91,9 +103,9 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         value: menu-images
       - key: CLIENT_URL
-        value: https://restaurant-qr-ordering.onrender.com
+        value: https://restaurent-qr-ordering.onrender.com
       - key: SERVER_URL
-        value: https://restaurant-qr-ordering.onrender.com
+        value: https://restaurent-qr-ordering.onrender.com
       - key: ALLOWED_ORIGINS
         sync: false
       - key: FORCE_HTTPS

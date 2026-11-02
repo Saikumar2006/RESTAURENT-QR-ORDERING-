@@ -1,5 +1,13 @@
 .platform-dashboard { color: #242a24; font-family: "DM Sans", sans-serif; }
-.platform-dashboard > header { min-height: 112px; border-bottom: 1px solid #ffffff18; padding-right: max(24px, calc((100vw - 1320px) / 2)); padding-left: max(24px, calc((100vw - 1320px) / 2)); }
+.platform-dashboard-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
+.platform-dashboard-heading h1 { margin: 4px 0 0; color: #23322d; font-family: "Fraunces", Georgia, serif; font-size: clamp(25px, 3vw, 34px); font-weight: 500; letter-spacing: -.035em; }
+.platform-dashboard-heading p:last-child { margin: 7px 0 0; color: #79837d; font-size: 11px; }
+.platform-chart { display: grid; min-height: 170px; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; gap: 8px; border-bottom: 1px solid #e8e7e1; padding-top: 7px; }
+.platform-chart-column { display: flex; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+.platform-chart-column > span { min-height: 12px; color: #737d75; font-size: 9px; }
+.platform-chart-track { display: flex; width: min(100%, 22px); height: 112px; align-items: flex-end; overflow: hidden; border-radius: 4px 4px 0 0; background: #edf2ef; }
+.platform-chart-track i { display: block; width: 100%; min-height: 3px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, #55aa91, #147c70); }
+.platform-chart-column small { color: #78827b; font-size: 8px; }
 .platform-dashboard .card { border: 1px solid #e7e5de; border-radius: 6px; background: #fffefa; box-shadow: 0 7px 24px #292a2410; }
 .platform-dashboard .card > p:first-child { letter-spacing: .015em; }
 .platform-dashboard input:focus, .platform-dashboard select:focus { border-color: #ae7144; outline: 3px solid #d69b6524; outline-offset: 1px; }
@@ -9,7 +17,7 @@
 .platform-dashboard tbody tr:hover { background: #faf8f2; }
 .platform-dashboard button:focus-visible, .platform-dashboard a:focus-visible { outline: 3px solid #e2a66f; outline-offset: 3px; }
 @media (max-width: 640px) {
-  .platform-dashboard > header { min-height: 100px; align-items: flex-start; gap: 15px; padding: 20px; }
-  .platform-dashboard > header h1 { font-size: 21px; }
-  .platform-dashboard > header > div:last-child { padding-top: 3px; }
+  .platform-dashboard-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .platform-dashboard > div.max-w-7xl { padding-right: 16px; padding-left: 16px; }
+  .platform-chart { gap: 4px; }
 }

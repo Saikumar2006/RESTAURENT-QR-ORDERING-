@@ -54,6 +54,8 @@ model Restaurant {
   phoneVerificationEnabled  Boolean @default(false) // require a verified phone before an order can be placed
   orderNotificationsEnabled Boolean @default(true)  // send WhatsApp/SMS order confirmation + status updates
   notificationChannel       String  @default("whatsapp") // "whatsapp" | "sms" — preferred channel; falls back to SMS if WhatsApp send fails
+  notificationPhone         String? // Direct phone for restaurant owner alerts
+  ownerAlertsEnabled        Boolean @default(true)  // Send alerts to owner on new orders
   currency  String   @default("INR")
   logoUrl   String?
   websiteThemeVersion Int @default(0)
@@ -523,19 +525,37 @@ model PhoneOtp {
 // server logs. A failed send here never blocks or rolls back the order/OTP
 // flow that triggered it; see messagingService.js.
 model NotificationLog {
-  id           String   @id @default(uuid())
-  restaurantId String?
-  orderId      String?
-  phone        String
-  channel      String // "whatsapp" | "sms"
-  purpose      String // "otp" | "order_confirmation" | "order_status"
-  status       String // "sent" | "failed"
-  providerRef  String?
-  errorMessage String?
-  createdAt    DateTime @default(now())
+  id              String    @id @default(uuid())
+  restaurantId    String?
+  orderId         String?
+  phone           String
+  channel         String    // "whatsapp" | "sms"
+  purpose         String    // "otp" | "order_confirmation" | "order_status" | "owner_order_alert" | "staff_invite" | "subscription_alert"
+  status          String    // "queued" | "sent" | "delivered" | "failed" | "undelivered"
+  provider        String    @default("twilio") // "twilio" | "meta" | "mock"
+  providerRef     String?   // Twilio Message SID (SM... or MM...)
+  idempotencyKey  String?   @unique
+  errorCode       String?   // Sanitized Twilio / Meta error code
+  errorMessage    String?
+  deliveredAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 
   @@index([restaurantId, createdAt])
   @@index([orderId])
+  @@index([phone, createdAt])
+  @@index([status])
+}
+
+model CommunicationTemplate {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  channel     String   @default("both") // "sms" | "whatsapp" | "both"
+  title       String
+  body        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Immutable-by-convention theme revisions; editing and rollback create new versions.

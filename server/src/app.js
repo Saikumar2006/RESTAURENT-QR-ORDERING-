@@ -28,6 +28,7 @@ const inventoryRoutes = require("./routes/inventory");
 const subscriptionRoutes = require("./routes/subscriptions");
 const subscriptionController = require("./controllers/subscriptionController");
 const aiRoutes = require("./routes/ai");
+const communicationsRoutes = require("./routes/communications");
 
 const app = express();
 
@@ -140,6 +141,7 @@ app.use("/api/platform", authLimiter, platformRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/communications", communicationsRoutes);
 
 // ---- Serve the built React client from the same server/port -----------
 // One process, one port: `npm start` builds the client (see root

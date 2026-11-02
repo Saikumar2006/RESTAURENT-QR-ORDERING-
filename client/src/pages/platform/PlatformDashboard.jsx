@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import platformApi from "../../services/platformApi";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
 import "./platform-dashboard.css";
+
+const PLATFORM_VIEWS = ["overview", "restaurants", "subscriptions", "packages", "onboardings", "communications", "audit"];
 
 function StatCard({ label, value, sub }) {
   return (
@@ -15,14 +18,16 @@ function StatCard({ label, value, sub }) {
 }
 
 export default function PlatformDashboard() {
-  const { admin, logout } = usePlatformAuth();
+  const { admin } = usePlatformAuth();
+  const [searchParams] = useSearchParams();
   const canViewRestaurants = admin?.permissions?.includes("platform.restaurants.view");
   const canViewFinance = admin?.permissions?.includes("platform.finance.view");
   const canManageAdmins = admin?.permissions?.includes("platform.admins.manage");
   const canManageRestaurants = admin?.permissions?.includes("platform.restaurants.manage");
+  const canViewAudit = admin?.permissions?.includes("platform.audit.view");
 
-  // Navigation tab
-  const [activeTab, setActiveTab] = useState("restaurants");
+  const requestedView = searchParams.get("view");
+  const activeTab = PLATFORM_VIEWS.includes(requestedView) ? requestedView : "overview";
 
   // Existing overview & restaurants state
   const [overview, setOverview] = useState(null);
@@ -61,6 +66,31 @@ export default function PlatformDashboard() {
   // Pending Onboardings state
   const [pendingOnboardingsList, setPendingOnboardingsList] = useState([]);
   const [loadingOnboardings, setLoadingOnboardings] = useState(false);
+  const [auditEntries, setAuditEntries] = useState([]);
+  const [auditError, setAuditError] = useState(null);
+  const [loadingAudit, setLoadingAudit] = useState(false);
+
+  // Communications state
+  const [commStatus, setCommStatus] = useState(null);
+  const [commStats, setCommStats] = useState(null);
+  const [commTemplates, setCommTemplates] = useState([]);
+  const [commLogs, setCommLogs] = useState([]);
+  const [commLogsPagination, setCommLogsPagination] = useState({ page: 1, limit: 15, total: 0, pages: 1 });
+  const [loadingComm, setLoadingComm] = useState(false);
+  const [commTestPhone, setCommTestPhone] = useState("");
+  const [commTestChannel, setCommTestChannel] = useState("sms");
+  const [commTestMessage, setCommTestMessage] = useState("");
+  const [commTesting, setCommTesting] = useState(false);
+  const [commTestResult, setCommTestResult] = useState(null);
+  const [commConnTesting, setCommConnTesting] = useState(false);
+  const [commConnResult, setCommConnResult] = useState(null);
+  const [commFilterChannel, setCommFilterChannel] = useState("ALL");
+  const [commFilterStatus, setCommFilterStatus] = useState("ALL");
+  const [commFilterPurpose, setCommFilterPurpose] = useState("ALL");
+  const [commSearch, setCommSearch] = useState("");
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateSuccess, setTemplateSuccess] = useState(null);
 
   async function copyInviteLink(url) {
     setInviteCopied(false);
@@ -148,6 +178,18 @@ export default function PlatformDashboard() {
     }
   }
 
+  async function loadAudit(limit = 100) {
+    setLoadingAudit(true);
+    setAuditError(null);
+    try {
+      setAuditEntries(await platformApi.get(`/audit?limit=${limit}`) || []);
+    } catch (err) {
+      setAuditError(err.message);
+    } finally {
+      setLoadingAudit(false);
+    }
+  }
+
   // Save updated package pricing
   async function handleSavePricing(e) {
     e.preventDefault();
@@ -177,6 +219,82 @@ export default function PlatformDashboard() {
         YEARLY: Math.round(monthly * 12 * 0.8),
       },
     }));
+  }
+
+  async function loadCommunications() {
+    setLoadingComm(true);
+    try {
+      const [status, stats, templates, logsData] = await Promise.all([
+        platformApi.get("/communications/status"),
+        platformApi.get("/communications/stats"),
+        platformApi.get("/communications/templates"),
+        platformApi.get(`/communications/logs?page=${commLogsPagination.page}&limit=15&channel=${commFilterChannel}&status=${commFilterStatus}&purpose=${commFilterPurpose}&search=${encodeURIComponent(commSearch)}`),
+      ]);
+      setCommStatus(status);
+      setCommStats(stats);
+      setCommTemplates(templates || []);
+      setCommLogs(logsData.items || []);
+      setCommLogsPagination(logsData.pagination || { page: 1, limit: 15, total: 0, pages: 1 });
+    } catch (err) {
+      console.error("Failed to load communications data:", err.message);
+    } finally {
+      setLoadingComm(false);
+    }
+  }
+
+  async function handleTestConnection() {
+    setCommConnTesting(true);
+    setCommConnResult(null);
+    try {
+      const res = await platformApi.post("/communications/test-connection");
+      setCommConnResult({ success: true, ...res });
+    } catch (err) {
+      setCommConnResult({ success: false, message: err.message });
+    } finally {
+      setCommConnTesting(false);
+    }
+  }
+
+  async function handleSendTestMessage(e) {
+    e.preventDefault();
+    if (!commTestPhone) return;
+    setCommTesting(true);
+    setCommTestResult(null);
+    try {
+      const res = await platformApi.post("/communications/test", {
+        phone: commTestPhone,
+        channel: commTestChannel,
+        message: commTestMessage || undefined,
+      });
+      setCommTestResult({ success: true, ...res });
+      loadCommunications();
+    } catch (err) {
+      setCommTestResult({ success: false, message: err.message });
+    } finally {
+      setCommTesting(false);
+    }
+  }
+
+  async function handleSaveTemplate(e) {
+    e.preventDefault();
+    if (!editingTemplate) return;
+    setSavingTemplate(true);
+    setTemplateSuccess(null);
+    try {
+      const updated = await platformApi.put(`/communications/templates/${editingTemplate.key}`, {
+        title: editingTemplate.title,
+        body: editingTemplate.body,
+        channel: editingTemplate.channel,
+        isActive: editingTemplate.isActive,
+      });
+      setCommTemplates((prev) => prev.map((t) => (t.key === updated.key ? updated : t)));
+      setTemplateSuccess(`Template "${editingTemplate.title}" saved successfully.`);
+      setEditingTemplate(null);
+    } catch (err) {
+      alert(err.message || "Failed to update template.");
+    } finally {
+      setSavingTemplate(false);
+    }
   }
 
   useEffect(() => {
@@ -211,7 +329,10 @@ export default function PlatformDashboard() {
     if (activeTab === "subscriptions") loadSubscriptions();
     if (activeTab === "packages") loadPackages();
     if (activeTab === "onboardings") loadPendingOnboardings();
-  }, [activeTab]);
+    if (activeTab === "communications") loadCommunications();
+    if (activeTab === "audit") loadAudit();
+    if (activeTab === "overview" && canViewAudit) loadAudit(8);
+  }, [activeTab, commLogsPagination.page, commFilterChannel, commFilterStatus, commFilterPurpose]);
 
   if (loading && (!overview || !restaurants)) return <Spinner label="Loading platform data..." />;
   if (error && (!overview || !restaurants)) return <main className="min-h-screen px-6 py-16"><div className="mx-auto max-w-lg"><ErrorBanner message={error} /><button className="btn-primary" onClick={() => setRefreshKey((key) => key + 1)}>Try again</button></div></main>;
@@ -246,50 +367,102 @@ export default function PlatformDashboard() {
 
   return (
     <main className="platform-dashboard min-h-screen bg-cream/40 pb-16">
-      <header className="bg-charcoal text-cream px-6 py-5 flex items-center justify-between">
-        <div>
-          <p className="text-marigold text-xs uppercase tracking-widest mb-1">Svaadya · {admin?.role?.replaceAll("_", " ") || "Platform"}</p>
-          <h1 className="font-display text-2xl">Super Admin Platform</h1>
-          <p className="mt-1 text-xs text-cream/50">Cross-restaurant operations, subscription billing & package pricing</p>
-        </div>
-        <div className="flex items-center gap-4 text-right">
-          {canManageAdmins && <a className="text-xs text-cream/75 underline underline-offset-4" href="/platform/access">Platform access</a>}
-          <div><p className="text-sm font-medium">{admin?.name}</p><button className="text-xs text-cream/70 underline underline-offset-4" onClick={logout}>Sign out</button></div>
-        </div>
-      </header>
-
-      {/* Navigation tabs */}
-      <div className="bg-charcoal/95 border-b border-white/10 px-6">
-        <nav className="max-w-7xl mx-auto flex gap-6 text-sm">
-          <button
-            onClick={() => setActiveTab("restaurants")}
-            className={`py-3 font-medium transition-colors border-b-2 ${activeTab === "restaurants" ? "border-marigold text-marigold" : "border-transparent text-cream/60 hover:text-cream"}`}
-          >
-            Restaurants & Ops ({restaurants.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("subscriptions")}
-            className={`py-3 font-medium transition-colors border-b-2 ${activeTab === "subscriptions" ? "border-marigold text-marigold" : "border-transparent text-cream/60 hover:text-cream"}`}
-          >
-            Subscriptions & MRR
-          </button>
-          <button
-            onClick={() => setActiveTab("packages")}
-            className={`py-3 font-medium transition-colors border-b-2 ${activeTab === "packages" ? "border-marigold text-marigold" : "border-transparent text-cream/60 hover:text-cream"}`}
-          >
-            Packages & Pricing
-          </button>
-          <button
-            onClick={() => setActiveTab("onboardings")}
-            className={`py-3 font-medium transition-colors border-b-2 ${activeTab === "onboardings" ? "border-marigold text-marigold" : "border-transparent text-cream/60 hover:text-cream"}`}
-          >
-            Pending Registrations
-          </button>
-        </nav>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-8">
+        <header className="platform-dashboard-heading">
+          <div>
+            <p className="section-eyebrow !ml-0">Svaadya · Platform</p>
+            <h1>{activeTab === "overview" ? "Executive overview" : ({
+              restaurants: "Restaurants & operations",
+              subscriptions: "Subscriptions & MRR",
+              packages: "Plans & pricing",
+              onboardings: "Restaurant applications",
+              communications: "Communications",
+              audit: "Platform audit log",
+            }[activeTab] || "Platform administration")}</h1>
+            <p>Live operational data from the platform database.</p>
+          </div>
+          <button className="btn-secondary text-xs" type="button" onClick={() => setRefreshKey((key) => key + 1)}>
+            Refresh overview
+          </button>
+        </header>
         {error && <div className="mb-5"><ErrorBanner message={`Refresh failed: ${error}`} /></div>}
+
+        {activeTab === "overview" && (
+          <section aria-label="Platform overview" className="space-y-6">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              {canViewRestaurants && <StatCard label="Total restaurants" value={overview.totalRestaurants} sub={`${overview.activeRestaurants} active`} />}
+              {canViewRestaurants && <StatCard label="Pending onboarding" value={overview.pendingOnboardings} sub="Awaiting checkout completion" />}
+              {canViewRestaurants && <StatCard label="Suspended restaurants" value={overview.suspendedRestaurants} sub={`${overview.openNowCount} currently open`} />}
+              {canViewRestaurants && <StatCard label="Active subscriptions" value={overview.activeSubscriptions} sub={`${overview.trialingSubscriptions} currently trialing`} />}
+              {canManageAdmins && <StatCard label="Platform administrators" value={overview.totalPlatformUsers} sub="Provisioned platform accounts" />}
+              {canViewFinance && <StatCard label="Monthly recurring revenue" value={`₹${Number(overview.monthlyRecurringRevenue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} sub="Normalized active subscription value" />}
+              {canViewFinance && <StatCard label="Subscription revenue" value={`₹${Number(overview.subscriptionRevenue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} sub="Collected from paid subscription invoices" />}
+              {canViewFinance && <StatCard label="Food order sales" value={`₹${Number(overview.totalRevenue || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`} sub="Paid restaurant orders · separate from SaaS revenue" />}
+            </div>
+
+            {canViewRestaurants && (
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(260px,.8fr)]">
+                <section className="card p-5">
+                  <div className="mb-5">
+                    <h2 className="font-semibold text-sm">Restaurant registrations</h2>
+                    <p className="mt-1 text-xs text-charcoal/50">Monthly new tenants · last 12 months</p>
+                  </div>
+                  <div className="platform-chart" role="img" aria-label="Monthly restaurant registrations for the last 12 months">
+                    {(overview.restaurantRegistrations || []).map((month) => {
+                      const max = Math.max(1, ...(overview.restaurantRegistrations || []).map((entry) => entry.count));
+                      return (
+                        <div className="platform-chart-column" key={month.month}>
+                          <span>{month.count}</span>
+                          <div className="platform-chart-track"><i style={{ height: `${Math.max(4, (month.count / max) * 100)}%` }} /></div>
+                          <small>{month.month}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+                <section className="card p-5">
+                  <div className="mb-4">
+                    <h2 className="font-semibold text-sm">Subscription plan mix</h2>
+                    <p className="mt-1 text-xs text-charcoal/50">Active and trial subscriptions</p>
+                  </div>
+                  {(overview.planDistribution || []).length ? (
+                    <div className="space-y-4">
+                      {(overview.planDistribution || []).map((plan) => {
+                        const total = (overview.planDistribution || []).reduce((sum, entry) => sum + entry.count, 0);
+                        const percent = total ? Math.round((plan.count / total) * 100) : 0;
+                        return (
+                          <div key={plan.planKey}>
+                            <div className="mb-1 flex justify-between text-xs"><span>{plan.planKey}</span><span className="text-charcoal/55">{plan.count} · {percent}%</span></div>
+                            <div className="h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full bg-[#147c70]" style={{ width: `${percent}%` }} /></div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : <p className="text-xs text-charcoal/50">No active subscriptions yet.</p>}
+                </section>
+              </div>
+            )}
+
+            {canViewAudit && (
+              <section className="card p-5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div><h2 className="font-semibold text-sm">Recent platform activity</h2><p className="mt-1 text-xs text-charcoal/50">Latest administrative audit events</p></div>
+                  <button className="btn-secondary text-xs" type="button" onClick={() => loadAudit(8)} disabled={loadingAudit}>Refresh activity</button>
+                </div>
+                {auditError && <ErrorBanner message={auditError} />}
+                <div className="divide-y divide-charcoal/5">
+                  {auditEntries.slice(0, 8).map((entry) => (
+                    <div className="flex flex-col gap-1 py-3 text-xs sm:flex-row sm:items-center sm:justify-between" key={entry.id}>
+                      <div><span className="font-medium">{entry.actor?.name || "System"}</span><span className="text-charcoal/60"> · {entry.action.replaceAll(".", " ").replaceAll("_", " ")}</span></div>
+                      <time className="text-charcoal/45" dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString()}</time>
+                    </div>
+                  ))}
+                  {!loadingAudit && auditEntries.length === 0 && !auditError && <p className="py-4 text-xs text-charcoal/50">No platform activity recorded yet.</p>}
+                </div>
+              </section>
+            )}
+          </section>
+        )}
 
         {/* TAB 1: RESTAURANTS & OPERATIONS */}
         {activeTab === "restaurants" && (
@@ -722,6 +895,478 @@ export default function PlatformDashboard() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "audit" && (
+          <section className="card overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-charcoal/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div><h2 className="font-semibold text-sm">Administrative audit events</h2><p className="mt-1 text-xs text-charcoal/50">Platform actions recorded by the current audit service.</p></div>
+              <button className="btn-secondary text-xs" type="button" onClick={() => loadAudit()} disabled={loadingAudit}>{loadingAudit ? "Refreshing…" : "Refresh"}</button>
+            </div>
+            {auditError && <div className="p-5"><ErrorBanner message={auditError} /></div>}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead><tr className="border-b border-charcoal/10 bg-charcoal/[0.025] text-charcoal/55">
+                  <th className="px-5 py-3 font-medium">Timestamp</th><th className="px-3 py-3 font-medium">Actor</th><th className="px-3 py-3 font-medium">Action</th><th className="px-5 py-3 font-medium">Target</th>
+                </tr></thead>
+                <tbody>
+                  {auditEntries.map((entry) => (
+                    <tr className="border-b border-charcoal/5" key={entry.id}>
+                      <td className="whitespace-nowrap px-5 py-3 text-charcoal/55">{new Date(entry.createdAt).toLocaleString()}</td>
+                      <td className="px-3 py-3">{entry.actor?.name || "System"}{entry.actor?.email && <span className="mt-1 block text-charcoal/45">{entry.actor.email}</span>}</td>
+                      <td className="px-3 py-3 font-medium">{entry.action.replaceAll(".", " ").replaceAll("_", " ")}</td>
+                      <td className="px-5 py-3 text-charcoal/55">{entry.targetRestaurantId || entry.targetAdminId || "—"}</td>
+                    </tr>
+                  ))}
+                  {!loadingAudit && auditEntries.length === 0 && !auditError && <tr><td className="px-5 py-8 text-center text-charcoal/50" colSpan={4}>No audit events recorded.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 5: COMMUNICATIONS & MESSAGING */}
+        {activeTab === "communications" && (
+          <div className="space-y-8">
+            {/* Header & Connection Test Action */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-charcoal/10 shadow-sm">
+              <div>
+                <h2 className="text-xl font-display font-semibold text-charcoal">Communications & Messaging Hub</h2>
+                <p className="text-xs text-charcoal/60 mt-0.5">
+                  Centralized Twilio SMS, WhatsApp notifications, OTP verification, and delivery tracking.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={commConnTesting}
+                  onClick={handleTestConnection}
+                  className="px-4 py-2 bg-charcoal text-cream text-xs font-medium rounded hover:bg-charcoal/90 transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  {commConnTesting ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-cream border-t-transparent rounded-full animate-spin"></span>
+                      Checking Twilio...
+                    </>
+                  ) : (
+                    "Test Twilio Connection"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={loadCommunications}
+                  disabled={loadingComm}
+                  className="px-3 py-2 bg-charcoal/5 hover:bg-charcoal/10 text-charcoal text-xs font-medium rounded transition"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Connection Test Diagnostic Banner */}
+            {commConnResult && (
+              <div className={`p-4 rounded-lg text-xs border ${commConnResult.success ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-red-50 border-red-200 text-red-900"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm">
+                    {commConnResult.success ? "✓ Twilio API Connection Verified" : "✗ Twilio Connection Failed"}
+                  </div>
+                  <button onClick={() => setCommConnResult(null)} className="text-charcoal/40 hover:text-charcoal font-bold">✕</button>
+                </div>
+                <p className="mt-1">
+                  {commConnResult.success
+                    ? `Connected to Twilio account "${commConnResult.friendlyName}" (${commConnResult.accountStatus}). SMS Ready: ${commConnResult.smsReady ? "Yes" : "No"}, WhatsApp Ready: ${commConnResult.whatsappReady ? "Yes" : "No"}.`
+                    : commConnResult.message}
+                </p>
+              </div>
+            )}
+
+            {/* Provider Readiness Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-charcoal/50 uppercase tracking-wider font-semibold">Twilio SMS</p>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${commStatus?.twilio?.smsConfigured ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                    {commStatus?.twilio?.smsConfigured ? "Ready" : "Unconfigured"}
+                  </span>
+                </div>
+                <p className="text-lg font-mono font-semibold text-charcoal truncate">
+                  {commStatus?.twilio?.smsSender || "No number set"}
+                </p>
+                <p className="text-xs text-charcoal/50 mt-1 truncate">
+                  SID: {commStatus?.twilio?.accountSidMasked || "Not linked"}
+                </p>
+              </div>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-charcoal/50 uppercase tracking-wider font-semibold">Twilio WhatsApp</p>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${commStatus?.twilio?.whatsappConfigured ? "bg-emerald-100 text-emerald-800" : "bg-charcoal/10 text-charcoal/60"}`}>
+                    {commStatus?.twilio?.whatsappConfigured ? "Ready" : "Standby"}
+                  </span>
+                </div>
+                <p className="text-lg font-mono font-semibold text-charcoal truncate">
+                  {commStatus?.twilio?.whatsappSender || "No sender set"}
+                </p>
+                <p className="text-xs text-charcoal/50 mt-1">
+                  Fallback enabled: Yes (SMS)
+                </p>
+              </div>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-charcoal/50 uppercase tracking-wider font-semibold">Meta WhatsApp Cloud</p>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${commStatus?.meta?.configured ? "bg-emerald-100 text-emerald-800" : "bg-charcoal/10 text-charcoal/60"}`}>
+                    {commStatus?.meta?.configured ? "Active" : "Standby"}
+                  </span>
+                </div>
+                <p className="text-lg font-semibold text-charcoal truncate">
+                  {commStatus?.meta?.templateName || "Default OTP"}
+                </p>
+                <p className="text-xs text-charcoal/50 mt-1">
+                  Provider Mode: {commStatus?.whatsappProvider?.toUpperCase() || "AUTO"}
+                </p>
+              </div>
+
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-charcoal/50 uppercase tracking-wider font-semibold">30-Day Delivery</p>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">
+                    Live
+                  </span>
+                </div>
+                <p className="text-2xl font-display font-semibold text-charcoal">
+                  {commStats?.deliveryRate ?? 100}%
+                </p>
+                <p className="text-xs text-charcoal/50 mt-1">
+                  {commStats?.delivered || 0} delivered · {commStats?.failed || 0} failed
+                </p>
+              </div>
+            </div>
+
+            {/* Test Messenger & Live Dispatch */}
+            <div className="bg-white p-6 rounded-lg border border-charcoal/10 shadow-sm">
+              <h3 className="text-sm font-semibold text-charcoal uppercase tracking-wider mb-2">Live Test Message Dispatch</h3>
+              <p className="text-xs text-charcoal/60 mb-4">
+                Verify end-to-end delivery by dispatching a live test message to an international phone number.
+              </p>
+
+              <form onSubmit={handleSendTestMessage} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-charcoal mb-1">Channel</label>
+                  <select
+                    value={commTestChannel}
+                    onChange={(e) => setCommTestChannel(e.target.value)}
+                    className="w-full text-xs p-2.5 border rounded border-charcoal/20 bg-white"
+                  >
+                    <option value="sms">Twilio SMS</option>
+                    <option value="whatsapp">WhatsApp</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-charcoal mb-1">Recipient Phone (+E.164)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+919876543210"
+                    value={commTestPhone}
+                    onChange={(e) => setCommTestPhone(e.target.value)}
+                    className="w-full text-xs p-2.5 border rounded border-charcoal/20 font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-charcoal mb-1">Custom Message Body (Optional)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Svaadya test dispatch message..."
+                      value={commTestMessage}
+                      onChange={(e) => setCommTestMessage(e.target.value)}
+                      className="w-full text-xs p-2.5 border rounded border-charcoal/20"
+                    />
+                    <button
+                      type="submit"
+                      disabled={commTesting || !commTestPhone}
+                      className="px-5 py-2.5 bg-marigold text-charcoal font-semibold text-xs rounded hover:bg-marigold/90 transition disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {commTesting ? "Sending..." : "Send Test"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              {commTestResult && (
+                <div className={`mt-4 p-3 rounded text-xs border ${commTestResult.success ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"}`}>
+                  {commTestResult.success ? (
+                    <div>
+                      <span className="font-semibold">✓ Test message dispatched!</span> SID: <code className="font-mono">{commTestResult.providerRef}</code> | Channel: <span className="uppercase font-semibold">{commTestResult.channel}</span> | Status: <span className="capitalize">{commTestResult.status}</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="font-semibold">✗ Dispatch failed:</span> {commTestResult.message}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Template Management */}
+            <div className="bg-white p-6 rounded-lg border border-charcoal/10 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-charcoal uppercase tracking-wider">Message Templates Registry</h3>
+                  <p className="text-xs text-charcoal/60">Standardized transactional message formats with dynamic variable hydration.</p>
+                </div>
+                {templateSuccess && (
+                  <span className="text-xs text-emerald-700 bg-emerald-100 px-3 py-1 rounded font-medium">
+                    {templateSuccess}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {commTemplates.map((tpl) => (
+                  <div key={tpl.key} className="border border-charcoal/10 rounded-lg p-4 bg-cream/20 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-xs text-charcoal">{tpl.title || tpl.key}</span>
+                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 bg-charcoal/10 rounded text-charcoal/70">
+                          {tpl.channel}
+                        </span>
+                      </div>
+                      <p className="text-xs text-charcoal/80 bg-white p-3 rounded border border-charcoal/5 font-mono text-[11px] leading-relaxed">
+                        {tpl.body}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between pt-2 border-t border-charcoal/5">
+                      <span className="text-[10px] text-charcoal/40 uppercase font-mono">{tpl.key}</span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingTemplate({ ...tpl })}
+                        className="text-xs text-marigold font-semibold hover:underline"
+                      >
+                        Edit Template
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Template Editor Modal */}
+              {editingTemplate && (
+                <div className="fixed inset-0 bg-charcoal/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-2xl border border-charcoal/10">
+                    <h3 className="text-base font-semibold text-charcoal mb-1">Edit Template: {editingTemplate.title}</h3>
+                    <p className="text-xs text-charcoal/60 mb-4 font-mono">{editingTemplate.key}</p>
+
+                    <form onSubmit={handleSaveTemplate} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-medium text-charcoal mb-1">Display Title</label>
+                        <input
+                          type="text"
+                          required
+                          value={editingTemplate.title}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, title: e.target.value })}
+                          className="w-full text-xs p-2.5 border rounded border-charcoal/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-charcoal mb-1">Channel Support</label>
+                        <select
+                          value={editingTemplate.channel}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, channel: e.target.value })}
+                          className="w-full text-xs p-2.5 border rounded border-charcoal/20 bg-white"
+                        >
+                          <option value="both">Both (WhatsApp & SMS)</option>
+                          <option value="sms">SMS Only</option>
+                          <option value="whatsapp">WhatsApp Only</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-charcoal mb-1">Message Body (Supports &#123;&#123;variable&#125;&#125; placeholders)</label>
+                        <textarea
+                          rows={4}
+                          required
+                          value={editingTemplate.body}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, body: e.target.value })}
+                          className="w-full text-xs p-2.5 border rounded border-charcoal/20 font-mono text-[11px]"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t border-charcoal/10">
+                        <button
+                          type="button"
+                          onClick={() => setEditingTemplate(null)}
+                          className="px-4 py-2 border rounded text-xs text-charcoal/70 hover:bg-charcoal/5"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingTemplate}
+                          className="px-4 py-2 bg-charcoal text-cream font-semibold text-xs rounded hover:bg-charcoal/90 disabled:opacity-50"
+                        >
+                          {savingTemplate ? "Saving..." : "Save Template"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Live Communication Logs */}
+            <div className="bg-white rounded-lg border border-charcoal/10 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-charcoal/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-charcoal uppercase tracking-wider">Live Communication Logs</h3>
+                  <p className="text-xs text-charcoal/60">Real-time delivery status, sanitized provider responses, and error diagnostics.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    value={commFilterChannel}
+                    onChange={(e) => setCommFilterChannel(e.target.value)}
+                    className="text-xs p-2 border rounded border-charcoal/20 bg-white"
+                  >
+                    <option value="ALL">All Channels</option>
+                    <option value="sms">SMS</option>
+                    <option value="whatsapp">WhatsApp</option>
+                  </select>
+
+                  <select
+                    value={commFilterStatus}
+                    onChange={(e) => setCommFilterStatus(e.target.value)}
+                    className="text-xs p-2 border rounded border-charcoal/20 bg-white"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="sent">Sent</option>
+                    <option value="queued">Queued</option>
+                    <option value="failed">Failed</option>
+                  </select>
+
+                  <select
+                    value={commFilterPurpose}
+                    onChange={(e) => setCommFilterPurpose(e.target.value)}
+                    className="text-xs p-2 border rounded border-charcoal/20 bg-white"
+                  >
+                    <option value="ALL">All Purposes</option>
+                    <option value="otp">OTP Verification</option>
+                    <option value="order_confirmation">Order Confirmation</option>
+                    <option value="order_status">Order Status</option>
+                    <option value="owner_order_alert">Owner Alert</option>
+                    <option value="staff_invite">Staff Invite</option>
+                    <option value="subscription_alert">Subscription</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Search phone..."
+                    value={commSearch}
+                    onChange={(e) => setCommSearch(e.target.value)}
+                    className="text-xs p-2 border rounded border-charcoal/20 w-36"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-charcoal/5 border-b border-charcoal/10 text-charcoal/70 uppercase text-[10px] tracking-wider">
+                    <tr>
+                      <th className="px-5 py-3">Timestamp</th>
+                      <th className="px-3 py-3">Channel</th>
+                      <th className="px-3 py-3">Purpose</th>
+                      <th className="px-4 py-3">Recipient</th>
+                      <th className="px-3 py-3">Status</th>
+                      <th className="px-4 py-3">Provider Ref</th>
+                      <th className="px-4 py-3">Diagnostics</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commLogs.map((log) => {
+                      const statusBadge = log.status === "delivered"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : log.status === "sent" || log.status === "queued"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-red-100 text-red-800";
+
+                      return (
+                        <tr key={log.id} className="border-b border-charcoal/5 hover:bg-cream/20">
+                          <td className="px-5 py-3 text-charcoal/60 whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="uppercase font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-charcoal/5 text-charcoal/80">
+                              {log.channel}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 font-medium text-charcoal whitespace-nowrap">
+                            {log.purpose?.replaceAll("_", " ")}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-charcoal/90">
+                            {log.phoneMasked || log.phone}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold capitalize ${statusBadge}`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[11px] text-charcoal/50 truncate max-w-[140px]">
+                            {log.providerRef || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-charcoal/60 max-w-xs truncate">
+                            {log.errorMessage ? (
+                              <span className="text-red-700">{log.errorCode ? `[${log.errorCode}] ` : ""}{log.errorMessage}</span>
+                            ) : log.deliveredAt ? (
+                              <span className="text-emerald-700">Delivered {new Date(log.deliveredAt).toLocaleTimeString()}</span>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {commLogs.length === 0 && (
+                      <tr>
+                        <td className="px-5 py-8 text-center text-charcoal/50" colSpan={7}>
+                          No communication logs found matching criteria.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {commLogsPagination.pages > 1 && (
+                <div className="p-4 border-t border-charcoal/10 flex items-center justify-between text-xs">
+                  <span className="text-charcoal/50">
+                    Page {commLogsPagination.page} of {commLogsPagination.pages} ({commLogsPagination.total} total)
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={commLogsPagination.page <= 1}
+                      onClick={() => setCommLogsPagination((prev) => ({ ...prev, page: prev.page - 1 }))}
+                      className="px-3 py-1 border rounded disabled:opacity-40"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      disabled={commLogsPagination.page >= commLogsPagination.pages}
+                      onClick={() => setCommLogsPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
+                      className="px-3 py-1 border rounded disabled:opacity-40"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

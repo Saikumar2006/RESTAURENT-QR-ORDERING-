@@ -30,14 +30,43 @@ function hashCode(code, phone) {
   return crypto.createHmac("sha256", env.jwtSecret).update(`${phone}:${code}`).digest("hex");
 }
 
-async function sendOtp(slug, phone) {
+async function sendOtp(slug, phone, preferredChannel = null) {
   await tableService.resolveRestaurantBySlug(slug);
   const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) {
     throw new ApiError(400, "A valid international phone number is required.");
   }
   phone = normalizedPhone;
-  whatsappService.assertConfigured();
+
+  let channel = preferredChannel;
+  if (!channel) {
+    const isMetaConfigured = Boolean(env.whatsappAccessToken && env.whatsappPhoneNumberId);
+    const isTwilioSmsConfigured = Boolean(env.twilioAccountSid && (env.twilioPhoneNumber || env.twilioSmsFrom));
+    const isTwilioWhatsappConfigured = Boolean(env.twilioAccountSid && env.twilioWhatsappFrom);
+
+    if (env.messagingProvider === "mock" && env.nodeEnv !== "production") {
+      channel = "whatsapp";
+    } else if (isMetaConfigured || isTwilioWhatsappConfigured) {
+      channel = "whatsapp";
+    } else if (isTwilioSmsConfigured) {
+      channel = "sms";
+    } else {
+      channel = "whatsapp";
+    }
+  }
+
+  if (channel === "whatsapp") {
+    try {
+      whatsappService.assertConfigured();
+    } catch (err) {
+      const isTwilioSmsConfigured = Boolean(env.twilioAccountSid && (env.twilioPhoneNumber || env.twilioSmsFrom));
+      if (isTwilioSmsConfigured) {
+        channel = "sms";
+      } else {
+        throw err;
+      }
+    }
+  }
 
   const now = new Date();
   const code = generateCode();
@@ -78,7 +107,23 @@ async function sendOtp(slug, phone) {
   }
 
   try {
-    await whatsappService.sendWhatsAppOtp(phone, code);
+    if (channel === "sms") {
+      const communicationsService = require("./communicationsService");
+      const dispatchResult = await communicationsService.dispatchMessage({
+        phone,
+        purpose: "otp",
+        templateKey: "OTP_VERIFICATION",
+        templateData: { code },
+        customBody: `Your Svaadya verification code is: ${code}. Valid for 5 minutes. Do not share this code.`,
+        preferredChannel: "sms",
+        allowFallback: false,
+      });
+      if (!dispatchResult.success) {
+        throw new ApiError(502, dispatchResult.error || "SMS delivery failed.");
+      }
+    } else {
+      await whatsappService.sendWhatsAppOtp(phone, code);
+    }
   } catch (error) {
     await prisma.phoneOtp.update({
       where: { id: otp.id },
@@ -87,7 +132,7 @@ async function sendOtp(slug, phone) {
     throw error;
   }
 
-  return { sent: true, channel: "whatsapp", phone };
+  return { sent: true, channel, phone };
 }
 
 async function verifyOtp(phone, code) {

@@ -56,9 +56,10 @@ async function createInvitation(restaurantId, actor, input, database = prisma) {
       const duplicate = await tx.user.findFirst({ where: { restaurantId, email: { equals: email, mode: "insensitive" } }, select: { id: true } });
       if (duplicate) throw new ApiError(409, "A team account already uses this email.");
 
+      const phone = typeof input.phone === "string" && input.phone.trim() ? input.phone.trim() : null;
       const member = await tx.user.create({
-        data: { restaurantId, name, email, role: "STAFF", roleId: role.id, passwordHash, isActive: false },
-        select: { id: true, name: true, email: true, roleId: true, isActive: true, createdAt: true },
+        data: { restaurantId, name, email, phone, role: "STAFF", roleId: role.id, passwordHash, isActive: false },
+        select: { id: true, name: true, email: true, phone: true, roleId: true, isActive: true, createdAt: true },
       });
       await tx.restaurantStaffAccessLink.upsert({
         where: { userId_purpose: { userId: member.id, purpose: PURPOSE.ACTIVATE } },
@@ -68,6 +69,30 @@ async function createInvitation(restaurantId, actor, input, database = prisma) {
       await roleService.writeAudit(tx, restaurantId, actor.id, "staff.invited", "user", member.id, { roleId: role.id, invitationExpiresAt: expiresAt.toISOString() });
       return { ...member, roleName: role.name, isOwner: false };
     }, { timeout: 15000 });
+
+    if (staff.phone) {
+      (async () => {
+        try {
+          const restaurant = await database.restaurant.findUnique({ where: { id: restaurantId }, select: { name: true } });
+          const communicationsService = require("./communicationsService");
+          await communicationsService.dispatchMessage({
+            restaurantId,
+            phone: staff.phone,
+            purpose: "staff_invite",
+            templateKey: "STAFF_INVITATION",
+            templateData: {
+              restaurantName: restaurant?.name || "your restaurant",
+              setupUrl: setupUrl(token),
+            },
+            preferredChannel: "sms",
+            allowFallback: true,
+          });
+        } catch (err) {
+          console.error("Staff invite notification failed:", err.message);
+        }
+      })();
+    }
+
     return { staff, invite: { setupUrl: setupUrl(token), expiresAt } };
   } catch (error) {
     if (error.code === "P2002") throw new ApiError(409, "A team account already uses this email.");
@@ -82,7 +107,7 @@ async function issueAccessLink(restaurantId, staffId, actorId, purpose, reason, 
 
   const existing = await database.user.findFirst({
     where: { id: staffId, restaurantId },
-    select: { id: true, role: true, isActive: true, roleRecord: { select: { name: true } } },
+    select: { id: true, role: true, phone: true, isActive: true, roleRecord: { select: { name: true } } },
   });
   if (!existing) throw new ApiError(404, "Team member not found.");
   if (isOwnerUser(existing)) throw new ApiError(403, "The owner account cannot be reset from team management.");
@@ -111,6 +136,32 @@ async function issueAccessLink(restaurantId, staffId, actorId, purpose, reason, 
     });
     await roleService.writeAudit(tx, restaurantId, actorId, action, "user", staffId, { reason: auditReason, purpose, expiresAt: expiresAt.toISOString() });
   }, { timeout: 15000 });
+
+  if (existing.phone) {
+    (async () => {
+      try {
+        const restaurant = await database.restaurant.findUnique({ where: { id: restaurantId }, select: { name: true } });
+        const communicationsService = require("./communicationsService");
+        const isReset = purpose === PURPOSE.PASSWORD_RESET;
+        await communicationsService.dispatchMessage({
+          restaurantId,
+          phone: existing.phone,
+          purpose: isReset ? "staff_password_reset" : "staff_invite",
+          templateKey: isReset ? "STAFF_PASSWORD_RESET" : "STAFF_INVITATION",
+          templateData: {
+            restaurantName: restaurant?.name || "your restaurant",
+            setupUrl: setupUrl(token),
+            resetUrl: setupUrl(token),
+          },
+          preferredChannel: "sms",
+          allowFallback: true,
+        });
+      } catch (err) {
+        console.error("Staff access notification failed:", err.message);
+      }
+    })();
+  }
+
   return { invite: { setupUrl: setupUrl(token), expiresAt } };
 }
 

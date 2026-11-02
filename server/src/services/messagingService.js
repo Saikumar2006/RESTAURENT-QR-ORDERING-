@@ -1,100 +1,32 @@
-const env = require("../config/env");
-const prisma = require("../config/db");
+const communicationsService = require("./communicationsService");
 
-// --- Mock provider ---------------------------------------------------------
-// Never actually sends anything — logs to the console and writes a
-// NotificationLog row with status "sent" so the whole OTP / order-notify
-// flow can be exercised and inspected locally without real Twilio
-// credentials or a real phone bill.
-const mockProvider = {
-  name: "mock",
-  async send() {
-    console.log(JSON.stringify({ event: "mock_message_sent", provider: "mock" }));
-    return { success: true, providerRef: "mock_" + Date.now() };
-  },
-};
-
-const unavailableProvider = {
-  name: "unconfigured",
-  async send() { throw new Error("Messaging provider is not configured"); },
-};
-
-// --- Twilio provider ---------------------------------------------------------
-// Twilio's WhatsApp and SMS sends go through the same Messages endpoint —
-// the only difference is the "whatsapp:" prefix on From/To. No SDK
-// dependency needed, just a signed REST call.
-const twilioProvider = {
-  name: "twilio",
-  async send({ to, body, channel }) {
-    const from = channel === "whatsapp" ? env.twilioWhatsappFrom : env.twilioSmsFrom;
-    if (!env.twilioAccountSid || !env.twilioAuthToken || !from) {
-      throw new Error(`Twilio is not fully configured for channel "${channel}"`);
-    }
-    const toAddress = channel === "whatsapp" ? `whatsapp:${to}` : to;
-
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${env.twilioAccountSid}/Messages.json`;
-    const auth = Buffer.from(`${env.twilioAccountSid}:${env.twilioAuthToken}`).toString("base64");
-    const params = new URLSearchParams({ To: toAddress, From: from, Body: body });
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params,
-      signal: AbortSignal.timeout(10000),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(`Twilio send failed with status ${res.status}`);
-    }
-    return { success: true, providerRef: data.sid };
-  },
-};
-
-function getProvider() {
-  if (env.messagingProvider === "twilio") return twilioProvider;
-  if (env.messagingProvider === "mock" && env.nodeEnv !== "production") return mockProvider;
-  return unavailableProvider;
-}
-
-async function logAttempt({ restaurantId, orderId, phone, channel, purpose, status, providerRef, errorMessage }) {
-  try {
-    await prisma.notificationLog.create({
-      data: { restaurantId, orderId, phone, channel, purpose, status, providerRef, errorMessage },
-    });
-  } catch (err) {
-    // Logging failure should never mask the original send failure/success.
-    console.error("Failed to write NotificationLog:", err.message);
-  }
-}
-
-// Sends on the restaurant's preferred channel, falling back to SMS if that
-// fails (e.g. WhatsApp sandbox recipient hasn't opted in, or WhatsApp
-// delivery is otherwise unavailable) and SMS is configured as a fallback
-// option. Always resolves — never throws — because a failed notification
-// must never break the OTP or order flow that triggered it; check the
-// returned { success } instead.
-async function sendMessage({ restaurantId, orderId, phone, body, purpose, preferredChannel = "whatsapp" }) {
-  const provider = getProvider();
-  const channelsToTry = preferredChannel === "sms" ? ["sms"] : ["whatsapp", "sms"];
-
-  let lastError = null;
-  for (const channel of channelsToTry) {
-    try {
-      const result = await provider.send({ to: phone, body, channel });
-      await logAttempt({ restaurantId, orderId, phone, channel, purpose, status: "sent", providerRef: result.providerRef });
-      return { success: true, channel };
-    } catch (err) {
-      lastError = err;
-      await logAttempt({ restaurantId, orderId, phone, channel, purpose, status: "failed", errorMessage: "Provider delivery failed" });
-      // Only fall through to SMS if WhatsApp was the one that failed AND
-      // there's another channel to try.
-    }
-  }
-  console.error(JSON.stringify({ event: "message_delivery_failed", purpose, reason: "provider_unavailable" }));
-  return { success: false, error: lastError?.message };
+/**
+ * Backwards-compatible wrapper delegating to the centralized communicationsService.
+ * Preserves the exact signature expected across orderService and tests.
+ */
+async function sendMessage({
+  restaurantId = null,
+  orderId = null,
+  phone,
+  body,
+  purpose = "general",
+  preferredChannel = "whatsapp",
+  templateKey = null,
+  templateData = {},
+  idempotencyKey = null,
+}) {
+  return communicationsService.dispatchMessage({
+    restaurantId,
+    orderId,
+    phone,
+    customBody: body,
+    purpose,
+    templateKey,
+    templateData,
+    preferredChannel,
+    allowFallback: true,
+    idempotencyKey,
+  });
 }
 
 module.exports = { sendMessage };

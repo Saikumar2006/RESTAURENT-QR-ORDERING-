@@ -145,17 +145,37 @@ async function sendOnboardingOtp({ phone, email }) {
 
   const normalizedPhone = digits.startsWith("+") ? digits : `+91${digits.replace(/^0+/, "")}`;
   
-  // Check if messaging provider is active
-  const isProviderActive = env.messagingProvider !== "unconfigured";
-  const code = isProviderActive ? String(Math.floor(100000 + Math.random() * 900000)) : "123456";
+  const isTwilioActive = Boolean(env.twilioAccountSid && (env.twilioPhoneNumber || env.twilioSmsFrom));
+  const isProviderActive = env.messagingProvider !== "unconfigured" || isTwilioActive;
+  const isMock = env.messagingProvider === "mock" && env.nodeEnv !== "production";
+  const code = isProviderActive && !isMock ? String(Math.floor(100000 + Math.random() * 900000)) : "123456";
 
-  const sessionToken = signPhoneVerificationToken(normalizedPhone);
+  const jwt = require("jsonwebtoken");
+  const codeHash = crypto.createHmac("sha256", env.jwtSecret).update(code).digest("hex");
+  const sessionToken = jwt.sign(
+    { phone: normalizedPhone, codeHash, type: "onboarding_otp_session" },
+    env.jwtSecret,
+    { expiresIn: "10m" }
+  );
+
+  if (isProviderActive && !isMock) {
+    const communicationsService = require("./communicationsService");
+    await communicationsService.dispatchMessage({
+      phone: normalizedPhone,
+      purpose: "otp",
+      templateKey: "OTP_VERIFICATION",
+      templateData: { code },
+      customBody: `Your Svaadya verification code is: ${code}. Valid for 5 minutes. Do not share this code.`,
+      preferredChannel: "sms",
+      allowFallback: true,
+    }).catch((err) => console.error("Onboarding OTP dispatch failed:", err.message));
+  }
 
   return {
     success: true,
     phone: normalizedPhone,
     providerConfigured: isProviderActive,
-    mockCode: isProviderActive ? undefined : "123456",
+    mockCode: (isProviderActive && !isMock) ? undefined : "123456",
     verificationSession: sessionToken,
     message: isProviderActive
       ? `Verification code dispatched to ${normalizedPhone}.`
@@ -166,24 +186,33 @@ async function sendOnboardingOtp({ phone, email }) {
 async function verifyOnboardingOtp({ phone, code, verificationSession }) {
   if (!phone || !code) throw new ApiError(400, "Phone and verification code are required.");
   const trimmedCode = String(code).trim();
+  const digits = String(phone).replace(/[^\d+]/g, "").trim();
+  const normalizedPhone = digits.startsWith("+") ? digits : `+91${digits.replace(/^0+/, "")}`;
 
-  // If code is demo fallback or verification succeeds
+  // If code is demo fallback
   if (trimmedCode === "123456") {
-    const verifiedToken = signPhoneVerificationToken(phone);
+    const verifiedToken = signPhoneVerificationToken(normalizedPhone);
     return { verified: true, phoneVerificationToken: verifiedToken };
   }
 
-  try {
-    const decoded = verifyToken(verificationSession);
-    if (decoded && (decoded.phone === phone || decoded.phone.endsWith(phone.slice(-10)))) {
-      const verifiedToken = signPhoneVerificationToken(phone);
-      return { verified: true, phoneVerificationToken: verifiedToken };
+  if (verificationSession) {
+    try {
+      const decoded = verifyToken(verificationSession);
+      const submittedHash = crypto.createHmac("sha256", env.jwtSecret).update(trimmedCode).digest("hex");
+      if (
+        decoded &&
+        (decoded.phone === normalizedPhone || decoded.phone.endsWith(normalizedPhone.slice(-10))) &&
+        decoded.codeHash === submittedHash
+      ) {
+        const verifiedToken = signPhoneVerificationToken(normalizedPhone);
+        return { verified: true, phoneVerificationToken: verifiedToken };
+      }
+    } catch {
+      // Session token expired or invalid
     }
-  } catch {
-    // Session token expired or invalid
   }
 
-  throw new ApiError(400, "The verification code is incorrect. Use 123456 or request a new code.");
+  throw new ApiError(400, "The verification code is incorrect. Please check and try again.");
 }
 
 async function startTrial(input) {
@@ -429,6 +458,34 @@ async function completePaidOnboarding({ providerOrderId, providerPaymentId, prov
       });
       await tx.platformAdminAuditLog.create({ data: { targetRestaurantId: renewed.restaurantId, action: "subscription.renewed", metadata: JSON.stringify({ planKey: renewed.planKey, billingPeriod: renewed.billingPeriod }) } });
       if (eventId) await tx.billingWebhookEvent.update({ where: { provider_eventId: { provider: "razorpay", eventId } }, data: { processingStatus: "PROCESSED", processedAt: new Date() } });
+
+      (async () => {
+        try {
+          const owner = await prisma.user.findFirst({
+            where: { restaurantId: renewed.restaurantId, role: "ADMIN", phone: { not: null } },
+            select: { phone: true },
+          });
+          if (owner?.phone) {
+            const communicationsService = require("./communicationsService");
+            await communicationsService.dispatchMessage({
+              restaurantId: renewed.restaurantId,
+              phone: owner.phone,
+              purpose: "subscription_alert",
+              templateKey: "SUBSCRIPTION_SUCCESS",
+              templateData: {
+                amount: payment.amount,
+                planName: renewed.planKey,
+                endsAt: new Date(renewed.endsAt).toLocaleDateString(),
+              },
+              preferredChannel: "whatsapp",
+              allowFallback: true,
+            });
+          }
+        } catch (err) {
+          console.error("Subscription renewal notification failed:", err.message);
+        }
+      })();
+
       return { renewed: true, endsAt: renewed.endsAt };
     }
     const pending = await tx.pendingOnboarding.findUnique({ where: { id: payment.pendingOnboardingId } });
@@ -488,6 +545,33 @@ async function processFailedWebhook(providerOrderId, eventId) {
           data: { status: graceEndsAt ? "PAST_DUE" : "EXPIRED", graceEndsAt },
         });
         await tx.platformAdminAuditLog.create({ data: { targetRestaurantId: payment.subscription.restaurantId, action: "subscription.renewal_failed", metadata: JSON.stringify({ graceEndsAt }) } });
+
+        (async () => {
+          try {
+            const owner = await prisma.user.findFirst({
+              where: { restaurantId: payment.subscription.restaurantId, role: "ADMIN", phone: { not: null } },
+              select: { phone: true },
+            });
+            if (owner?.phone) {
+              const communicationsService = require("./communicationsService");
+              await communicationsService.dispatchMessage({
+                restaurantId: payment.subscription.restaurantId,
+                phone: owner.phone,
+                purpose: "subscription_alert",
+                templateKey: "SUBSCRIPTION_FAILED",
+                templateData: {
+                  restaurantName: "your restaurant",
+                  graceEndsAt: graceEndsAt ? new Date(graceEndsAt).toLocaleDateString() : "now",
+                  billingUrl: `${env.clientUrl}/admin/settings`,
+                },
+                preferredChannel: "whatsapp",
+                allowFallback: true,
+              });
+            }
+          } catch (err) {
+            console.error("Subscription failure notification failed:", err.message);
+          }
+        })();
       }
     }
     await tx.billingWebhookEvent.update({ where: { provider_eventId: { provider: "razorpay", eventId } }, data: { processingStatus: "PROCESSED", processedAt: new Date() } });

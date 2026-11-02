@@ -32,6 +32,7 @@ const StaffAccess = lazy(() => import("./pages/admin/StaffAccess.jsx"));
 const PlatformLogin = lazy(() => import("./pages/platform/PlatformLogin.jsx"));
 const PlatformDashboard = lazy(() => import("./pages/platform/PlatformDashboard.jsx"));
 const PlatformAccess = lazy(() => import("./pages/platform/PlatformAccess.jsx"));
+const PlatformShell = lazy(() => import("./pages/platform/PlatformShell.jsx"));
 const ActivateAccount = lazy(() => import("./pages/platform/ActivateAccount.jsx"));
 const PricingPage = lazy(() => import("./pages/PublicPages.jsx").then((module) => ({ default: module.PricingPage })));
 const OnboardingPage = lazy(() => import("./pages/PublicPages.jsx").then((module) => ({ default: module.OnboardingPage })));
@@ -158,23 +159,11 @@ export default function App() {
       <Route path="/super-admin/login" element={<PlatformLogin />} />
       <Route path="/platform" element={<Navigate to="/platform/dashboard" replace />} />
       <Route path="/super-admin" element={<Navigate to="/super-admin/dashboard" replace />} />
-      <Route
-        path="/platform/dashboard"
-        element={
-          <PlatformProtectedRoute>
-            <PlatformDashboard />
-          </PlatformProtectedRoute>
-        }
-      />
-      <Route path="/platform/access" element={<PlatformProtectedRoute><PlatformAccess /></PlatformProtectedRoute>} />
-      <Route
-        path="/super-admin/dashboard"
-        element={
-          <PlatformProtectedRoute>
-            <PlatformDashboard />
-          </PlatformProtectedRoute>
-        }
-      />
+      <Route element={<PlatformProtectedRoute><PlatformShell /></PlatformProtectedRoute>}>
+        <Route path="/platform/dashboard" element={<PlatformDashboard />} />
+        <Route path="/platform/access" element={<PlatformAccess />} />
+        <Route path="/super-admin/dashboard" element={<PlatformDashboard />} />
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>

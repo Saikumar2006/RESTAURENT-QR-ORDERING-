@@ -23,7 +23,11 @@ router.get("/audit", requirePlatformAuth, requirePlatformPermission("platform.au
 // Super Admin Package & Subscription Management
 router.get("/packages", requirePlatformAuth, platformController.getPackages);
 router.put("/packages", requirePlatformAuth, requirePlatformPermission("platform.restaurants.manage"), platformController.updatePackages);
-router.get("/subscriptions", requirePlatformAuth, requirePlatformPermission("platform.restaurants.view"), platformController.listSubscriptions);
+router.get("/subscriptions", requirePlatformAuth, requirePlatformPermission("platform.restaurants.view", "platform.finance.view"), platformController.listSubscriptions);
 router.get("/pending-onboardings", requirePlatformAuth, requirePlatformPermission("platform.restaurants.view"), platformController.listPendingOnboardings);
+
+// Super Admin Communications
+const communicationsRoutes = require("./communications");
+router.use("/communications", communicationsRoutes);
 
 module.exports = router;

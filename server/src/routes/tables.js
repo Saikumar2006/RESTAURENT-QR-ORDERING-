@@ -7,6 +7,8 @@ const { tableUpdateSchema, addOrderItemsSchema } = require("../validators/schema
 
 const router = express.Router();
 
+router.get("/:id/qr", requireAuth, requirePermission("tables.qr.manage", "tables.view"), restaurantController.generateTableQr);
+router.post("/:id/rotate-token", requireAuth, requirePermission("tables.qr.manage", "tables.manage"), restaurantController.rotateTableToken);
 router.get("/:id/active-order", requireAuth, requirePermission("orders.view"), orderController.getActiveOrderForTable);
 router.post("/:id/active-order/items", requireAuth, requirePermission("orders.update"), validateBody(addOrderItemsSchema), orderController.addItemsToActiveOrder);
 router.put("/:id", requireAuth, requirePermission("tables.manage"), validateBody(tableUpdateSchema), restaurantController.updateTable);

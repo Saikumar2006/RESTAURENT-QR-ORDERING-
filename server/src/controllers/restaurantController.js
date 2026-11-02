@@ -56,6 +56,18 @@ const generateRestaurantQr = asyncHandler(async (req, res) => {
   ok(res, qr);
 });
 
+// Dedicated QR for a specific table encoding its rotating secure tableToken
+const generateTableQr = asyncHandler(async (req, res) => {
+  const qr = await tableService.generateTableQr(req.user.restaurantId, req.params.id);
+  ok(res, qr);
+});
+
+// Rotate tableToken and generate a refreshed QR
+const rotateTableToken = asyncHandler(async (req, res) => {
+  const qr = await tableService.rotateTableToken(req.user.restaurantId, req.params.id);
+  ok(res, qr);
+});
+
 // --- Staff -------------------------------------------------------------
 
 const listStaff = asyncHandler(async (req, res) => {
@@ -167,6 +179,8 @@ module.exports = {
   updateTable,
   disableTable,
   generateRestaurantQr,
+  generateTableQr,
+  rotateTableToken,
   listStaff,
   createStaff,
   createStaffInvitation,

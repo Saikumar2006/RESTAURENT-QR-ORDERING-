@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useNavigate, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { useCart } from "../../store/CartContext.jsx";
 import { Spinner } from "../../components/Ui.jsx";
 import { resolveAssetUrl } from "../../utils/assetUrl.js";
 import { getCurrentPosition, distanceMeters } from "../../utils/geo.js";
 
-// This is the ONE page every customer lands on after scanning the single
-// restaurant QR. From here they choose "Dine in" (and which table) or
-// "Takeaway" — replacing the old one-QR-per-table approach.
+// This is the ONE page every customer lands on after scanning the QR code.
+// When an individual table QR is scanned, tableToken in the URL automatically
+// binds their table and opens the menu immediately.
 export default function RestaurantLanding() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
   const { setSession } = useCart();
   const [context, setContext] = useState(null);
   const [error, setError] = useState(null); // { status, message } | null
   const [mode, setMode] = useState(null); // null | "dine-in"
+  const [tokenWarning, setTokenWarning] = useState(null);
 
   // "checking" | "inside" | "outside" | "error" | "not-required"
   const [geoStatus, setGeoStatus] = useState("checking");
@@ -29,6 +31,29 @@ export default function RestaurantLanding() {
       .then(setContext)
       .catch((err) => setError({ status: err.status, message: err.message }));
   }, [slug]);
+
+  // If a table QR was scanned with a secure tableToken, auto-select the table
+  useEffect(() => {
+    if (!context?.tables) return;
+    const tokenParam = searchParams.get("tableToken") || searchParams.get("token") || searchParams.get("t");
+    if (!tokenParam) return;
+
+    const matchedTable = context.tables.find((t) => t.tableToken === tokenParam);
+    if (matchedTable) {
+      setSession({
+        slug,
+        orderType: "DINE_IN",
+        tableToken: matchedTable.tableToken,
+        tableNumber: matchedTable.tableNumber,
+        restaurant: context.restaurant,
+        location: verifiedLocation,
+      });
+      navigate(`/r/${slug}/menu`);
+    } else {
+      setTokenWarning("This table QR token is invalid or has expired. Please select your table below.");
+      setMode("dine-in");
+    }
+  }, [context, searchParams, slug, verifiedLocation, navigate, setSession]);
 
   useEffect(() => {
     if (!context) return;
@@ -168,6 +193,12 @@ export default function RestaurantLanding() {
       <p className="text-charcoal/50 text-sm max-w-xs mb-10">
         Browse the menu, build your order, and pay right from your phone — no waiting for a waiter.
       </p>
+
+      {tokenWarning && (
+        <div className="mb-6 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs text-left max-w-xs shadow-xs">
+          ⚠️ {tokenWarning}
+        </div>
+      )}
 
       {mode !== "dine-in" && (
         <div className="w-full max-w-xs space-y-3">

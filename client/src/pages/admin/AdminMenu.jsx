@@ -55,7 +55,9 @@ export default function AdminMenu() {
   const [savingCategory, setSavingCategory] = useState(false);
 
   async function refresh() {
+    if (!user?.restaurantId) return;
     try {
+      setError(null);
       const data = await api.get(`/restaurants/${user.restaurantId}/menu`);
       setCategories(data);
       // Auto select first item if none selected
@@ -75,13 +77,15 @@ export default function AdminMenu() {
         });
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to load restaurant menu. Please retry.");
     }
   }
 
   useEffect(() => {
-    refresh();
-  }, []);
+    if (user?.restaurantId) {
+      refresh();
+    }
+  }, [user?.restaurantId]);
 
   // Compute stats for 4 KPI cards
   const stats = useMemo(() => {
@@ -193,24 +197,27 @@ export default function AdminMenu() {
     e.preventDefault();
     if (!itemDraft.name.trim()) return setError("Item name is required.");
     if (!itemDraft.price || Number(itemDraft.price) <= 0) return setError("Valid price is required.");
+    const targetCategoryId = itemDraft.categoryId || categories?.[0]?.id;
+    if (!targetCategoryId) return setError("Please create or select a category first.");
+
     setSavingItem(true);
     setError(null);
 
     const payload = {
+      categoryId: targetCategoryId,
       name: itemDraft.name.trim(),
-      description: itemDraft.description.trim() || undefined,
+      description: itemDraft.description?.trim() || undefined,
       price: Number(itemDraft.price),
       imageUrl: itemDraft.imageUrl || undefined,
-      isAvailable: itemDraft.isAvailable,
-      isVeg: itemDraft.isVeg,
-      isBestseller: itemDraft.isBestseller,
+      isAvailable: itemDraft.isAvailable !== false,
+      isVeg: Boolean(itemDraft.isVeg),
     };
 
     try {
       if (itemDraft.id) {
         await api.put(`/menu-items/${itemDraft.id}`, payload);
       } else {
-        await api.post(`/categories/${itemDraft.categoryId}/menu-items`, payload);
+        await api.post(`/menu-items`, payload);
       }
       await refresh();
     } catch (err) {
@@ -240,7 +247,24 @@ export default function AdminMenu() {
     }
   }
 
-  if (!categories && !error) return <Spinner label="Loading restaurant menu..." />;
+  if (!categories) {
+    if (error) {
+      return (
+        <div className="p-8 max-w-lg mx-auto space-y-4 text-center">
+          <ErrorBanner message={error} onDismiss={() => setError(null)} />
+          <p className="text-xs text-slate-500">Could not retrieve menu categories and items for this restaurant.</p>
+          <button
+            type="button"
+            onClick={refresh}
+            className="btn-primary text-xs mx-auto"
+          >
+            Retry Loading Menu
+          </button>
+        </div>
+      );
+    }
+    return <Spinner label="Loading restaurant menu..." />;
+  }
 
   const allItemCount = categories?.reduce((sum, c) => sum + (c.menuItems?.length || 0), 0) || 0;
 
@@ -355,7 +379,7 @@ export default function AdminMenu() {
             </button>
 
             {/* Category Items */}
-            {categories.map((cat) => {
+            {(categories || []).map((cat) => {
               const count = cat.menuItems?.length || 0;
               const isSelected = selectedCategory === cat.id;
               return (

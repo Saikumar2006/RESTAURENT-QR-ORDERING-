@@ -37,7 +37,20 @@ async function deleteCategory(restaurantId, categoryId) {
 async function createMenuItem(restaurantId, data) {
   const category = await prisma.category.findFirst({ where: { id: data.categoryId, restaurantId } });
   if (!category) throw new ApiError(400, "Invalid category for this restaurant");
-  const item = await prisma.menuItem.create({ data: { ...data, restaurantId } });
+
+  const sanitizedData = {
+    restaurantId,
+    categoryId: data.categoryId,
+    name: String(data.name).trim(),
+    description: data.description ? String(data.description).trim() : null,
+    price: Number(data.price),
+    imageUrl: data.imageUrl || null,
+    isVeg: data.isVeg !== undefined ? Boolean(data.isVeg) : true,
+    isAvailable: data.isAvailable !== undefined ? Boolean(data.isAvailable) : true,
+    displayOrder: Number.isInteger(data.displayOrder) ? data.displayOrder : 0,
+  };
+
+  const item = await prisma.menuItem.create({ data: sanitizedData });
   await invalidateRestaurantMenuCache(restaurantId);
   return item;
 }
@@ -49,7 +62,18 @@ async function updateMenuItem(restaurantId, menuItemId, data) {
     const category = await prisma.category.findFirst({ where: { id: data.categoryId, restaurantId } });
     if (!category) throw new ApiError(400, "Invalid category for this restaurant");
   }
-  const updated = await prisma.menuItem.update({ where: { id: menuItemId }, data });
+
+  const updateData = {};
+  if (data.name !== undefined) updateData.name = String(data.name).trim();
+  if (data.description !== undefined) updateData.description = data.description ? String(data.description).trim() : null;
+  if (data.price !== undefined) updateData.price = Number(data.price);
+  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
+  if (data.isVeg !== undefined) updateData.isVeg = Boolean(data.isVeg);
+  if (data.isAvailable !== undefined) updateData.isAvailable = Boolean(data.isAvailable);
+  if (data.displayOrder !== undefined) updateData.displayOrder = Number(data.displayOrder);
+  if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+
+  const updated = await prisma.menuItem.update({ where: { id: menuItemId }, data: updateData });
   await invalidateRestaurantMenuCache(restaurantId);
   return updated;
 }

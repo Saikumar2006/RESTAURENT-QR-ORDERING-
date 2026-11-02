@@ -45,9 +45,16 @@ router.post("/:id/website-theme/versions/:versionId/rollback", requireAuth, requ
 router.post("/:id/website-theme/restore-default", requireAuth, requirePermission("settings.update"), websiteThemeController.restoreDefault);
 router.post("/:id/website-theme/images", requireAuth, requirePermission("settings.update"), handleThemeImageUpload, websiteThemeController.uploadImage);
 
-// Single QR code for the whole restaurant (dine-in table / takeaway is
-// chosen by the customer after landing, not baked into the QR).
-router.get("/:id/qr", requireAuth, requirePermission("tables.qr.manage"), restaurantController.generateRestaurantQr);
+// QR code endpoints for the restaurant and individual tables
+router.get("/:id/qr", requireAuth, requirePermission("tables.qr.manage", "tables.view"), restaurantController.generateRestaurantQr);
+router.get("/:id/tables/:tableId/qr", requireAuth, requirePermission("tables.qr.manage", "tables.view"), (req, res, next) => {
+  req.params.id = req.params.tableId;
+  restaurantController.generateTableQr(req, res, next);
+});
+router.post("/:id/tables/:tableId/rotate-token", requireAuth, requirePermission("tables.qr.manage", "tables.manage"), (req, res, next) => {
+  req.params.id = req.params.tableId;
+  restaurantController.rotateTableToken(req, res, next);
+});
 
 // Tables (nested under restaurant for creation/listing, per the spec's API table)
 router.get("/:id/tables", requireAuth, requirePermission("tables.view"), restaurantController.listTables);

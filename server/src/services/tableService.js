@@ -85,11 +85,66 @@ function buildRestaurantUrl(slug) {
   return `${env.clientUrl}/r/${slug}`;
 }
 
-// One QR per restaurant, not one per table.
+function buildTableUrl(slug, tableToken) {
+  return `${env.clientUrl}/r/${slug}?tableToken=${encodeURIComponent(tableToken)}`;
+}
+
+// Unified QR for the restaurant (customer chooses dine-in or takeaway)
 async function generateRestaurantQr(slug) {
   const url = buildRestaurantUrl(slug);
   const dataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
   return { url, dataUrl };
+}
+
+// Dedicated QR for a specific dining table carrying its secure rotating tableToken
+async function generateTableQr(restaurantId, tableId) {
+  const table = await prisma.table.findFirst({
+    where: { id: tableId, restaurantId },
+    include: { restaurant: true },
+  });
+  if (!table) throw new ApiError(404, "Table not found");
+
+  const url = buildTableUrl(table.restaurant.slug, table.tableToken);
+  const dataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+  return {
+    tableId: table.id,
+    tableNumber: table.tableNumber,
+    tableToken: table.tableToken,
+    url,
+    dataUrl,
+    restaurantName: table.restaurant.name,
+    restaurantSlug: table.restaurant.slug,
+  };
+}
+
+// Rotates the secure tableToken and returns the freshly generated QR code
+async function rotateTableToken(restaurantId, tableId) {
+  const table = await prisma.table.findFirst({
+    where: { id: tableId, restaurantId },
+    include: { restaurant: true },
+  });
+  if (!table) throw new ApiError(404, "Table not found");
+
+  const { randomUUID } = require("crypto");
+  const newToken = randomUUID();
+  const updated = await prisma.table.update({
+    where: { id: tableId },
+    data: { tableToken: newToken },
+    include: { restaurant: true },
+  });
+  await invalidatePublicTables(restaurantId);
+
+  const url = buildTableUrl(table.restaurant.slug, newToken);
+  const dataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+  return {
+    tableId: updated.id,
+    tableNumber: updated.tableNumber,
+    tableToken: updated.tableToken,
+    url,
+    dataUrl,
+    restaurantName: updated.restaurant.name,
+    restaurantSlug: updated.restaurant.slug,
+  };
 }
 
 // Resolves the public table context from a table token (chosen by the
@@ -124,7 +179,10 @@ module.exports = {
   updateTable,
   disableTable,
   generateRestaurantQr,
+  generateTableQr,
+  rotateTableToken,
   buildRestaurantUrl,
+  buildTableUrl,
   resolveTableByToken,
   resolveRestaurantBySlug,
 };

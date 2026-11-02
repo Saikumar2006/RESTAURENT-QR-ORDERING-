@@ -40,6 +40,8 @@ export default function AdminTables() {
   const [qrData, setQrData] = useState(null);
   const [qrOpen, setQrOpen] = useState(false);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrMode, setQrMode] = useState("restaurant"); // "restaurant" | "table"
+  const [qrTargetTable, setQrTargetTable] = useState(null);
 
   async function refresh(targetTableNumber = null) {
     try {
@@ -183,17 +185,59 @@ export default function AdminTables() {
     }
   }
 
-  async function openQr() {
+  async function openRestaurantQr() {
+    setQrMode("restaurant");
+    setQrTargetTable(null);
     setQrOpen(true);
-    if (qrData) return;
     setQrLoading(true);
     try {
       const data = await api.get(`/restaurants/${user.restaurantId}/qr`);
       setQrData(data);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to load restaurant QR");
     } finally {
       setQrLoading(false);
+    }
+  }
+
+  async function openTableQr(table) {
+    if (!table) return;
+    setQrMode("table");
+    setQrTargetTable(table);
+    setQrOpen(true);
+    setQrLoading(true);
+    try {
+      const data = await api.get(`/tables/${table.id}/qr`);
+      setQrData(data);
+    } catch (err) {
+      setError(err.message || `Failed to load Table ${table.tableNumber} QR`);
+    } finally {
+      setQrLoading(false);
+    }
+  }
+
+  async function handleRotateTableToken(table) {
+    if (!table) return;
+    if (!confirm(`Rotate security token for Table ${table.tableNumber}? Previously printed or shared QR codes for this table will be immediately invalidated.`)) return;
+    setQrLoading(true);
+    try {
+      const data = await api.post(`/tables/${table.id}/rotate-token`);
+      setQrData(data);
+      setSuccessMsg(`Table ${table.tableNumber} QR token refreshed successfully!`);
+      setTimeout(() => setSuccessMsg(null), 4000);
+      await refresh(table.tableNumber);
+    } catch (err) {
+      setError(err.message || "Failed to rotate table QR token");
+    } finally {
+      setQrLoading(false);
+    }
+  }
+
+  function openQr() {
+    if (selectedTable) {
+      openTableQr(selectedTable);
+    } else {
+      openRestaurantQr();
     }
   }
 
@@ -470,19 +514,34 @@ export default function AdminTables() {
                   </div>
                 )}
 
-                {/* QR Shortcut */}
-                <div className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs bg-slate-50/50">
-                  <div className="flex items-center gap-2">
-                    <span>📱</span>
-                    <span className="font-semibold text-slate-800">Restaurant QR Code</span>
+                {/* QR Shortcuts */}
+                <div className="space-y-2 pt-2">
+                  <div className="p-3 rounded-xl border border-indigo-100 bg-indigo-50/60 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span>📱</span>
+                      <span className="font-semibold text-indigo-950">Table {selectedTable.tableNumber} Dedicated QR</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openTableQr(selectedTable)}
+                      className="text-indigo-600 font-bold hover:underline"
+                    >
+                      View QR →
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={openQr}
-                    className="text-indigo-600 font-bold hover:underline"
-                  >
-                    View QR →
-                  </button>
+                  <div className="p-2.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs bg-slate-50/50">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">🏛️</span>
+                      <span className="font-medium text-slate-700">Unified Restaurant QR</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openRestaurantQr}
+                      className="text-slate-600 font-semibold hover:underline"
+                    >
+                      View →
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -549,6 +608,14 @@ export default function AdminTables() {
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => openTableQr(table)}
+                        className="btn-secondary py-1 px-2.5 text-xs text-indigo-700 font-semibold inline-flex items-center gap-1 shadow-2xs"
+                        title="View and print table QR code"
+                      >
+                        <span>📱 QR</span>
+                      </button>
                       {active && (
                         <button
                           type="button"
@@ -574,25 +641,62 @@ export default function AdminTables() {
         </div>
       )}
 
-      {/* TAB 3: QR Code Downloader */}
+      {/* TAB 3: QR Code Downloader & Management Hub */}
       {activeTab === "qr" && (
-        <div className="card p-8 max-w-xl mx-auto text-center space-y-4 border-slate-200">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-2xl shadow-xs">
-            📱
-          </div>
-          <h3 className="text-lg font-bold text-slate-900">Unified Restaurant QR Code</h3>
-          <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-            One QR code for your entire restaurant. Print and place this on tables and the payment counter.
-            Guests scan to view the live menu, select their table, and order directly.
-          </p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Unified Restaurant QR */}
+            <div className="card p-6 text-center space-y-4 border-slate-200">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-xl shadow-xs">
+                🏛️
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Unified Restaurant QR Code</h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  One universal QR code for your establishment. Customers scan to land on the welcome page, choose takeaway or select their table.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openRestaurantQr}
+                className="btn-primary text-xs mx-auto flex items-center gap-2 shadow-xs"
+              >
+                <span>View & Print Restaurant QR</span>
+              </button>
+            </div>
 
-          <button
-            type="button"
-            onClick={openQr}
-            className="btn-primary text-xs mx-auto flex items-center gap-2 shadow-xs"
-          >
-            <span>Open & Print Official QR Code</span>
-          </button>
+            {/* Individual Table QRs Overview */}
+            <div className="card p-6 space-y-4 border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center text-xl shadow-xs">
+                  📱
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Table-Specific Secure QRs</h3>
+                  <p className="text-xs text-slate-500">
+                    Each table has a dedicated QR code encoding a secure, rotating token for automatic table binding.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-slate-700 mb-2">Select a table to generate its QR:</p>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
+                  {tables.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => openTableQr(t)}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 hover:border-indigo-600 hover:bg-indigo-50/50 transition flex items-center gap-1.5"
+                    >
+                      <span>Table {t.tableNumber}</span>
+                      <span className="text-[10px] text-indigo-600">›</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -794,33 +898,140 @@ export default function AdminTables() {
       {/* QR Code Modal */}
       {qrOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900">Restaurant Dine-In QR</h3>
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 text-center space-y-4 shadow-2xl animate-scale-in">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="text-left">
+                <h3 className="text-base font-bold text-slate-900">
+                  {qrMode === "table" ? `Table ${qrTargetTable?.tableNumber} Dedicated QR` : "Restaurant Unified QR"}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {qrMode === "table"
+                    ? "Encodes secure rotating table token for instant table ordering."
+                    : "Encodes restaurant landing page where guests choose table or takeaway."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={openRestaurantQr}
+                className={`flex-1 py-1.5 rounded-lg transition ${
+                  qrMode === "restaurant" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Restaurant QR
+              </button>
+              <button
+                type="button"
+                onClick={() => qrTargetTable ? openTableQr(qrTargetTable) : (tables?.[0] ? openTableQr(tables[0]) : null)}
+                className={`flex-1 py-1.5 rounded-lg transition ${
+                  qrMode === "table" ? "bg-white text-indigo-700 shadow-2xs" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {qrTargetTable ? `Table ${qrTargetTable.tableNumber} QR` : "Table QR"}
+              </button>
+            </div>
+
             {qrLoading ? (
-              <Spinner label="Generating high-resolution QR..." />
+              <div className="py-12">
+                <Spinner label="Generating high-resolution QR..." />
+              </div>
             ) : qrData ? (
-              <div className="space-y-3">
-                <img
-                  src={qrData.qrCode}
-                  alt="Restaurant QR Code"
-                  className="w-56 h-56 mx-auto border border-slate-200 rounded-xl p-2 bg-white shadow-xs"
-                />
-                <p className="text-xs text-slate-500 truncate">{qrData.url}</p>
-                <div className="flex gap-2 justify-center pt-2">
+              <div className="space-y-4">
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl inline-block shadow-xs">
+                  <img
+                    src={qrData.dataUrl}
+                    alt="QR Code"
+                    className="w-56 h-56 mx-auto"
+                  />
+                  {qrMode === "table" && (
+                    <p className="text-xs font-bold text-slate-900 mt-2">
+                      TABLE {qrTargetTable?.tableNumber || qrData.tableNumber}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left text-xs space-y-1">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="font-semibold text-slate-700">Target URL:</span>
+                    <span className="truncate max-w-[220px] font-mono text-[11px]">{qrData.url}</span>
+                  </div>
+                  {qrMode === "table" && qrData.tableToken && (
+                    <div className="flex items-center justify-between text-slate-500">
+                      <span className="font-semibold text-slate-700">Security Token:</span>
+                      <span className="font-mono text-[11px] text-indigo-600">
+                        {qrData.tableToken.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 justify-center pt-1">
                   <a
-                    href={qrData.qrCode}
-                    download="svaadya-restaurant-qr.png"
+                    href={qrData.dataUrl}
+                    download={
+                      qrMode === "table"
+                        ? `svaadya-table-${qrTargetTable?.tableNumber || "qr"}.png`
+                        : "svaadya-restaurant-qr.png"
+                    }
                     className="btn-primary text-xs flex items-center gap-1.5 shadow-xs"
                   >
-                    <span>Download QR</span>
+                    <span>Download PNG</span>
                   </a>
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      const printWin = window.open("", "_blank");
+                      if (printWin) {
+                        printWin.document.write(`
+                          <html>
+                            <head>
+                              <title>${qrMode === 'table' ? `Table ${qrTargetTable?.tableNumber || ''} QR` : 'Restaurant QR'}</title>
+                              <style>
+                                body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; margin: 0; }
+                                h1 { margin-bottom: 4px; font-size: 24px; color: #1e1b4b; }
+                                h2 { color: #4F46E5; margin: 8px 0; font-size: 28px; }
+                                p { color: #64748B; font-size: 13px; margin-top: 4px; }
+                                img { width: 320px; height: 320px; margin: 20px auto; display: block; border: 1px solid #e2e8f0; border-radius: 12px; }
+                              </style>
+                            </head>
+                            <body>
+                              <h1>Svaadya Dining</h1>
+                              ${qrMode === 'table' ? `<h2>Table ${qrTargetTable?.tableNumber || qrData.tableNumber}</h2>` : '<h2>Scan for Digital Menu</h2>'}
+                              <img src="${qrData.dataUrl}" />
+                              <p>Scan with your phone camera to view menu & place order</p>
+                              <script>window.onload = function() { window.print(); window.close(); }</script>
+                            </body>
+                          </html>
+                        `);
+                        printWin.document.close();
+                      }
+                    }}
                     className="btn-secondary text-xs"
                   >
-                    Print
+                    🖨️ Print Standee
                   </button>
+                  {qrMode === "table" && qrTargetTable && (
+                    <button
+                      type="button"
+                      onClick={() => handleRotateTableToken(qrTargetTable)}
+                      className="px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 transition flex items-center gap-1"
+                      title="Invalidates previous QR tokens for this table"
+                    >
+                      🔄 Rotate Token
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -830,7 +1041,7 @@ export default function AdminTables() {
             <button
               type="button"
               onClick={() => setQrOpen(false)}
-              className="text-xs text-slate-500 font-semibold hover:text-slate-800 pt-2 block mx-auto"
+              className="text-xs text-slate-500 font-semibold hover:text-slate-800 pt-1 block mx-auto"
             >
               Close
             </button>

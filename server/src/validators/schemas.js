@@ -53,6 +53,20 @@ const subscriptionRenewSchema = z.object({ billingPeriod: z.enum(["MONTHLY", "3_
 const preferredLanguageSchema = z.object({
   language: z.enum(["en", "hi", "te", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ar"]),
 });
+const supportedMenuLanguageSchema = z.enum(["en", "hi", "te", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ar"]);
+const categoryTranslationsSchema = z.record(
+  supportedMenuLanguageSchema,
+  z.object({ name: z.string().trim().max(120).optional() }).strict(),
+);
+const menuItemTranslationsSchema = z.record(
+  supportedMenuLanguageSchema,
+  z.object({
+    name: z.string().trim().max(200).optional(),
+    description: z.string().trim().max(1000).optional(),
+    variants: z.array(z.string().trim().max(120)).optional(),
+    addons: z.array(z.string().trim().max(120)).optional(),
+  }).strict(),
+);
 
 const restaurantCreateSchema = z.object({
   name: z.string().min(2),
@@ -144,12 +158,14 @@ const floorLayoutUpdateSchema = z.object({
 
 const categoryCreateSchema = z.object({
   name: z.string().min(1),
+  translations: categoryTranslationsSchema.optional().nullable(),
   imageUrl: imageUrlField.optional(),
   displayOrder: z.number().int().optional(),
 });
 
 const categoryUpdateSchema = z.object({
   name: z.string().min(1).optional(),
+  translations: categoryTranslationsSchema.optional().nullable(),
   imageUrl: imageUrlField.optional().nullable(),
   displayOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
@@ -179,6 +195,7 @@ const menuItemCreateSchema = z.object({
   displayOrder: z.number().int().optional(),
   variants: z.array(variantItemSchema).optional().nullable(),
   addons: z.array(addonItemSchema).optional().nullable(),
+  translations: menuItemTranslationsSchema.optional().nullable(),
 });
 
 const menuItemUpdateSchema = menuItemCreateSchema.partial();

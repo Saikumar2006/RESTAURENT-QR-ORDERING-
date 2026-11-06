@@ -22,6 +22,7 @@ import {
 } from "../../components/UiIcons.jsx";
 import { resolveAssetUrl } from "../../utils/assetUrl.js";
 import { getDishImage } from "../../utils/foodImages.js";
+import { LANGUAGES } from "../../i18n/resources.js";
 
 const emptyItemDraft = (categoryId = "") => ({
   id: null,
@@ -35,6 +36,7 @@ const emptyItemDraft = (categoryId = "") => ({
   isBestseller: false,
   variants: [],
   addons: [],
+  translations: {},
 });
 
 export default function AdminMenu() {
@@ -56,12 +58,14 @@ export default function AdminMenu() {
   // Add Category Modal
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryTranslations, setNewCategoryTranslations] = useState({});
   const [savingCategory, setSavingCategory] = useState(false);
 
   // Edit Category Modal
   const [categoryEditModalOpen, setCategoryEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryTranslations, setEditCategoryTranslations] = useState({});
   const [savingCategoryEdit, setSavingCategoryEdit] = useState(false);
 
   // Auto-dismiss success notification
@@ -158,6 +162,7 @@ export default function AdminMenu() {
       addons: Array.isArray(item.addons)
         ? item.addons.map((a) => ({ ...a, price: Number(a.price) || 0 }))
         : [],
+      translations: item.translations || {},
     });
   }
 
@@ -240,6 +245,22 @@ export default function AdminMenu() {
         name: a.name.trim(),
         price: Math.max(0, Number(a.price) || 0),
       }));
+    const variantIndices = (itemDraft.variants || []).map((variant, index) => (
+      variant.name?.trim() ? index : -1
+    )).filter((index) => index >= 0);
+    const addonIndices = (itemDraft.addons || []).map((addon, index) => (
+      addon.name?.trim() ? index : -1
+    )).filter((index) => index >= 0);
+    const translations = Object.fromEntries(
+      Object.entries(itemDraft.translations || {}).map(([language, translation]) => [
+        language,
+        {
+          ...translation,
+          variants: variantIndices.map((index) => translation.variants?.[index] || ""),
+          addons: addonIndices.map((index) => translation.addons?.[index] || ""),
+        },
+      ]),
+    );
 
     const payload = {
       categoryId: targetCategoryId,
@@ -252,6 +273,7 @@ export default function AdminMenu() {
       isBestseller: Boolean(itemDraft.isBestseller),
       variants: cleanVariants.length > 0 ? cleanVariants : null,
       addons: cleanAddons.length > 0 ? cleanAddons : null,
+      translations,
     };
 
     try {
@@ -279,9 +301,11 @@ export default function AdminMenu() {
     try {
       const created = await api.post("/categories", {
         name: newCategoryName.trim(),
+        translations: newCategoryTranslations,
         displayOrder: categories?.length || 0,
       });
       setNewCategoryName("");
+      setNewCategoryTranslations({});
       setCategoryModalOpen(false);
       setSuccessMessage(`Category "${created.name}" created.`);
       await refresh();
@@ -297,6 +321,7 @@ export default function AdminMenu() {
     e.stopPropagation();
     setEditingCategory(cat);
     setEditCategoryName(cat.name);
+    setEditCategoryTranslations(cat.translations || {});
     setCategoryEditModalOpen(true);
   }
 
@@ -308,6 +333,7 @@ export default function AdminMenu() {
     try {
       await api.put(`/categories/${editingCategory.id}`, {
         name: editCategoryName.trim(),
+        translations: editCategoryTranslations,
       });
       setCategoryEditModalOpen(false);
       setEditingCategory(null);
@@ -838,6 +864,87 @@ export default function AdminMenu() {
                 />
               </div>
 
+              <details className="rounded-lg border border-slate-200 p-3">
+                <summary className="cursor-pointer font-semibold text-slate-700">
+                  Menu translations
+                  {itemDraft.id && selectedItem?.missingTranslationLanguages?.length > 0 && (
+                    <span className="ms-2 text-amber-700 font-normal">
+                      Missing: {selectedItem.missingTranslationLanguages.join(", ")}
+                    </span>
+                  )}
+                </summary>
+                <p className="my-2 text-[11px] text-slate-500">
+                  Original item content stays unchanged. Empty translations fall back to the original.
+                </p>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => {
+                    const translation = itemDraft.translations?.[code] || {};
+                    return (
+                      <details key={code} className="rounded border border-slate-100 p-2">
+                        <summary className="cursor-pointer font-medium">{languageName}</summary>
+                        <div className="mt-2 space-y-2">
+                          <input
+                            className="input"
+                            aria-label={`${languageName} item name`}
+                            placeholder={`Item name (${languageName})`}
+                            value={translation.name || ""}
+                            onChange={(event) => setItemDraft((draft) => ({
+                              ...draft,
+                              translations: { ...draft.translations, [code]: { ...draft.translations?.[code], name: event.target.value } },
+                            }))}
+                          />
+                          <textarea
+                            className="input resize-none"
+                            rows={2}
+                            aria-label={`${languageName} item description`}
+                            placeholder={`Description (${languageName})`}
+                            value={translation.description || ""}
+                            onChange={(event) => setItemDraft((draft) => ({
+                              ...draft,
+                              translations: { ...draft.translations, [code]: { ...draft.translations?.[code], description: event.target.value } },
+                            }))}
+                          />
+                          {(itemDraft.variants || []).map((variant, index) => (
+                            <input
+                              key={`variant-${variant.id || index}`}
+                              className="input"
+                              aria-label={`${languageName} variant ${index + 1}`}
+                              placeholder={`${variant.name || `Variant ${index + 1}`} (${languageName})`}
+                              value={translation.variants?.[index] || ""}
+                              onChange={(event) => {
+                                const names = [...(translation.variants || [])];
+                                names[index] = event.target.value;
+                                setItemDraft((draft) => ({
+                                  ...draft,
+                                  translations: { ...draft.translations, [code]: { ...draft.translations?.[code], variants: names } },
+                                }));
+                              }}
+                            />
+                          ))}
+                          {(itemDraft.addons || []).map((addon, index) => (
+                            <input
+                              key={`addon-${addon.id || index}`}
+                              className="input"
+                              aria-label={`${languageName} add-on ${index + 1}`}
+                              placeholder={`${addon.name || `Add-on ${index + 1}`} (${languageName})`}
+                              value={translation.addons?.[index] || ""}
+                              onChange={(event) => {
+                                const names = [...(translation.addons || [])];
+                                names[index] = event.target.value;
+                                setItemDraft((draft) => ({
+                                  ...draft,
+                                  translations: { ...draft.translations, [code]: { ...draft.translations?.[code], addons: names } },
+                                }));
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </details>
+                    );
+                  })}
+                </div>
+              </details>
+
               {/* Item Image Upload */}
               <div>
                 <label className="block font-semibold text-slate-800 mb-1">Dish Image</label>
@@ -1022,6 +1129,65 @@ export default function AdminMenu() {
                 </label>
               </div>
 
+              {/* Multilingual Dish Translations */}
+              <details className="text-xs border border-slate-200 rounded-xl p-3 bg-slate-50/70">
+                <summary className="font-bold text-slate-800 cursor-pointer flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>🌐</span>
+                    <span>Dish Translations</span>
+                  </span>
+                  {selectedItem?.missingTranslationLanguages?.length > 0 && (
+                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-medium">
+                      Missing: {selectedItem.missingTranslationLanguages.length}
+                    </span>
+                  )}
+                </summary>
+                <div className="mt-3 space-y-3 max-h-80 overflow-y-auto pt-2 border-t border-slate-200">
+                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, langName]) => {
+                    const translation = itemDraft.translations?.[code] || {};
+                    return (
+                      <div key={code} className="p-2.5 rounded-lg bg-white border border-slate-200/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 text-xs">{langName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono uppercase">{code}</span>
+                        </div>
+                        <input
+                          className="input py-1 text-xs"
+                          placeholder={`${langName} dish name`}
+                          value={translation.name || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setItemDraft((prev) => ({
+                              ...prev,
+                              translations: {
+                                ...prev.translations,
+                                [code]: { ...prev.translations?.[code], name: val },
+                              },
+                            }));
+                          }}
+                        />
+                        <textarea
+                          rows={2}
+                          className="input py-1 text-xs"
+                          placeholder={`${langName} description`}
+                          value={translation.description || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setItemDraft((prev) => ({
+                              ...prev,
+                              translations: {
+                                ...prev.translations,
+                                [code]: { ...prev.translations?.[code], description: val },
+                              },
+                            }));
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+
               {/* Actions: Delete & Save Changes */}
               <div className="pt-3 flex items-center gap-2">
                 {itemDraft.id && (
@@ -1071,6 +1237,24 @@ export default function AdminMenu() {
                   autoFocus
                 />
               </div>
+              <details className="rounded-lg border border-slate-200 p-3">
+                <summary className="cursor-pointer font-semibold text-slate-700">Category translations</summary>
+                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
+                    <input
+                      key={code}
+                      className="input"
+                      aria-label={`${languageName} category name`}
+                      placeholder={`${languageName} category name`}
+                      value={newCategoryTranslations?.[code]?.name || ""}
+                      onChange={(event) => setNewCategoryTranslations((current) => ({
+                        ...current,
+                        [code]: { ...current[code], name: event.target.value },
+                      }))}
+                    />
+                  ))}
+                </div>
+              </details>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
@@ -1109,6 +1293,31 @@ export default function AdminMenu() {
                   autoFocus
                 />
               </div>
+              <details className="rounded-lg border border-slate-200 p-3">
+                <summary className="cursor-pointer font-semibold text-slate-700">
+                  Category translations
+                  {editingCategory?.missingTranslationLanguages?.length > 0 && (
+                    <span className="ms-2 text-amber-700 font-normal">
+                      Missing: {editingCategory.missingTranslationLanguages.join(", ")}
+                    </span>
+                  )}
+                </summary>
+                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
+                    <input
+                      key={code}
+                      className="input"
+                      aria-label={`${languageName} category name`}
+                      placeholder={`${languageName} category name`}
+                      value={editCategoryTranslations?.[code]?.name || ""}
+                      onChange={(event) => setEditCategoryTranslations((current) => ({
+                        ...current,
+                        [code]: { ...current[code], name: event.target.value },
+                      }))}
+                    />
+                  ))}
+                </div>
+              </details>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button

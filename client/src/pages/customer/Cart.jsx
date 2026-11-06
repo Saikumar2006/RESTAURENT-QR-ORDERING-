@@ -221,7 +221,7 @@ export default function Cart() {
             </div>
             <input
               className="input mt-3 text-xs"
-              placeholder="Add a note (e.g. less spicy)"
+              placeholder={t("orderNote")}
               value={item.instructions}
               onChange={(e) => setInstructions(item.menuItemId, e.target.value)}
             />
@@ -229,7 +229,7 @@ export default function Cart() {
         ))}
 
         <div className="card p-4 space-y-2">
-          <input className="input" placeholder="Your name (optional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+          <input className="input" placeholder={t("yourName")} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
           {phoneVerificationRequired ? (
             <div>
               <div className="flex gap-2">
@@ -278,11 +278,11 @@ export default function Cart() {
         </div>
 
         <div className="card p-4">
-          <h3 className="font-semibold text-sm mb-2">Have a coupon?</h3>
+          <h3 className="font-semibold text-sm mb-2">{t("haveCoupon")}</h3>
           {appliedCoupon ? (
             <div className="flex items-center justify-between bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-sm">
               <span className="font-medium">
-                {appliedCoupon.code} applied — −₹{appliedCoupon.discountAmount.toFixed(0)}
+                {appliedCoupon.code} · {t("couponApplied")} — −{formatCurrency(appliedCoupon.discountAmount, currency, language)}
               </span>
               <button type="button" className="text-xs underline" onClick={removeCoupon}>
                 Remove
@@ -292,12 +292,12 @@ export default function Cart() {
             <form onSubmit={applyCoupon} className="flex gap-2">
               <input
                 className="input"
-                placeholder="Coupon code"
+                placeholder={t("couponCode")}
                 value={couponInput}
                 onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
               />
               <button className="btn-secondary shrink-0" type="submit" disabled={applyingCoupon}>
-                {applyingCoupon ? "Checking..." : "Apply"}
+                {applyingCoupon ? t("checking") : t("apply")}
               </button>
             </form>
           )}
@@ -308,18 +308,18 @@ export default function Cart() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-charcoal/10 p-4">
         <div className="max-w-md mx-auto">
           <div className="flex justify-between text-sm text-charcoal/60 mb-1">
-            <span>Subtotal (est.)</span>
+            <span>{t("estimatedSubtotal")}</span>
             <span>{formatCurrency(subtotal, currency, language)}</span>
           </div>
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-emerald-600 font-medium mb-1">
-              <span>Coupon discount</span>
-              <span>−₹{appliedCoupon.discountAmount.toFixed(0)}</span>
+              <span>{t("couponDiscount")}</span>
+              <span>−{formatCurrency(appliedCoupon.discountAmount, currency, language)}</span>
             </div>
           )}
-          <p className="text-xs text-charcoal/40 mb-3">Tax & service charges are calculated at checkout.</p>
+          <p className="text-xs text-charcoal/40 mb-3">{t("taxAtCheckout")}</p>
           <button className="btn-primary w-full" onClick={placeOrder} disabled={submitting || (phoneVerificationRequired && otpStep !== "verified")}>
-            {submitting ? "Placing order..." : "Place Order & Pay"}
+            {submitting ? t("placingOrder") : t("placeOrderAndPay")}
           </button>
         </div>
       </div>

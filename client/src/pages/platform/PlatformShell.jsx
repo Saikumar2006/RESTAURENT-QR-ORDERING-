@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
-import { LanguageSwitcher } from "../../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher } from "../../i18n.jsx";
 import "./platform-shell.css";
 
 const dashboardPath = "/super-admin/dashboard";
@@ -148,7 +148,7 @@ export default function PlatformShell() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <LanguageSwitcher className="platform-shell-language" />
+            <GlobalLanguageSelector className="platform-shell-language" />
             <a
               href="mailto:svaadyarestro@gmail.com"
               className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-teal-800 bg-teal-50 hover:bg-teal-100 rounded-md border border-teal-200 transition"

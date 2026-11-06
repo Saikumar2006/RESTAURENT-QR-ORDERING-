@@ -72,6 +72,12 @@ export function CartProvider({ children }) {
     setItems((prev) => prev.map((i) => (i.menuItemId === menuItemId ? { ...i, instructions } : i)));
   }
 
+  function setLocalizedItemName(menuItemId, name) {
+    setItems((prev) => prev.map((item) => (
+      item.menuItemId === menuItemId && name ? { ...item, name } : item
+    )));
+  }
+
   function removeItem(menuItemId) {
     setItems((prev) => prev.filter((i) => i.menuItemId !== menuItemId));
   }
@@ -93,6 +99,7 @@ export function CartProvider({ children }) {
         addItem,
         updateQuantity,
         setInstructions,
+        setLocalizedItemName,
         removeItem,
         clearCart,
         subtotal,

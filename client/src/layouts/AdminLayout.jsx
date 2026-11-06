@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/AuthContext.jsx";
 import { joinRestaurantRoom } from "../sockets/socket";
-import { LanguageSwitcher, useTranslation } from "../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../i18n.jsx";
 import {
   ChefHatIcon,
   SvaadyaLogo,
@@ -264,8 +264,8 @@ export default function AdminLayout() {
               </span>
             </button>
 
-            {/* Language Switcher */}
-            <LanguageSwitcher className="admin-language-switcher hidden sm:block" />
+            {/* Global Language Selector */}
+            <GlobalLanguageSelector className="admin-language-switcher" />
 
             {/* Profile Avatar Pill */}
             <div className="flex items-center gap-2.5 ps-2 border-s border-slate-200">

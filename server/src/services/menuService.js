@@ -1,6 +1,7 @@
 const prisma = require("../config/db");
 const { ApiError } = require("../utils/http");
 const { deletePattern, getCacheKey, getCachedJson, setCachedJson } = require("./redisService");
+const { localizeMenu, withMissingTranslations } = require("../utils/menuLocalization");
 
 // --- Categories ------------------------------------------------------------
 
@@ -19,6 +20,7 @@ async function updateCategory(restaurantId, categoryId, data) {
   if (!category) throw new ApiError(404, "Category not found");
   const updateData = {};
   if (data.name !== undefined) updateData.name = String(data.name).trim();
+  if (data.translations !== undefined) updateData.translations = data.translations;
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
   if (data.displayOrder !== undefined) updateData.displayOrder = Number(data.displayOrder);
   if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
@@ -66,6 +68,7 @@ async function createMenuItem(restaurantId, data) {
     categoryId: data.categoryId,
     name: String(data.name).trim(),
     description: data.description ? String(data.description).trim() : null,
+    translations: data.translations || undefined,
     price: Number(data.price),
     imageUrl: data.imageUrl || null,
     isVeg: data.isVeg !== undefined ? Boolean(data.isVeg) : true,
@@ -92,6 +95,7 @@ async function updateMenuItem(restaurantId, menuItemId, data) {
   const updateData = {};
   if (data.name !== undefined) updateData.name = String(data.name).trim();
   if (data.description !== undefined) updateData.description = data.description ? String(data.description).trim() : null;
+  if (data.translations !== undefined) updateData.translations = data.translations;
   if (data.price !== undefined) updateData.price = Number(data.price);
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
   if (data.isVeg !== undefined) updateData.isVeg = Boolean(data.isVeg);
@@ -142,13 +146,19 @@ async function getAdminMenu(restaurantId) {
       },
     },
   });
-  return categories;
+  return categories.map((category) => ({
+    ...withMissingTranslations(category),
+    menuItems: category.menuItems.map((item) => withMissingTranslations(
+      item,
+      item.description ? ["name", "description"] : ["name"],
+    )),
+  }));
 }
 
 // --- Public read (only active categories / available and non-deleted items) --------------
 
-async function getPublicMenu(restaurantId) {
-  const cacheKey = getCacheKey("restaurant:menu", `${restaurantId}:public`);
+async function getPublicMenu(restaurantId, language = "en") {
+  const cacheKey = getCacheKey("restaurant:menu", `${restaurantId}:public:${language}`);
   const cached = await getCachedJson(cacheKey);
   if (cached !== null) return cached;
 
@@ -163,7 +173,12 @@ async function getPublicMenu(restaurantId) {
     },
   });
   // Don't surface empty categories on the public menu.
-  const menu = categories.filter((c) => c.menuItems.length > 0);
+  const menu = categories
+    .filter((category) => category.menuItems.length > 0)
+    .map((category) => ({
+      ...localizeMenu(category, language),
+      menuItems: category.menuItems.map((item) => localizeMenu(item, language)),
+    }));
   await setCachedJson(cacheKey, menu, 300);
   return menu;
 }

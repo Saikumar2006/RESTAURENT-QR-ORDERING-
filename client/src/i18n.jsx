@@ -50,7 +50,9 @@ export function LanguageProvider({ children }) {
 
 export function useTranslation() { return useContext(LanguageContext); }
 
-export function LanguageSwitcher({ className = "" }) {
+export { default as GlobalLanguageSelector } from './components/GlobalLanguageSelector.jsx';
+
+export function LanguageSwitcher({ className = "", variant = "default", align = "right" }) {
   const { language, setLanguage, t } = useTranslation();
   const [saveError, setSaveError] = useState("");
 

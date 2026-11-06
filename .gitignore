@@ -40,3 +40,7 @@ server/prisma/*.dump
 .vscode/
 .agents/
 
+# Python
+__pycache__/
+*.pyc
+

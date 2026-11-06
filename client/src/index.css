@@ -58,6 +58,18 @@ html[lang="ar"] body {
   text-align: start;
 }
 
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .numeric-preserve,
+[dir="rtl"] .font-mono,
+[dir="rtl"] [data-numeric] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
 @media (max-width: 1023px) {
   [dir="rtl"] .admin-sidebar {
     left: auto;

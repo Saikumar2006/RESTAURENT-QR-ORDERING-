@@ -1,0 +1,125 @@
+// Multilingual Notification Templates for all 11 supported languages
+// en, hi, te, ta, kn, ml, mr, bn, gu, pa, ar
+
+const LOCALIZED_NOTIFICATION_TEMPLATES = {
+  en: {
+    OTP_VERIFICATION: "Your Svaadya verification code is: {{code}}. Valid for 5 minutes. Do not share this code.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: Order #{{orderNumber}} confirmed! {{itemsSummary}}. Total ₹{{totalAmount}}. Track: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: Order #{{orderNumber}} is {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 New Order #{{orderNumber}} at {{restaurantName}}! Table {{tableNumber}} | Total ₹{{totalAmount}} | Items: {{itemsSummary}}",
+    STAFF_INVITATION: "You have been invited to join {{restaurantName}} on Svaadya. Complete your account setup: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "Password reset requested for your {{restaurantName}} account. Reset here: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "Svaadya: Payment of ₹{{amount}} for {{planName}} plan confirmed. Active until {{endsAt}}.",
+    SUBSCRIPTION_FAILED: "Svaadya: Renewal payment for {{restaurantName}} could not be processed. Grace period ends on {{graceEndsAt}}.",
+  },
+  hi: {
+    OTP_VERIFICATION: "आपका स्वादया सत्यापन कोड है: {{code}}। 5 मिनट के लिए वैध। यह कोड किसी के साथ साझा न करें।",
+    ORDER_CONFIRMATION: "{{restaurantName}}: आदेश #{{orderNumber}} की पुष्टि हो गई! कुल ₹{{totalAmount}}। ट्रैक करें: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: आदेश #{{orderNumber}} अब {{status}} है! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 नया आदेश #{{orderNumber}} - {{restaurantName}}! मेज़ {{tableNumber}} | कुल ₹{{totalAmount}}",
+    STAFF_INVITATION: "आपको स्वादया पर {{restaurantName}} में शामिल होने के लिए आमंत्रित किया गया है। खाता सेटअप करें: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} खाते के लिए पासवर्ड रीसेट अनुरोध। यहाँ रीसेट करें: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "स्वादया: {{planName}} योजना के लिए ₹{{amount}} का भुगतान सफल। वैध: {{endsAt}} तक।",
+    SUBSCRIPTION_FAILED: "स्वादया: {{restaurantName}} के लिए नवीनीकरण भुगतान विफल। छूट अवधि {{graceEndsAt}} को समाप्त होगी।",
+  },
+  te: {
+    OTP_VERIFICATION: "మీ స్వాద్య వెరిఫికేషన్ కోడ్: {{code}}. 5 నిమిషాలు చెల్లుతుంది. ఎవరితోనూ పంచుకోవద్దు.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ఆర్డర్ #{{orderNumber}} నిర్ధారించబడింది! మొత్తం ₹{{totalAmount}}. ట్రాక్ చేయండి: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ఆర్డర్ #{{orderNumber}} ఇప్పుడు {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 కొత్త ఆర్డర్ #{{orderNumber}} - {{restaurantName}}! టేబుల్ {{tableNumber}} | మొత్తం ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} బృందంలో చేరడానికి ఆహ్వానం. ఖాతా సెటప్ పూర్తి చేయండి: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} పాస్‌వర్డ్ రీసెట్ అభ్యర్థన. ఇక్కడ రీసెట్ చేయండి: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "స్వాద్య: {{planName}} ప్లాన్ కోసం ₹{{amount}} చెల్లింపు విజయవంతమైంది. చెల్లుబాటు: {{endsAt}} వరకు.",
+    SUBSCRIPTION_FAILED: "స్వాద్య: {{restaurantName}} పునరుద్ధరణ చెల్లింపు విఫలమైంది. గ్రేస్ పీరియడ్ {{graceEndsAt}}తో ముగుస్తుంది.",
+  },
+  ta: {
+    OTP_VERIFICATION: "உங்கள் ஸ்வாத்யா சரிபார்ப்புக் குறியீடு: {{code}}. 5 நிமிடங்களுக்குச் செல்லுபடியாகும். பகிர வேண்டாம்.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ஆர்டர் #{{orderNumber}} உறுதி செய்யப்பட்டது! மொத்தம் ₹{{totalAmount}}. கண்காணிக்க: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ஆர்டர் #{{orderNumber}} இப்போது {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 புதிய ஆர்டர் #{{orderNumber}} - {{restaurantName}}! மேஜை {{tableNumber}} | மொத்தம் ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} உணவகத்தில் இணைய உங்களுக்கு அழைப்பு வந்துள்ளது. கணக்கை அமைக்க: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} கடவுச்சொல் மீட்டமைப்பு கோரிக்கை. இங்கே மீட்டமைக்கவும்: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "ஸ்வாத்யா: {{planName}} திட்டத்திற்கான ₹{{amount}} கட்டணம் வெற்றிகரமானது. செல்லுபடியாகும்: {{endsAt}} வரை.",
+    SUBSCRIPTION_FAILED: "ஸ்வாத்யா: {{restaurantName}} புதுப்பித்தல் கட்டணம் தோல்வியுற்றது. சலுகைக் காலம் {{graceEndsAt}} அன்று முடிவடைகிறது.",
+  },
+  kn: {
+    OTP_VERIFICATION: "ನಿಮ್ಮ ಸ್ವಾದ್ಯ ಪರಿಶೀಲನಾ ಕೋಡ್: {{code}}. 5 ನಿಮಿಷಗಳವರೆಗೆ ಮಾನ್ಯ. ಇದನ್ನು ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ಆದೇಶ #{{orderNumber}} ದೃಢೀಕರಿಸಲಾಗಿದೆ! ಒಟ್ಟು ₹{{totalAmount}}. ಟ್ರ್ಯಾಕ್ ಮಾಡಿ: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ಆದೇಶ #{{orderNumber}} ಈಗ {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 ಹೊಸ ಆದೇಶ #{{orderNumber}} - {{restaurantName}}! ಮೇಜು {{tableNumber}} | ಒಟ್ಟು ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} ತಂಡವನ್ನು ಸೇರಲು ನಿಮಗೆ ಆಹ್ವಾನವಿದೆ. ಖಾತೆ ಸೆಟಪ್ ಪೂರ್ಣಗೊಳಿಸಿ: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸುವ ವಿನಂತಿ. ಇಲ್ಲಿ ಮರುಹೊಂದಿಸಿ: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "ಸ್ವಾದ್ಯ: {{planName}} ಯೋಜನೆಗಾಗಿ ₹{{amount}} ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ. ಮಾನ್ಯತೆ: {{endsAt}} ವರೆಗೆ.",
+    SUBSCRIPTION_FAILED: "ಸ್ವಾದ್ಯ: {{restaurantName}} ನವೀಕರಣ ಪಾವತಿ ವಿಫಲವಾಗಿದೆ. ರಿಯಾಯಿತಿ ಅವಧಿ {{graceEndsAt}} ರಂದು ಮುಕ್ತಾಯಗೊಳ್ಳುತ್ತದೆ.",
+  },
+  ml: {
+    OTP_VERIFICATION: "നിങ്ങളുടെ സ്വാദ്യ വെരിഫിക്കേഷൻ കോഡ്: {{code}}. 5 മിനിറ്റ് സാധുത. ആരുമായും പങ്കിടരുത്.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ഓർഡർ #{{orderNumber}} സ്ഥിരീകരിച്ചു! ആകെ ₹{{totalAmount}}. ട്രാക്ക് ചെയ്യുക: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ഓർഡർ #{{orderNumber}} ഇപ്പോൾ {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 പുതിയ ഓർഡർ #{{orderNumber}} - {{restaurantName}}! മേശ {{tableNumber}} | ആകെ ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} ടീമിൽ ചേരാൻ നിങ്ങൾക്ക് ക്ഷണം ലഭിച്ചു. അക്കൗണ്ട് സജ്ജീകരിക്കുക: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} പാസ്‌വേഡ് പുനഃക്രമീകരണ അഭ്യർത്ഥന. ഇവിടെ പുനഃക്രമീകരിക്കുക: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "സ്വാദ്യ: {{planName}} പ്ലാനിനായുള്ള ₹{{amount}} പേയ്‌മെന്റ് വിജയകരം. കാലാവധി: {{endsAt}} വരെ.",
+    SUBSCRIPTION_FAILED: "സ്വാദ്യ: {{restaurantName}} പുതുക്കൽ പേയ്‌മെന്റ് പരാജയപ്പെട്ടു. ഗ്രേസ് പിരീഡ് {{graceEndsAt}}-ൽ അവസാനിക്കും.",
+  },
+  mr: {
+    OTP_VERIFICATION: "आपला स्वादया पडताळणी कोड आहे: {{code}}. 5 मिनिटांसाठी वैध. कोणाशीही शेअर करू नका.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ऑर्डर #{{orderNumber}} निश्चित झाली! एकूण ₹{{totalAmount}}. ट्रॅक करा: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ऑर्डर #{{orderNumber}} आता {{status}} आहे! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 नवीन ऑर्डर #{{orderNumber}} - {{restaurantName}}! टेबल {{tableNumber}} | एकूण ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} मध्ये सहभागी होण्यासाठी आमंत्रण. खाते सेटअप करा: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} पासवर्ड रीसेट विनंती. येथे रीसेट करा: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "स्वादया: {{planName}} योजनेसाठी ₹{{amount}} पेमेंट यशस्वी. वैधता: {{endsAt}} पर्यंत.",
+    SUBSCRIPTION_FAILED: "स्वादया: {{restaurantName}} नूतनीकरण पेमेंट अयशस्वी. सवलत कालावधी {{graceEndsAt}} रोजी संपेल.",
+  },
+  bn: {
+    OTP_VERIFICATION: "আপনার স্বাদ্যা যাচাইকরণ কোড: {{code}}। ৫ মিনিট কার্যকর। কোডটি গোপন রাখুন।",
+    ORDER_CONFIRMATION: "{{restaurantName}}: অর্ডার #{{orderNumber}} নিশ্চিত হয়েছে! মোট ₹{{totalAmount}}। ট্র্যাক করুন: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: অর্ডার #{{orderNumber}} এখন {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 নতুন অর্ডার #{{orderNumber}} - {{restaurantName}}! টেবিল {{tableNumber}} | মোট ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} দলে যোগদানের আমন্ত্রণ। অ্যাকাউন্ট তৈরি করুন: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} পাসওয়ার্ড রিসেট অনুরোধ। এখানে রিসেট করুন: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "স্বাদ্যা: {{planName}} পরিকল্পনার জন্য ₹{{amount}} পেমেন্ট সফল হয়েছে। মেয়াদ: {{endsAt}} পর্যন্ত।",
+    SUBSCRIPTION_FAILED: "স্বাদ্যা: {{restaurantName}} পুনর্নবীকরণ পেমেন্ট ব্যর্থ হয়েছে। অতিরিক্ত সময় {{graceEndsAt}} তারিখে শেষ হবে।",
+  },
+  gu: {
+    OTP_VERIFICATION: "તમારો સ્વાદ્યા વેરિફિકેશન કોડ છે: {{code}}. 5 મિનિટ માટે માન્ય. કોઈને જણાવશો નહીં.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ઓર્ડર #{{orderNumber}} કન્ફર્મ થયો! કુલ ₹{{totalAmount}}. ટ્રેક કરો: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ઓર્ડર #{{orderNumber}} હવે {{status}} છે! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 નવો ઓર્ડર #{{orderNumber}} - {{restaurantName}}! ટેબલ {{tableNumber}} | કુલ ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} ટીમમાં જોડાવા માટે આમંત્રણ. એકાઉન્ટ સેટ કરો: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} પાસવર્ડ રીસેટ વિનંતી. અહીં રીસેટ કરો: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "સ્વાદ્યા: {{planName}} પ્લાન માટે ₹{{amount}} ની ચુકવણી સફળ. માન્યતા: {{endsAt}} સુધી.",
+    SUBSCRIPTION_FAILED: "સ્વાદ્યા: {{restaurantName}} રિન્યુઅલ ચુકવણી નિષ્ફળ થઈ. ગ્રેસ પીરિયડ {{graceEndsAt}} ના રોજ સમાપ્ત થશે.",
+  },
+  pa: {
+    OTP_VERIFICATION: "ਤੁਹਾਡਾ ਸਵਾਦਿਆ ਵੈਰੀਫਿਕੇਸ਼ਨ ਕੋਡ ਹੈ: {{code}}। 5 ਮਿੰਟ ਲਈ ਵੈਧ। ਕਿਸੇ ਨਾਲ ਸਾਂਝਾ ਨਾ ਕਰੋ।",
+    ORDER_CONFIRMATION: "{{restaurantName}}: ਆਰਡਰ #{{orderNumber}} ਦੀ ਪੁਸ਼ਟੀ ਹੋ ਗਈ! ਕੁੱਲ ₹{{totalAmount}}। ਟਰੈਕ ਕਰੋ: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: ਆਰਡਰ #{{orderNumber}} ਹੁਣ {{status}} ਹੈ! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 ਨਵਾਂ ਆਰਡਰ #{{orderNumber}} - {{restaurantName}}! ਮੇਜ਼ {{tableNumber}} | ਕੁੱਲ ₹{{totalAmount}}",
+    STAFF_INVITATION: "{{restaurantName}} ਟੀਮ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਣ ਦਾ ਸੱਦਾ। ਖਾਤਾ ਸੈੱਟਅੱਪ ਕਰੋ: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "{{restaurantName}} ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਬੇਨਤੀ। ਇੱਥੇ ਰੀਸੈੱਟ ਕਰੋ: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "ਸਵਾਦਿਆ: {{planName}} ਪਲਾਨ ਲਈ ₹{{amount}} ਭੁਗਤਾਨ ਸਫਲ। ਵੈਧਤਾ: {{endsAt}} ਤੱਕ।",
+    SUBSCRIPTION_FAILED: "ਸਵਾਦਿਆ: {{restaurantName}} ਨਵੀਨੀਕਰਨ ਭੁਗਤਾਨ ਅਸਫਲ ਹੋ ਗਿਆ। ਰਿਆਇਤੀ ਮਿਆਦ {{graceEndsAt}} ਨੂੰ ਖਤਮ ਹੋਵੇਗੀ।",
+  },
+  ar: {
+    OTP_VERIFICATION: "رمز التحقق الخاص بك في سواديا هو: {{code}}. صالح لمدة 5 دقائق. لا تشارك هذا الرمز.",
+    ORDER_CONFIRMATION: "{{restaurantName}}: تم تأكيد طلبك رقم #{{orderNumber}}! الإجمالي {{totalAmount}}. تتبع الطلب: {{trackingUrl}}",
+    ORDER_STATUS_UPDATE: "{{restaurantName}}: طلبك رقم #{{orderNumber}} أصبح الآن {{status}}! {{customMessage}}",
+    OWNER_NEW_ORDER: "🔔 طلب جديد رقم #{{orderNumber}} في {{restaurantName}}! طاولة {{tableNumber}} | الإجمالي {{totalAmount}}",
+    STAFF_INVITATION: "تمت دعوتك للانضمام إلى فريق عمل {{restaurantName}} في سواديا. أكمل إعداد حسابك: {{setupUrl}}",
+    STAFF_PASSWORD_RESET: "تم طلب إعادة تعيين كلمة المرور لحسابك في {{restaurantName}}. أعد التعيين هنا: {{resetUrl}}",
+    SUBSCRIPTION_SUCCESS: "سواديا: تم تأكيد سداد اشتراك باقة {{planName}} بمبلغ {{amount}}. فعال حتى {{endsAt}}.",
+    SUBSCRIPTION_FAILED: "سواديا: تعذر معالجة دفعة التجديد لمطعم {{restaurantName}}. تنتهي فترة السماح في {{graceEndsAt}}.",
+  },
+};
+
+function getLocalizedNotificationTemplate(key, language = "en") {
+  const langKey = LOCALIZED_NOTIFICATION_TEMPLATES[language] ? language : "en";
+  return LOCALIZED_NOTIFICATION_TEMPLATES[langKey]?.[key] || LOCALIZED_NOTIFICATION_TEMPLATES.en[key] || null;
+}
+
+module.exports = {
+  LOCALIZED_NOTIFICATION_TEMPLATES,
+  getLocalizedNotificationTemplate,
+};

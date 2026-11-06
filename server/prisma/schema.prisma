@@ -57,6 +57,7 @@ model Restaurant {
   notificationPhone         String? // Direct phone for restaurant owner alerts
   ownerAlertsEnabled        Boolean @default(true)  // Send alerts to owner on new orders
   currency  String   @default("INR")
+  defaultLanguage String @default("en")
   logoUrl   String?
   websiteThemeVersion Int @default(0)
   createdAt DateTime @default(now())
@@ -219,6 +220,7 @@ model Category {
   restaurantId  String
   restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   name          String
+  translations  Json?
   imageUrl      String?
   displayOrder  Int      @default(0)
   isActive      Boolean  @default(true)
@@ -238,6 +240,7 @@ model MenuItem {
   category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name         String
   description  String?
+  translations Json?
   price        Float
   imageUrl     String?
   isVeg        Boolean  @default(true)

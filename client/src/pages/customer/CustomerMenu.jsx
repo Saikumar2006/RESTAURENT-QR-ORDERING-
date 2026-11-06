@@ -12,7 +12,7 @@ export default function CustomerMenu() {
   const { slug } = useParams();
   const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
-  const { itemCount, subtotal, session } = useCart();
+  const { itemCount, subtotal, session, setLocalizedItemName } = useCart();
   const { language, t } = useTranslation();
   const [categories, setCategories] = useState(null);
   const [search, setSearch] = useState("");
@@ -20,21 +20,27 @@ export default function CustomerMenu() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let active = true;
     // The customer must have chosen dine-in/takeaway on the landing page
     // first. If there's no session for this restaurant (fresh tab, direct
     // link, cleared storage...) send them back there instead of guessing.
     if (!session || session.slug !== slug) {
       navigate(`/r/${slug}`, { replace: true });
-      return;
+      return () => { active = false; };
     }
     api
-      .get(`/public/restaurants/${slug}/menu`)
+      .get(`/public/restaurants/${slug}/menu?language=${encodeURIComponent(language)}`)
       .then((cats) => {
+        if (!active) return;
         setCategories(cats);
+        cats.flatMap((category) => category.menuItems).forEach((item) => {
+          setLocalizedItemName(item.id, item.name);
+        });
         if (cats.length) setActiveCategory(cats[0].id);
       })
-      .catch((err) => setError(err.message));
-  }, [slug, session]);
+      .catch((err) => { if (active) setError(err.message); });
+    return () => { active = false; };
+  }, [slug, session, language]);
 
   const filtered = useMemo(() => {
     if (!categories) return [];

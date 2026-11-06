@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { LanguageSwitcher } from "../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher } from "../i18n.jsx";
 import "./landing.css";
 
 const salesEmail = import.meta.env.VITE_SALES_EMAIL || "svaadyarestro@gmail.com";
@@ -73,7 +73,7 @@ function Navbar() {
           <a href="#resources" onClick={closeMenu}>Resources</a>
           <Link className="landing-super-admin-link" to="/super-admin/login" onClick={closeMenu}>Super Admin</Link>
           <div className="landing-nav-actions">
-            <LanguageSwitcher className="landing-language-control" />
+            <GlobalLanguageSelector className="landing-language-control" variant="compact" />
             <Link className="landing-signin" to="/admin/login" onClick={closeMenu}>Sign in</Link>
             <Link className="landing-button landing-button-small" to="/pricing" onClick={closeMenu}>View plans <span aria-hidden="true">↗</span></Link>
           </div>

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
-import { LanguageSwitcher, useTranslation } from "../../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../../i18n.jsx";
 import {
   ChefHatIcon,
   SvaadyaLogo,
@@ -112,7 +112,9 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
-      <div className="language-switcher-dock z-20 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm"><LanguageSwitcher /></div>
+      <div className="language-switcher-dock z-20">
+        <GlobalLanguageSelector variant="default" />
+      </div>
       <div className="max-w-4xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
         {/* LEFT COLUMN: Visual Brand Card - Modern Blue & Purple Theme */}
         <div className="md:col-span-5 p-8 rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[480px] border border-white/10">

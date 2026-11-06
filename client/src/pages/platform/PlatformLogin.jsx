@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
-import { LanguageSwitcher, useTranslation } from "../../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../../i18n.jsx";
 import "./platform.css";
 
 export default function PlatformLogin() {
@@ -42,7 +42,9 @@ export default function PlatformLogin() {
 
   return (
     <main className="platform-login-page">
-      <div className="language-switcher-dock z-20 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm"><LanguageSwitcher /></div>
+      <div className="language-switcher-dock z-20">
+        <GlobalLanguageSelector variant="default" />
+      </div>
       <Link className="platform-login-brand" to="/" aria-label="Svaadya home">
         <span>S</span>SVAADYA
       </Link>

@@ -5,17 +5,19 @@ import { useCart } from "../../store/CartContext.jsx";
 import { getSocket, joinOrderRoom } from "../../sockets/socket";
 import { Spinner, StatusBadge } from "../../components/Ui.jsx";
 import { getStoredOrder, buildReorderPlan } from "../../utils/orderHistory.js";
+import { useTranslation } from "../../i18n.jsx";
 
 const STEPS = ["PENDING", "ACCEPTED", "PREPARING", "READY", "COMPLETED"];
-const STEP_LABELS = {
-  PENDING: "Order Confirmed",
-  ACCEPTED: "Accepted",
-  PREPARING: "Preparing",
-  READY: "Ready",
-  COMPLETED: "Completed",
-};
 
 export default function OrderTracking() {
+  const { t } = useTranslation();
+  const stepLabels = {
+    PENDING: t("orderConfirmed"),
+    ACCEPTED: t("confirmedOrders"),
+    PREPARING: t("preparingOrders"),
+    READY: t("readyOrders"),
+    COMPLETED: t("completedOrders"),
+  };
   const { slug, orderId: orderIdParam } = useParams();
   const { state, search } = useLocation();
   const navigate = useNavigate();
@@ -175,7 +177,7 @@ export default function OrderTracking() {
                   >
                     {done ? "✓" : idx + 1}
                   </span>
-                  <span className={done ? "font-medium" : "text-charcoal/40"}>{STEP_LABELS[step]}</span>
+                  <span className={done ? "font-medium" : "text-charcoal/40"}>{stepLabels[step] || step}</span>
                 </li>
               );
             })}
@@ -184,7 +186,7 @@ export default function OrderTracking() {
       )}
 
       <div className="card p-4">
-        <h2 className="font-semibold mb-3 text-sm">Order Summary</h2>
+        <h2 className="font-semibold mb-3 text-sm">{t("orderSummary")}</h2>
         <div className="space-y-1 text-sm">
           {current.items?.map((item) => (
             <div key={item.id || item.menuItemId} className="flex justify-between text-charcoal/70">

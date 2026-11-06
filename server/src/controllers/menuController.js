@@ -86,9 +86,13 @@ const getPublicRestaurantContext = asyncHandler(async (req, res) => {
 });
 
 const getPublicMenuBySlug = asyncHandler(async (req, res) => {
+  const language = req.query.language || "en";
+  if (!["en", "hi", "te", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ar"].includes(language)) {
+    throw new ApiError(400, "Unsupported menu language");
+  }
   const restaurant = await prisma.restaurant.findUnique({ where: { slug: req.params.slug } });
   if (!restaurant || restaurant.status !== "ACTIVE") throw new ApiError(404, "Restaurant not found");
-  const menu = await menuService.getPublicMenu(restaurant.id);
+  const menu = await menuService.getPublicMenu(restaurant.id, language);
   ok(res, menu);
 });
 

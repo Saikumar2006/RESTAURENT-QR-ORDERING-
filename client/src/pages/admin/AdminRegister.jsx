@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
-import { LanguageSwitcher } from "../../i18n.jsx";
+import { GlobalLanguageSelector, LanguageSwitcher } from "../../i18n.jsx";
 import {
   ChefHatIcon,
   SvaadyaLogo,
@@ -280,7 +280,9 @@ export default function AdminRegister() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <div className="language-switcher-dock z-20 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm"><LanguageSwitcher /></div>
+      <div className="language-switcher-dock z-20">
+        <GlobalLanguageSelector variant="default" />
+      </div>
       <div className="max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* LEFT SIDE: Brand & Value Proposition matching screenshot */}
         <div className="lg:col-span-5 flex flex-col justify-between p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white shadow-2xl relative overflow-hidden min-h-[580px] border border-white/10">

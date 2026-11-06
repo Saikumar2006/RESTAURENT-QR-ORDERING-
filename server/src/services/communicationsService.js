@@ -4,6 +4,7 @@ const prisma = require("../config/db");
 const twilioService = require("./twilioService");
 const whatsappService = require("./whatsappService");
 const { ApiError } = require("../utils/http");
+const { getLocalizedNotificationTemplate } = require("./localizedNotificationTemplates");
 
 // --- Default Templates Registry ---------------------------------------------
 const DEFAULT_TEMPLATES = {
@@ -64,14 +65,22 @@ function renderTemplate(templateString, variables = {}) {
   });
 }
 
-async function getTemplate(key) {
+async function getTemplate(key, language = "en") {
   try {
     const dbTemplate = await prisma.communicationTemplate.findUnique({ where: { key } });
     if (dbTemplate && dbTemplate.isActive) {
+      if (language !== "en" && dbTemplate.translations && dbTemplate.translations[language]) {
+        return { ...dbTemplate, body: dbTemplate.translations[language] };
+      }
       return dbTemplate;
     }
   } catch {
     // If DB is temporarily unavailable or table not created yet, fall back to code default
+  }
+  const localizedBody = getLocalizedNotificationTemplate(key, language);
+  if (localizedBody) {
+    const base = DEFAULT_TEMPLATES[key] || { key, channel: "both", title: key };
+    return { ...base, body: localizedBody };
   }
   return DEFAULT_TEMPLATES[key] || null;
 }
@@ -142,6 +151,7 @@ async function dispatchMessage({
   preferredChannel = "whatsapp",
   allowFallback = true,
   idempotencyKey = null,
+  language = "en",
 }) {
   const normalizedPhone = normalizePhoneNumber(phone);
   if (!normalizedPhone) {
@@ -172,7 +182,7 @@ async function dispatchMessage({
   // Message body resolution
   let messageBody = customBody;
   if (!messageBody && templateKey) {
-    const tpl = await getTemplate(templateKey);
+    const tpl = await getTemplate(templateKey, language);
     if (tpl) {
       messageBody = renderTemplate(tpl.body, templateData);
     }

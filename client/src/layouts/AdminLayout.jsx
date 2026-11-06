@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/AuthContext.jsx";
-import { joinRestaurantRoom } from "../sockets/socket";
+import { joinRestaurantRoom, getSocket } from "../sockets/socket";
 import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../i18n.jsx";
 import {
   ChefHatIcon,
@@ -57,15 +57,34 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [restaurantData, setRestaurantData] = useState(null);
-  const [activeOrderCount, setActiveOrderCount] = useState(12); // visual badge or live count
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
 
-  // Fetch restaurant details for name and status
+  // Fetch restaurant details for name and status, and active orders count
   useEffect(() => {
-    if (user?.restaurantId) {
-      api.get(`/restaurants/${user.restaurantId}`)
-        .then((res) => setRestaurantData(res))
+    if (!user?.restaurantId) return;
+    api.get(`/restaurants/${user.restaurantId}`)
+      .then((res) => setRestaurantData(res))
+      .catch(() => {});
+
+    function fetchActiveCount() {
+      api.get(`/restaurants/${user.restaurantId}/orders`, { params: { pageSize: 50 } })
+        .then((orders) => {
+          if (Array.isArray(orders)) {
+            const count = orders.filter((o) => ["PENDING", "ACCEPTED", "PREPARING"].includes(o.status)).length;
+            setActiveOrderCount(count);
+          }
+        })
         .catch(() => {});
     }
+
+    fetchActiveCount();
+    const socket = getSocket();
+    socket.on("order:new", fetchActiveCount);
+    socket.on("order:updated", fetchActiveCount);
+    return () => {
+      socket.off("order:new", fetchActiveCount);
+      socket.off("order:updated", fetchActiveCount);
+    };
   }, [user?.restaurantId]);
 
   useEffect(() => {
@@ -147,7 +166,7 @@ export default function AdminLayout() {
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {!collapsed && <span className="truncate">{t(item.translation)}</span>}
-                {!collapsed && item.badgeKey === "orders" && (
+                {!collapsed && item.badgeKey === "orders" && activeOrderCount > 0 && (
                   <span className="ms-auto nav-badge-count">{activeOrderCount}</span>
                 )}
               </NavLink>

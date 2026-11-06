@@ -603,26 +603,7 @@ export default function AdminStaff() {
                   </div>
                 )}
 
-                {/* Profile Photo Upload Placeholder */}
-                <div>
-                  <label className="block font-semibold text-[#172B2A] mb-1">Profile Photo</label>
-                  <div className="flex items-center gap-3 p-3 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9]">
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-[#A3C7C2] flex flex-col items-center justify-center text-[9px] text-[#788582] shrink-0">
-                      <span>📷</span>
-                      <span>Photo</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        className="btn-secondary text-[11px] py-1 px-3 w-full"
-                        onClick={() => alert("Photo upload available via Supabase asset storage.")}
-                      >
-                        Upload Image
-                      </button>
-                      <p className="text-[10px] text-[#9CA8A5] mt-1">JPG, PNG (Max 2MB)</p>
-                    </div>
-                  </div>
-                </div>
+
 
                 <div className="pt-2">
                   <button

@@ -86,7 +86,7 @@ export default function PlatformDashboard() {
       const data = await platformApi.get(`/restaurants/${restaurantId}`);
       setInspectingRestaurant(data);
     } catch (err) {
-      alert(err.message || "Failed to load restaurant details");
+      setError(err.message || "Failed to load restaurant details");
     } finally {
       setLoadingInspection(false);
     }
@@ -104,7 +104,7 @@ export default function PlatformDashboard() {
         setInspectingRestaurant((prev) => prev ? { ...prev, status: nextStatus } : null);
       }
     } catch (err) {
-      alert(err.message || "Failed to update restaurant status");
+      setError(err.message || "Failed to update restaurant status");
     } finally {
       setTogglingStatusId(null);
     }
@@ -350,7 +350,7 @@ export default function PlatformDashboard() {
       setTemplateSuccess(`Template "${editingTemplate.title}" saved successfully.`);
       setEditingTemplate(null);
     } catch (err) {
-      alert(err.message || "Failed to update template.");
+      setError(err.message || "Failed to update template.");
     } finally {
       setSavingTemplate(false);
     }

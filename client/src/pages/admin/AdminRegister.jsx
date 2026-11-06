@@ -137,8 +137,8 @@ export default function AdminRegister() {
       });
       setOtpSent(true);
       setOtpSession(res.verificationSession || "");
-      if (res.mockCode) {
-        setOtpNotice(`Instant Verification Code: ${res.mockCode}`);
+      if (import.meta.env.DEV && res.mockCode) {
+        setOtpNotice(`Instant Verification Code: ${res.mockCode} (Dev mode)`);
         setOtpCode(res.mockCode);
       } else {
         setOtpNotice(res.message || "Verification code sent to your phone.");

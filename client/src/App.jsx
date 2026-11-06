@@ -102,14 +102,8 @@ export default function App() {
             <ProtectedRoute permissions={["analytics.view"]}>
               <AdminModuleView
                 title="Payments & Settlements"
-                description="Review daily settlement logs, UPI transactions, gateway receipts, and refund reconciliations."
+                description="Live payment logs and financial reconciliations. Detailed daily sales, payment methods, and settlements are tracked via Analytics & Reports."
                 icon="💳"
-                stats={[
-                  { label: "Today's Settlements", value: "₹ 34,500", change: "+15% vs yesterday" },
-                  { label: "Total Transactions", value: "148", change: "+8% vs yesterday" },
-                  { label: "UPI Success Rate", value: "99.2%", change: "Optimal" },
-                  { label: "Refunds Issued", value: "₹ 230", change: "1 transaction" },
-                ]}
               />
             </ProtectedRoute>
           }
@@ -120,14 +114,8 @@ export default function App() {
             <ProtectedRoute permissions={["orders.view"]}>
               <AdminModuleView
                 title="Customer Directory & Loyalty"
-                description="Customer directory, dining visit frequency, loyalty rewards, and historical purchase totals."
+                description="Guest order history and customer phone contacts are tracked directly from active table and takeaway order tickets."
                 icon="👥"
-                stats={[
-                  { label: "Total Profiles", value: "1,230", change: "+22% this month" },
-                  { label: "Repeat Diners", value: "482", change: "39% retention" },
-                  { label: "Average Lifetime Spend", value: "₹ 1,840", change: "+6%" },
-                  { label: "Loyalty Members", value: "310", change: "+14 this week" },
-                ]}
               />
             </ProtectedRoute>
           }
@@ -138,14 +126,8 @@ export default function App() {
             <ProtectedRoute permissions={["analytics.view"]}>
               <AdminModuleView
                 title="Operational Expenses"
-                description="Track daily operational costs, vendor invoices, groceries, produce, and utility bills."
+                description="Supplier bills and inventory purchase costs are managed under Inventory > Purchases."
                 icon="🧾"
-                stats={[
-                  { label: "Monthly Expenses", value: "₹ 48,200", change: "-4% vs budget" },
-                  { label: "Grocery & Produce", value: "₹ 28,400", change: "59% of expenses" },
-                  { label: "Utilities", value: "₹ 11,800", change: "Electricity & Gas" },
-                  { label: "Maintenance", value: "₹ 8,000", change: "Equipment" },
-                ]}
               />
             </ProtectedRoute>
           }

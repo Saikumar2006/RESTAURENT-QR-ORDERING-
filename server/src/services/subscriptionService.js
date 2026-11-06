@@ -147,8 +147,14 @@ async function sendOnboardingOtp({ phone, email }) {
   
   const isTwilioActive = Boolean(env.twilioAccountSid && (env.twilioPhoneNumber || env.twilioSmsFrom));
   const isProviderActive = env.messagingProvider !== "unconfigured" || isTwilioActive;
-  const isMock = env.messagingProvider === "mock" && env.nodeEnv !== "production";
-  const code = isProviderActive && !isMock ? String(Math.floor(100000 + Math.random() * 900000)) : "123456";
+  const isProduction = env.nodeEnv === "production";
+
+  if (isProduction && !isProviderActive) {
+    throw new ApiError(503, "SMS/WhatsApp verification service is currently unconfigured. Please contact support.");
+  }
+
+  const isMock = env.messagingProvider === "mock" && !isProduction;
+  const code = (isProviderActive && !isMock) ? String(Math.floor(100000 + Math.random() * 900000)) : "123456";
 
   const jwt = require("jsonwebtoken");
   const codeHash = crypto.createHmac("sha256", env.jwtSecret).update(code).digest("hex");
@@ -175,11 +181,11 @@ async function sendOnboardingOtp({ phone, email }) {
     success: true,
     phone: normalizedPhone,
     providerConfigured: isProviderActive,
-    mockCode: (isProviderActive && !isMock) ? undefined : "123456",
+    mockCode: isProduction ? undefined : (isProviderActive && !isMock ? undefined : "123456"),
     verificationSession: sessionToken,
     message: isProviderActive
       ? `Verification code dispatched to ${normalizedPhone}.`
-      : `Test Verification Code: 123456 (Messaging provider unconfigured)`,
+      : `Test Verification Code: 123456 (Development mode)`,
   };
 }
 

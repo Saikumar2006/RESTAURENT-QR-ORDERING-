@@ -33,13 +33,12 @@ export default function AdminModuleView({
             >
               <span>View Live Orders</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => alert(`${title} export initiated.`)}
+            <Link
+              to="/admin/reports"
               className="btn-primary text-xs flex items-center gap-1.5"
             >
-              <span>Export {title}</span>
-            </button>
+              <span>Analytics & Reports</span>
+            </Link>
           </div>
         }
       />

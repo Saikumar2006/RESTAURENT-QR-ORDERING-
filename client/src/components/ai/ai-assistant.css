@@ -1,0 +1,149 @@
+/* Svaadya Enterprise AI Assistant Styles */
+
+.svaadya-ai-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.125rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4), 0 8px 10px -6px rgba(99, 102, 241, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+[dir="rtl"] .svaadya-ai-fab {
+  right: auto;
+  left: 1.5rem;
+}
+
+.svaadya-ai-fab:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 28px -4px rgba(99, 102, 241, 0.5), 0 10px 10px -5px rgba(99, 102, 241, 0.3);
+}
+
+.svaadya-ai-fab:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.svaadya-ai-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  box-shadow: -8px 0 30px rgba(15, 23, 42, 0.15);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 1px solid #e2e8f0;
+}
+
+[dir="rtl"] .svaadya-ai-drawer {
+  right: auto;
+  left: 0;
+  box-shadow: 8px 0 30px rgba(15, 23, 42, 0.15);
+  border-left: none;
+  border-right: 1px solid #e2e8f0;
+}
+
+.svaadya-ai-drawer.closed {
+  transform: translateX(100%);
+}
+
+[dir="rtl"] .svaadya-ai-drawer.closed {
+  transform: translateX(-100%);
+}
+
+.svaadya-ai-drawer.open {
+  transform: translateX(0);
+}
+
+/* Markdown table inside AI message */
+.svaadya-ai-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.775rem;
+}
+
+.svaadya-ai-markdown th {
+  background-color: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e8f0;
+}
+
+[dir="rtl"] .svaadya-ai-markdown th {
+  text-align: right;
+}
+
+.svaadya-ai-markdown td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.svaadya-ai-markdown tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.svaadya-ai-markdown ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+[dir="rtl"] .svaadya-ai-markdown ul {
+  padding-left: 0;
+  padding-right: 1.25rem;
+}
+
+.svaadya-ai-markdown ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+[dir="rtl"] .svaadya-ai-markdown ol {
+  padding-left: 0;
+  padding-right: 1.25rem;
+}
+
+.svaadya-ai-markdown p {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.svaadya-ai-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+/* Sparkle pulse animation */
+@keyframes svaadyaSparklePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+.svaadya-sparkle-anim {
+  animation: svaadyaSparklePulse 2s infinite ease-in-out;
+}

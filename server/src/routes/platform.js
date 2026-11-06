@@ -87,4 +87,17 @@ router.put("/settings", requirePlatformAuth, requirePlatformPermission("platform
 const communicationsRoutes = require("./communications");
 router.use("/communications", communicationsRoutes);
 
+// Platform AI Assistant & Telemetry
+const platformAiController = require("../controllers/platformAiController");
+const { requirePlatformAiAccess } = require("../middleware/aiAuth");
+
+router.get("/ai/status", requirePlatformAuth, platformAiController.getStatus);
+router.get("/ai/conversations", requirePlatformAuth, platformAiController.listConversations);
+router.post("/ai/conversations", requirePlatformAuth, platformAiController.createConversation);
+router.get("/ai/conversations/:id", requirePlatformAuth, platformAiController.getConversation);
+router.delete("/ai/conversations/:id", requirePlatformAuth, platformAiController.deleteConversation);
+router.post("/ai/conversations/:id/clear", requirePlatformAuth, platformAiController.clearConversation);
+router.post("/ai/chat", requirePlatformAuth, requirePlatformAiAccess, platformAiController.sendMessage);
+router.get("/ai/telemetry", requirePlatformAuth, requirePlatformPermission("platform.dashboard.view"), platformAiController.getTelemetry);
+
 module.exports = router;

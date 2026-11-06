@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { GlobalLanguageSelector, LanguageSwitcher } from "../../i18n.jsx";
+import AiAssistantPanel from "../../components/ai/AiAssistantPanel.jsx";
 import "./platform-shell.css";
 
 const dashboardPath = "/super-admin/dashboard";
@@ -177,6 +178,9 @@ export default function PlatformShell() {
           <Outlet />
         </div>
       </div>
+
+      {/* Svaadya Enterprise Platform Super Admin AI Assistant */}
+      <AiAssistantPanel scope="PLATFORM" />
     </div>
   );
 }

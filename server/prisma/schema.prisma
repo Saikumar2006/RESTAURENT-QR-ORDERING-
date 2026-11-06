@@ -84,6 +84,9 @@ model Restaurant {
   staffAccessLinks RestaurantStaffAccessLink[]
   supportTickets PlatformSupportTicket[]
   floorLayouts   FloorLayout[]
+  aiConversations AiConversation[]
+  aiActionProposals AiActionProposal[]
+  aiUsageLogs    AiUsageLog[]
 
   @@index([slug])
 }
@@ -129,6 +132,9 @@ model User {
   platformInvites PlatformRestaurantInvite[]
   staffAccessLinksReceived RestaurantStaffAccessLink[] @relation("RestaurantStaffAccessLinkTarget")
   staffAccessLinksCreated RestaurantStaffAccessLink[] @relation("RestaurantStaffAccessLinkCreator")
+  aiConversations AiConversation[]
+  aiActionProposals AiActionProposal[]
+  aiUsageLogs    AiUsageLog[]
 
   @@unique([restaurantId, email])
   @@index([restaurantId])
@@ -390,6 +396,9 @@ model PlatformAdmin {
   auditEvents       PlatformAdminAuditLog[] @relation("PlatformAuditActor")
   restaurantInvites PlatformRestaurantInvite[] @relation("PlatformRestaurantInviteCreator")
   assignedTickets   PlatformSupportTicket[] @relation("AssignedTickets")
+  aiConversations   AiConversation[]
+  aiActionProposals AiActionProposal[]
+  aiUsageLogs       AiUsageLog[]
 }
 
 model PlatformAdminAuditLog {
@@ -809,4 +818,89 @@ model FloorLayout {
 
   @@unique([restaurantId, section])
   @@index([restaurantId])
+}
+
+model AiConversation {
+  id              String         @id @default(uuid())
+  scope           String         @default("RESTAURANT") // "RESTAURANT" | "PLATFORM"
+  restaurantId    String?
+  restaurant      Restaurant?    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platformAdminId String?
+  platformAdmin   PlatformAdmin? @relation(fields: [platformAdminId], references: [id], onDelete: SetNull)
+  title           String         @default("New Conversation")
+  currentModule   String?
+  language        String         @default("en")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  messages        AiMessage[]
+  proposals       AiActionProposal[]
+
+  @@index([restaurantId, userId])
+  @@index([platformAdminId])
+  @@index([createdAt])
+}
+
+model AiMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // "user" | "assistant" | "system" | "tool"
+  content        String
+  toolCalls      Json?
+  toolCallId     String?
+  actionProposal Json?
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model AiActionProposal {
+  id                   String          @id @default(uuid())
+  restaurantId         String?
+  restaurant           Restaurant?     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId               String?
+  user                 User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platformAdminId      String?
+  platformAdmin        PlatformAdmin?  @relation(fields: [platformAdminId], references: [id], onDelete: SetNull)
+  conversationId       String?
+  conversation         AiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  actionType           String          // "DRAFT_PURCHASE_ORDER" | "DRAFT_MENU_ITEM" | "DRAFT_COUPON" | "UPDATE_TABLE_SEATS" | "EXPORT_REPORT"
+  actionPayload        Json
+  status               String          @default("PROPOSED") // "PROPOSED" | "APPROVED" | "REJECTED" | "EXECUTED"
+  requiresElevatedRole Boolean         @default(false)
+  approvedBy           String?
+  approvedAt           DateTime?
+  executedAt           DateTime?
+  executionResult      Json?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([restaurantId, status])
+  @@index([conversationId])
+}
+
+model AiUsageLog {
+  id               String         @id @default(uuid())
+  scope            String         @default("RESTAURANT") // "RESTAURANT" | "PLATFORM"
+  restaurantId     String?
+  restaurant       Restaurant?    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  platformAdminId  String?
+  platformAdmin    PlatformAdmin? @relation(fields: [platformAdminId], references: [id], onDelete: SetNull)
+  model            String
+  promptTokens     Int            @default(0)
+  completionTokens Int            @default(0)
+  totalTokens      Int            @default(0)
+  estimatedCostUsd Float          @default(0)
+  latencyMs        Int            @default(0)
+  success          Boolean        @default(true)
+  errorMessage     String?
+  createdAt        DateTime       @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([platformAdminId, createdAt])
 }

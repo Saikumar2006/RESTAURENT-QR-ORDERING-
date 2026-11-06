@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/AuthContext.jsx";
 import { joinRestaurantRoom, getSocket } from "../sockets/socket";
 import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../i18n.jsx";
+import AiAssistantPanel from "../components/ai/AiAssistantPanel.jsx";
 import {
   ChefHatIcon,
   SvaadyaLogo,
@@ -304,6 +305,9 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Svaadya Enterprise Restaurant AI Assistant */}
+      <AiAssistantPanel scope="RESTAURANT" />
     </div>
   );
 }

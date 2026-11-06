@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../store/AuthContext.jsx";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
+import { LanguageSwitcher, useTranslation } from "../../i18n.jsx";
 import {
   ChefHatIcon,
   SvaadyaLogo,
@@ -24,6 +25,7 @@ const googleErrorMessages = {
 };
 
 export default function AdminLogin() {
+  const { t } = useTranslation();
   const { user, login } = useAuth();
   const { admin, setAdminFromLogin } = usePlatformAuth();
   const navigate = useNavigate();
@@ -110,6 +112,7 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
+      <div className="language-switcher-dock z-20 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm"><LanguageSwitcher /></div>
       <div className="max-w-4xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
         {/* LEFT COLUMN: Visual Brand Card - Modern Blue & Purple Theme */}
         <div className="md:col-span-5 p-8 rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[480px] border border-white/10">
@@ -121,10 +124,8 @@ export default function AdminLogin() {
               <SvaadyaLogo variant="light" />
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">Welcome Back to Your Restaurant Suite</h2>
-            <p className="text-xs text-indigo-200/80 leading-relaxed mb-6">
-              Sign in to manage live tables, view guest orders, configure your digital menu, and monitor daily revenue.
-            </p>
+            <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">{t("welcomeBack")}</h2>
+            <p className="text-xs text-indigo-200/80 leading-relaxed mb-6">{t("signInDescription")}</p>
 
             <div className="p-4 rounded-2xl bg-white/[0.07] border border-white/10 space-y-2.5 backdrop-blur-xs">
               <div className="flex items-center gap-2.5 text-xs text-white">
@@ -153,8 +154,8 @@ export default function AdminLogin() {
         {/* RIGHT COLUMN: Sign In Form */}
         <div className="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xl">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sign in to your restaurant</h1>
-            <p className="text-xs text-slate-500 mt-1">Enter your account credentials to access your workspace.</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t("welcomeBack")}</h1>
+            <p className="text-xs text-slate-500 mt-1">{t("signInDescription")}</p>
           </div>
 
           {notice && (
@@ -198,14 +199,14 @@ export default function AdminLogin() {
                 onClick={() => setMultipleRestaurants(null)}
                 className="btn-secondary w-full text-xs"
               >
-                Back to Sign In
+                {t("backToSignIn")}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-900 mb-1">
-                  Email Address
+                  {t("emailAddress")}
                 </label>
                 <input
                   type="email"
@@ -220,9 +221,9 @@ export default function AdminLogin() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-semibold text-slate-900">
-                    Password
+                    {t("password")}
                   </label>
-                  <span className="text-[11px] text-slate-500">Forgot password? Ask your manager</span>
+                  <span className="text-[11px] text-slate-500">{t("forgotPassword")}</span>
                 </div>
                 <div className="relative">
                   <input
@@ -249,7 +250,7 @@ export default function AdminLogin() {
                   disabled={submitting}
                   className="btn-primary w-full flex items-center justify-center gap-2"
                 >
-                  {submitting ? "Signing in..." : "Sign in to Workspace"}
+                  {submitting ? t("signingIn") : t("signIn")}
                 </button>
               </div>
 
@@ -280,7 +281,7 @@ export default function AdminLogin() {
               <div className="pt-4 text-center text-xs text-slate-500">
                 <span>Don't have a restaurant account? </span>
                 <Link to="/admin/register" className="font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
-                  Register new restaurant
+                  {t("registerRestaurant")}
                 </Link>
               </div>
             </form>

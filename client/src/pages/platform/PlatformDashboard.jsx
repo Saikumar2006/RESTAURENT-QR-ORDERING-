@@ -3,9 +3,34 @@ import { useSearchParams } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import platformApi from "../../services/platformApi";
 import { Spinner, ErrorBanner } from "../../components/Ui.jsx";
+import PlatformAnalyticsTab from "./modules/PlatformAnalyticsTab.jsx";
+import PlatformUsersTab from "./modules/PlatformUsersTab.jsx";
+import PlatformBillingTab from "./modules/PlatformBillingTab.jsx";
+import PlatformSupportTab from "./modules/PlatformSupportTab.jsx";
+import PlatformHealthTab from "./modules/PlatformHealthTab.jsx";
+import PlatformSettingsTab from "./modules/PlatformSettingsTab.jsx";
+import PlatformOnboardingTab from "./modules/PlatformOnboardingTab.jsx";
+import PlatformRolesTab from "./modules/PlatformRolesTab.jsx";
 import "./platform-dashboard.css";
 
-const PLATFORM_VIEWS = ["overview", "restaurants", "subscriptions", "packages", "onboardings", "communications", "audit"];
+const PLATFORM_VIEWS = [
+  "overview",
+  "analytics",
+  "restaurants",
+  "users",
+  "onboarding",
+  "onboardings",
+  "subscriptions",
+  "packages",
+  "billing",
+  "roles",
+  "support",
+  "communications",
+  "security",
+  "audit",
+  "health",
+  "settings",
+];
 
 function StatCard({ label, value, sub }) {
   return (
@@ -48,8 +73,42 @@ export default function PlatformDashboard() {
   const [reissueReason, setReissueReason] = useState("");
   const [reissueError, setReissueError] = useState(null);
   const [reissueResult, setReissueResult] = useState(null);
-  const [reissuingInvite, setReissuingInvite] = useState(false);
   const [newRestaurant, setNewRestaurant] = useState({ restaurantName: "", cuisineType: "", ownerName: "", ownerEmail: "", planKey: "STARTER", reason: "" });
+
+  // Inspection Drawer & Status Toggle
+  const [inspectingRestaurant, setInspectingRestaurant] = useState(null);
+  const [loadingInspection, setLoadingInspection] = useState(false);
+  const [togglingStatusId, setTogglingStatusId] = useState(null);
+
+  async function openRestaurantDetails(restaurantId) {
+    setLoadingInspection(true);
+    try {
+      const data = await platformApi.get(`/restaurants/${restaurantId}`);
+      setInspectingRestaurant(data);
+    } catch (err) {
+      alert(err.message || "Failed to load restaurant details");
+    } finally {
+      setLoadingInspection(false);
+    }
+  }
+
+  async function handleToggleRestaurantStatus(restaurant) {
+    const nextStatus = restaurant.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    const reason = prompt(`Enter audit reason to ${nextStatus.toLowerCase()} ${restaurant.name}:`, "Administrative governance review");
+    if (!reason) return;
+    setTogglingStatusId(restaurant.id);
+    try {
+      await platformApi.put(`/restaurants/${restaurant.id}/status`, { status: nextStatus, reason });
+      setRestaurants((prev) => (prev || []).map((r) => r.id === restaurant.id ? { ...r, status: nextStatus } : r));
+      if (inspectingRestaurant?.id === restaurant.id) {
+        setInspectingRestaurant((prev) => prev ? { ...prev, status: nextStatus } : null);
+      }
+    } catch (err) {
+      alert(err.message || "Failed to update restaurant status");
+    } finally {
+      setTogglingStatusId(null);
+    }
+  }
 
   // Packages & Pricing state
   const [packagesData, setPackagesData] = useState(null);
@@ -328,9 +387,9 @@ export default function PlatformDashboard() {
   useEffect(() => {
     if (activeTab === "subscriptions") loadSubscriptions();
     if (activeTab === "packages") loadPackages();
-    if (activeTab === "onboardings") loadPendingOnboardings();
+    if (activeTab === "onboardings" || activeTab === "onboarding") loadPendingOnboardings();
     if (activeTab === "communications") loadCommunications();
-    if (activeTab === "audit") loadAudit();
+    if (activeTab === "audit" || activeTab === "security") loadAudit();
     if (activeTab === "overview" && canViewAudit) loadAudit(8);
   }, [activeTab, commLogsPagination.page, commFilterChannel, commFilterStatus, commFilterPurpose]);
 
@@ -372,12 +431,21 @@ export default function PlatformDashboard() {
           <div>
             <p className="section-eyebrow !ml-0">Svaadya · Platform</p>
             <h1>{activeTab === "overview" ? "Executive overview" : ({
+              analytics: "Platform Analytics & Business Intelligence",
               restaurants: "Restaurants & operations",
+              users: "Cross-Tenant User Directory",
+              onboarding: "Restaurant Onboarding Funnel",
+              onboardings: "Restaurant Applications",
               subscriptions: "Subscriptions & MRR",
-              packages: "Plans & pricing",
-              onboardings: "Restaurant applications",
-              communications: "Communications",
-              audit: "Platform audit log",
+              packages: "Plans & Pricing Management",
+              billing: "Financial Transactions & Invoicing",
+              roles: "Enterprise Roles & Permission Matrix",
+              support: "Operational Support & Ticket Desk",
+              communications: "Communications & Twilio Center",
+              security: "Security & Audit Trail",
+              audit: "Security & Audit Trail",
+              health: "System Health & Infrastructure Telemetry",
+              settings: "Global Platform Settings & Configuration",
             }[activeTab] || "Platform administration")}</h1>
             <p>Live operational data from the platform database.</p>
           </div>
@@ -598,34 +666,202 @@ export default function PlatformDashboard() {
                         <th className="px-2 py-2 font-medium text-right">Menu items</th>
                         <th className="px-2 py-2 font-medium text-right">Orders</th>
                         <th className="px-5 py-2 font-medium text-right">Revenue</th>
+                        <th className="px-5 py-2 font-medium text-right">Governance Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filtered.map((r) => (
-                        <tr key={r.id} className="border-b border-charcoal/5">
+                        <tr key={r.id} className="border-b border-charcoal/5 hover:bg-slate-50/50 transition">
                           <td className="px-5 py-2.5">
-                            <p className="font-medium">{r.name}</p>
-                            <p className="text-charcoal/40">/{r.slug}</p>
+                            <p className="font-semibold text-slate-900">{r.name}</p>
+                            <p className="text-charcoal/40 font-mono text-[10px]">/{r.slug}</p>
                           </td>
                           <td className="px-2 py-2.5 text-charcoal/60">{r.cuisineType || "—"}</td>
                           <td className="px-2 py-2.5">
-                            <span className={`inline-flex items-center gap-1 ${r.status === "SUSPENDED" ? "text-red-600" : r.isOpenNow ? "text-emerald-600" : "text-charcoal/40"}`}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              r.status === "SUSPENDED"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : r.isOpenNow
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-slate-100 text-slate-600"
+                            }`}>
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />
                               {r.status === "SUSPENDED" ? "Suspended" : r.isOpenNow ? "Open" : "Closed"}
                             </span>
                           </td>
-                          <td className="px-2 py-2.5">{r.ownerSetupPending ? <div className="flex items-center gap-2"><span className="text-amber-700">Pending</span>{canManageRestaurants && <button className="text-xs text-clove underline underline-offset-2" type="button" onClick={() => { setReissueTarget(r); setReissueResult(null); setReissueReason(""); setReissueError(null); setInviteCopied(false); setCopyError(null); }}>New invite</button>}</div> : <span className="text-charcoal/45">—</span>}</td>
-                          <td className="px-2 py-2.5 text-right">{r.staffCount}</td>
-                          <td className="px-2 py-2.5 text-right">{r.tableCount}</td>
-                          <td className="px-2 py-2.5 text-right">{r.menuItemCount}</td>
-                          <td className="px-2 py-2.5 text-right">{r.orderCount}</td>
-                          <td className="px-5 py-2.5 text-right font-medium">₹{Number(r.totalRevenue).toLocaleString("en-IN")}</td>
+                          <td className="px-2 py-2.5">{r.ownerSetupPending ? <div className="flex items-center gap-2"><span className="text-amber-700 font-medium">Pending</span>{canManageRestaurants && <button className="text-xs text-clove underline underline-offset-2" type="button" onClick={() => { setReissueTarget(r); setReissueResult(null); setReissueReason(""); setReissueError(null); setInviteCopied(false); setCopyError(null); }}>New invite</button>}</div> : <span className="text-charcoal/45">—</span>}</td>
+                          <td className="px-2 py-2.5 text-right font-medium">{r.staffCount}</td>
+                          <td className="px-2 py-2.5 text-right font-medium">{r.tableCount}</td>
+                          <td className="px-2 py-2.5 text-right font-medium">{r.menuItemCount}</td>
+                          <td className="px-2 py-2.5 text-right font-medium">{r.orderCount}</td>
+                          <td className="px-5 py-2.5 text-right font-bold text-slate-900">₹{Number(r.totalRevenue).toLocaleString("en-IN")}</td>
+                          <td className="px-5 py-2.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => openRestaurantDetails(r.id)}
+                                className="px-2 py-1 text-[11px] font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded border border-teal-200 transition"
+                              >
+                                Inspect
+                              </button>
+                              {canManageRestaurants && (
+                                <button
+                                  onClick={() => handleToggleRestaurantStatus(r)}
+                                  disabled={togglingStatusId === r.id}
+                                  className={`px-2 py-1 text-[11px] font-semibold rounded border transition ${
+                                    r.status === "ACTIVE"
+                                      ? "text-rose-600 bg-rose-50 hover:bg-rose-100 border-rose-200"
+                                      : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                                  }`}
+                                >
+                                  {togglingStatusId === r.id ? "…" : r.status === "ACTIVE" ? "Suspend" : "Reactivate"}
+                                </button>
+                              )}
+                              <a
+                                href={`/r/${r.slug}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-1.5 py-1 text-slate-400 hover:text-slate-800 text-[12px]"
+                                title="Open customer QR menu"
+                              >
+                                ↗
+                              </a>
+                            </div>
+                          </td>
                         </tr>
                       ))}
-                      {filtered.length === 0 && <tr><td className="px-5 py-8 text-center text-charcoal/50" colSpan={9}>No restaurant accounts match these filters.</td></tr>}
+                      {filtered.length === 0 && <tr><td className="px-5 py-8 text-center text-charcoal/50" colSpan={10}>No restaurant accounts match these filters.</td></tr>}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Inspect Restaurant Drawer */}
+                {inspectingRestaurant && (
+                  <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex justify-end">
+                    <div className="w-full max-w-xl bg-white h-full shadow-2xl p-6 overflow-y-auto space-y-6">
+                      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-slate-900">{inspectingRestaurant.name}</h3>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              inspectingRestaurant.status === "ACTIVE"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                            }`}>
+                              {inspectingRestaurant.status}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-400 font-mono">ID: {inspectingRestaurant.id} · /{inspectingRestaurant.slug}</span>
+                        </div>
+                        <button onClick={() => setInspectingRestaurant(null)} className="text-slate-400 hover:text-slate-700 text-2xl font-bold">×</button>
+                      </div>
+
+                      {/* Operational Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold">Total Revenue</span>
+                          <p className="text-base font-bold text-slate-900 mt-0.5">₹{inspectingRestaurant.metrics?.totalRevenue?.toLocaleString("en-IN") || 0}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold">Orders</span>
+                          <p className="text-base font-bold text-slate-900 mt-0.5">{inspectingRestaurant._count?.orders || 0}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold">Tables</span>
+                          <p className="text-base font-bold text-slate-900 mt-0.5">{inspectingRestaurant._count?.tables || 0}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                          <span className="text-[10px] text-slate-400 uppercase font-semibold">Menu Items</span>
+                          <p className="text-base font-bold text-slate-900 mt-0.5">{inspectingRestaurant._count?.menuItems || 0}</p>
+                        </div>
+                      </div>
+
+                      {/* Staff & Owner Profiles */}
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider mb-2">Registered Staff & Owner</h4>
+                        <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                          {(inspectingRestaurant.users || []).map((u) => (
+                            <div key={u.id} className="p-3 flex items-center justify-between text-xs">
+                              <div>
+                                <span className="font-semibold text-slate-800">{u.name}</span>
+                                <span className="text-[10px] text-slate-400 block font-mono">{u.email}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded font-semibold text-[10px] bg-slate-100 text-slate-700">
+                                  {u.role}
+                                </span>
+                                <span className={`w-2 h-2 rounded-full ${u.isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Subscriptions */}
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider mb-2">SaaS Subscriptions</h4>
+                        {(inspectingRestaurant.subscriptions || []).length === 0 ? (
+                          <p className="text-xs text-slate-400">No active SaaS subscription.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {inspectingRestaurant.subscriptions.map((s) => (
+                              <div key={s.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs flex justify-between items-center">
+                                <div>
+                                  <span className="font-bold text-slate-900">{s.planKey} Plan</span>
+                                  <span className="text-slate-500 block text-[11px]">{s.billingPeriod} · ₹{s.amount}</span>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full font-semibold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {s.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Recent Orders */}
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider mb-2">Recent Dining Orders</h4>
+                        {(inspectingRestaurant.recentOrders || []).length === 0 ? (
+                          <p className="text-xs text-slate-400">No orders recorded yet.</p>
+                        ) : (
+                          <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                            {inspectingRestaurant.recentOrders.map((o) => (
+                              <div key={o.id} className="p-3 flex justify-between items-center text-xs">
+                                <div>
+                                  <span className="font-bold text-slate-800">Order #{o.orderNumber || o.id.slice(0, 6)}</span>
+                                  <span className="text-[10px] text-slate-400 block">{new Date(o.createdAt).toLocaleString()}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-bold text-slate-900">₹{o.totalAmount}</span>
+                                  <span className="text-[10px] text-slate-500 block">{o.status}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-200 flex justify-between">
+                        <button
+                          onClick={() => handleToggleRestaurantStatus(inspectingRestaurant)}
+                          className={`px-4 py-2 text-xs font-semibold rounded-lg border transition ${
+                            inspectingRestaurant.status === "ACTIVE"
+                              ? "text-rose-600 bg-rose-50 hover:bg-rose-100 border-rose-200"
+                              : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                          }`}
+                        >
+                          {inspectingRestaurant.status === "ACTIVE" ? "Suspend Restaurant" : "Reactivate Restaurant"}
+                        </button>
+                        <button
+                          onClick={() => setInspectingRestaurant(null)}
+                          className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -899,7 +1135,7 @@ export default function PlatformDashboard() {
           </div>
         )}
 
-        {activeTab === "audit" && (
+        {(activeTab === "audit" || activeTab === "security") && (
           <section className="card overflow-hidden">
             <div className="flex flex-col gap-3 border-b border-charcoal/10 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div><h2 className="font-semibold text-sm">Administrative audit events</h2><p className="mt-1 text-xs text-charcoal/50">Platform actions recorded by the current audit service.</p></div>
@@ -1370,6 +1606,16 @@ export default function PlatformDashboard() {
             </div>
           </div>
         )}
+
+        {/* Modular Enterprise Tabs */}
+        {activeTab === "analytics" && <PlatformAnalyticsTab overview={overview} />}
+        {activeTab === "users" && <PlatformUsersTab />}
+        {activeTab === "onboarding" && <PlatformOnboardingTab />}
+        {activeTab === "billing" && <PlatformBillingTab overview={overview} />}
+        {activeTab === "roles" && <PlatformRolesTab />}
+        {activeTab === "support" && <PlatformSupportTab restaurants={restaurants} />}
+        {activeTab === "health" && <PlatformHealthTab />}
+        {activeTab === "settings" && <PlatformSettingsTab />}
       </div>
     </main>
   );

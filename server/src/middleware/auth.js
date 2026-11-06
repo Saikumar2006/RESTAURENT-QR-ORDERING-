@@ -136,16 +136,20 @@ function requirePermission(...permissions) {
 // just another User role.
 async function requirePlatformAuth(req, res, next) {
   try {
+    const db = req.db || prisma;
+    const authHeader = req.headers.authorization || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
     const cookie = (req.headers.cookie || "").split(";").map((part) => part.trim())
       .find((part) => part.startsWith("svaadya_platform_session="));
     let cookieToken = "";
     try { cookieToken = cookie ? decodeURIComponent(cookie.slice("svaadya_platform_session=".length)) : ""; } catch { /* Reject malformed cookies below. */ }
-    const token = cookieToken || null;
+    const token = bearerToken || cookieToken || null;
     if (!token) return fail(res, 401, "Authentication required");
 
     const payload = verifyToken(token);
     if (payload.type !== "platform") return fail(res, 401, "Invalid or expired session");
-    const admin = await prisma.platformAdmin.findUnique({ where: { id: payload.sub } });
+    const admin = await db.platformAdmin.findUnique({ where: { id: payload.sub } });
     if (!admin || !admin.isActive) return fail(res, 401, "Invalid or expired session");
 
     const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));

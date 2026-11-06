@@ -179,7 +179,7 @@ function getPublicCatalog() {
       checkoutAvailable: pricing.configured && provider.ready,
       legalDetailsConfigured: Boolean(env.companyLegalName && env.companySupportEmail && env.companyAddress && env.companyRegistrationNumber),
     },
-    companySupportEmail: env.companySupportEmail || null,
+    companySupportEmail: env.companySupportEmail || "svaadyarestro@gmail.com",
     companyLegalName: env.companyLegalName || null,
     companyAddress: env.companyAddress || null,
     companyRegistrationNumber: env.companyRegistrationNumber || null,

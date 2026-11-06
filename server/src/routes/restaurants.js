@@ -9,6 +9,7 @@ const {
   restaurantUpdateSchema,
   tableCreateSchema,
   tableUpdateSchema,
+  floorLayoutUpdateSchema,
   staffCreateSchema,
   staffInvitationSchema,
   staffAccessLinkReasonSchema,
@@ -59,6 +60,11 @@ router.post("/:id/tables/:tableId/rotate-token", requireAuth, requirePermission(
 // Tables (nested under restaurant for creation/listing, per the spec's API table)
 router.get("/:id/tables", requireAuth, requirePermission("tables.view"), restaurantController.listTables);
 router.post("/:id/tables", requireAuth, requirePermission("tables.manage"), validateBody(tableCreateSchema), restaurantController.createTable);
+router.put("/:id/tables/batch", requireAuth, requirePermission("tables.manage"), restaurantController.batchUpdateTables);
+
+// Floor Plan & Canvas Endpoints
+router.get("/:id/floor-layout", requireAuth, requirePermission("tables.view"), restaurantController.getFloorLayout);
+router.put("/:id/floor-layout", requireAuth, requirePermission("tables.manage"), validateBody(floorLayoutUpdateSchema), restaurantController.updateFloorLayout);
 
 // Orders list for the dashboard
 router.get("/:id/orders", requireAuth, requirePermission("orders.view"), require("../controllers/orderController").listOrders);

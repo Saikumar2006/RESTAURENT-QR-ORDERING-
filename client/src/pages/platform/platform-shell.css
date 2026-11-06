@@ -69,6 +69,8 @@
 }
 .platform-shell-link:hover { background: #ffffff10; color: #fff; }
 .platform-shell-link.is-active { background: #ffffff18; color: #fff; font-weight: 600; }
+.platform-shell-link-icon { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 18px; }
+.platform-shell-link-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .platform-shell-link-indicator { width: 5px; height: 5px; border-radius: 50%; background: #6f9c91; }
 .platform-shell-link.is-active .platform-shell-link-indicator { background: #a9e3cb; box-shadow: 0 0 0 3px #a9e3cb20; }
 .platform-shell-profile {
@@ -119,7 +121,7 @@
 }
 .platform-shell-topbar p { margin: 0; color: #253630; font-size: 12px; font-weight: 700; }
 .platform-shell-topbar > div:first-of-type > span { display: block; margin-top: 3px; color: #77857f; font-size: 10px; text-transform: capitalize; }
-.platform-shell-topbar-user { display: flex; align-items: center; gap: 9px; margin-left: auto; color: #44524c; font-size: 11px; }
+.platform-shell-topbar-user { display: flex; align-items: center; gap: 9px; margin-inline-start: auto; color: #44524c; font-size: 11px; }
 .platform-shell-menu-button { display: none; border: 0; background: transparent; padding: 8px; color: #174e47; cursor: pointer; font-size: 20px; }
 .platform-shell-page { min-width: 0; }
 .platform-shell button:focus-visible,
@@ -133,7 +135,11 @@
   .platform-shell-topbar { min-height: 62px; padding: 0 15px; }
   .platform-shell-menu-button { display: inline-grid; place-items: center; }
   .platform-shell-topbar-user > span:last-child { display: none; }
+  [dir="rtl"] .platform-shell-sidebar { inset: 0 0 0 auto; transform: translateX(105%); box-shadow: -18px 0 35px #0b241f30; }
+  [dir="rtl"] .platform-shell-sidebar.is-open { transform: translateX(0); }
 }
+
+html[lang="ar"] .platform-shell { font-family: "Noto Sans Arabic", Tahoma, Arial, sans-serif; }
 @media (prefers-reduced-motion: reduce) {
   .platform-shell *,
   .platform-shell *::before,

@@ -210,7 +210,7 @@ export default function AdminSubscription() {
               </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-[#FFF8E7] border border-[#E7A13A]/30 text-xs text-[#788582]">
-                Renewal checkout is operating under unconfigured online payments. Contact your platform administrator to activate automated renewals.
+                Renewal checkout is operating under unconfigured online payments. Contact support at <a href="mailto:svaadyarestro@gmail.com" className="underline font-semibold text-[#172B2A]">svaadyarestro@gmail.com</a> to activate automated renewals.
               </div>
             )}
           </div>

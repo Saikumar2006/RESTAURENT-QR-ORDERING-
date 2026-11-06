@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
-import { useAuth } from "../../store/AuthContext.jsx";
 import { ErrorBanner } from "../../components/Ui.jsx";
+import { LanguageSwitcher, useTranslation } from "../../i18n.jsx";
 import "./platform.css";
 
 export default function PlatformLogin() {
+  const { t } = useTranslation();
   const { admin, login } = usePlatformAuth();
-  const { user, setSessionFromLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,11 +18,8 @@ export default function PlatformLogin() {
   useEffect(() => {
     if (admin) {
       navigate("/super-admin/dashboard", { replace: true });
-    } else if (user) {
-      const destination = user.role === "STAFF" ? "/admin/orders" : "/admin";
-      navigate(destination, { replace: true });
     }
-  }, [admin, user, navigate]);
+  }, [admin, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,13 +27,13 @@ export default function PlatformLogin() {
     setError(null);
     try {
       const result = await login(email, password);
-      if (result.accountType === "tenant" && result.token) {
-        setSessionFromLogin(result.token, result.user);
-        const destination = result.user?.role === "STAFF" ? "/admin/orders" : (result.redirectTo || "/admin");
-        navigate(destination, { replace: true });
+      if (result.accountType === "platform") {
+        navigate(result.redirectTo || "/super-admin/dashboard", { replace: true });
         return;
       }
-      navigate(result.redirectTo || "/super-admin/dashboard", { replace: true });
+      // If a non-platform account was supplied
+      setError("This account is not a provisioned platform administrator. Use the restaurant portal instead.");
+      setSubmitting(false);
     } catch (err) {
       setError(err.message || "Invalid email or password");
       setSubmitting(false);
@@ -45,33 +42,96 @@ export default function PlatformLogin() {
 
   return (
     <main className="platform-login-page">
-      <Link className="platform-login-brand" to="/" aria-label="Svaadya home"><span>S</span>SVAADYA</Link>
+      <div className="language-switcher-dock z-20 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-sm"><LanguageSwitcher /></div>
+      <Link className="platform-login-brand" to="/" aria-label="Svaadya home">
+        <span>S</span>SVAADYA
+      </Link>
       <div className="platform-login-layout">
         <section className="platform-login-story" aria-label="Platform administration">
-          <p className="platform-login-eyebrow">SVAADYA · PLATFORM ACCESS</p>
-          <h1>One thoughtful view of every restaurant.</h1>
-          <p>Secure access for the people responsible for the Svaadya platform.</p>
-          <div className="platform-login-rule"><span /> PLATFORM ADMINISTRATION <span /></div>
-        </section>
-        <section className="platform-login-card">
-          <p className="platform-login-card-eyebrow">RESTRICTED ACCESS</p>
-          <h2>Platform Administration</h2>
-          <p className="platform-login-copy">Sign in with your provisioned platform administrator account.</p>
-          <form onSubmit={handleSubmit}>
-            {error && <div role="alert" aria-live="assertive"><ErrorBanner message={error} /></div>}
-            <label htmlFor="platform-email">Email address</label>
-            <input id="platform-email" name="email" type="email" required maxLength={254} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <label htmlFor="platform-password">Password</label>
-            <div className="platform-password-wrap">
-              <input id="platform-password" name="password" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button type="button" className="platform-password-toggle" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? "Hide" : "Show"}</button>
+          <p className="platform-login-eyebrow">SVAADYA · SUPER ADMIN</p>
+          <h1>{t("platformLogin")}</h1>
+          <p>Centralized governance, tenant monitoring, and financial operations across the entire restaurant network.</p>
+          <div className="platform-login-rule">
+            <span /> RESTRICTED PLATFORM ACCESS <span />
+          </div>
+          <div className="platform-login-highlights">
+            <div className="platform-login-highlight-item">
+              <strong>Multi-Tenant Isolation</strong>
+              <span>Zero cross-tenant exposure with dedicated platform credentials.</span>
             </div>
-            <button className="platform-login-submit" type="submit" disabled={submitting}>{submitting ? "Verifying access…" : "Sign in securely"}<span aria-hidden="true">→</span></button>
+            <div className="platform-login-highlight-item">
+              <strong>Audit & Compliance</strong>
+              <span>Every administrative operation is cryptographically signed and logged.</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="platform-login-card">
+          <p className="platform-login-card-eyebrow">ENTERPRISE ACCESS</p>
+          <h2>Super Admin Sign In</h2>
+          <p className="platform-login-copy">Authenticate using your provisioned platform credentials.</p>
+
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div role="alert" aria-live="assertive" className="mb-4">
+                <ErrorBanner message={error} />
+              </div>
+            )}
+
+            <label htmlFor="platform-email">{t("emailAddress")}</label>
+            <input
+              id="platform-email"
+              name="email"
+              type="email"
+              required
+              maxLength={254}
+              autoComplete="username"
+              placeholder="svaadyarestro@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <label htmlFor="platform-password">{t("password")}</label>
+            <div className="platform-password-wrap">
+              <input
+                id="platform-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="platform-password-toggle"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            <button className="platform-login-submit" type="submit" disabled={submitting}>
+              {submitting ? t("signingIn") : t("signIn")}
+              <span aria-hidden="true">→</span>
+            </button>
           </form>
-          <p className="platform-login-footnote">Platform access is managed separately from restaurant accounts. <Link to="/admin/login">Restaurant login</Link></p>
+
+          <p className="platform-login-footnote">
+            Looking for your restaurant dashboard?{" "}
+            <Link to="/admin/login">Restaurant Owner Portal</Link>
+          </p>
         </section>
       </div>
-      <footer className="platform-login-footer"><span>© {new Date().getFullYear()} Svaadya</span><Link to="/">Back to Svaadya</Link><span>Secure platform session</span></footer>
+      <footer className="platform-login-footer">
+        <span>© {new Date().getFullYear()} Svaadya SaaS Platform</span>
+        <a href="mailto:svaadyarestro@gmail.com" className="hover:underline">Help: svaadyarestro@gmail.com</a>
+        <Link to="/">Public Site</Link>
+        <span>Secure 256-bit TLS Session</span>
+      </footer>
     </main>
   );
 }

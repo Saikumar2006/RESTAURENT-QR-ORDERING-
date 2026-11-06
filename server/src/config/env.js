@@ -131,7 +131,7 @@ module.exports = {
     return process.env.SAAS_RAZORPAY_WEBHOOK_SECRET ?? required("SAAS_RAZORPAY_WEBHOOK_SECRET", "");
   },
   companyLegalName: required("COMPANY_LEGAL_NAME", ""),
-  companySupportEmail: required("COMPANY_SUPPORT_EMAIL", ""),
+  companySupportEmail: required("COMPANY_SUPPORT_EMAIL", "svaadyarestro@gmail.com"),
   companyAddress: required("COMPANY_ADDRESS", ""),
   companyRegistrationNumber: required("COMPANY_REGISTRATION_NUMBER", ""),
   aiProvider: required("AI_PROVIDER", "unconfigured"),

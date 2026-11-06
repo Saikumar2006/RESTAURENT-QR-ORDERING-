@@ -51,7 +51,7 @@ const subscriptionVerifySchema = z.object({
 });
 const subscriptionRenewSchema = z.object({ billingPeriod: z.enum(["MONTHLY", "3_MONTHS", "6_MONTHS", "YEARLY"]) });
 const preferredLanguageSchema = z.object({
-  language: z.enum(["en", "hi", "te", "ta", "kn", "ml", "bn", "mr", "gu", "pa", "or"]),
+  language: z.enum(["en", "hi", "te", "ta", "kn", "ml", "mr", "bn", "gu", "pa", "ar"]),
 });
 
 const restaurantCreateSchema = z.object({
@@ -113,11 +113,33 @@ const restaurantUpdateSchema = z.object({
 
 const tableCreateSchema = z.object({
   tableNumber: z.string().min(1),
+  capacity: z.number().int().min(1).max(100).optional(),
+  section: z.string().min(1).max(50).optional(),
+  shape: z.enum(["round", "square", "rectangle", "custom"]).optional(),
+  posX: z.number().optional(),
+  posY: z.number().optional(),
+  width: z.number().positive().optional(),
+  height: z.number().positive().optional(),
+  rotation: z.number().optional(),
+  chairCount: z.number().int().min(0).max(100).optional(),
+  chairPositions: z.any().optional(),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "RESERVED", "CLEANING", "DISABLED"]).optional(),
 });
 
-const tableUpdateSchema = z.object({
-  tableNumber: z.string().min(1).optional(),
+const tableUpdateSchema = tableCreateSchema.partial().extend({
   isActive: z.boolean().optional(),
+});
+
+const floorLayoutUpdateSchema = z.object({
+  section: z.string().min(1).max(50),
+  objects: z.array(z.any()).optional().nullable(),
+  gridSnap: z.boolean().optional(),
+  gridSize: z.number().int().min(5).max(100).optional(),
+  canvasWidth: z.number().positive().optional(),
+  canvasHeight: z.number().positive().optional(),
+  zoom: z.number().positive().optional(),
+  panX: z.number().optional(),
+  panY: z.number().optional(),
 });
 
 const categoryCreateSchema = z.object({
@@ -133,15 +155,30 @@ const categoryUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+const variantItemSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+  price: z.number().min(0),
+});
+
+const addonItemSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1),
+  price: z.number().min(0),
+});
+
 const menuItemCreateSchema = z.object({
   categoryId: z.string().uuid(),
   name: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   price: z.number().positive(),
   imageUrl: imageUrlField.optional().nullable(),
   isVeg: z.boolean().optional(),
   isAvailable: z.boolean().optional(),
+  isBestseller: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
+  variants: z.array(variantItemSchema).optional().nullable(),
+  addons: z.array(addonItemSchema).optional().nullable(),
 });
 
 const menuItemUpdateSchema = menuItemCreateSchema.partial();
@@ -399,6 +436,7 @@ module.exports = {
   restaurantUpdateSchema,
   tableCreateSchema,
   tableUpdateSchema,
+  floorLayoutUpdateSchema,
   categoryCreateSchema,
   categoryUpdateSchema,
   menuItemCreateSchema,

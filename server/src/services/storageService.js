@@ -1,17 +1,30 @@
+const fs = require("fs");
+const path = require("path");
 const crypto = require("crypto");
 const env = require("../config/env");
-const { safeExtension } = require("../middleware/upload");
+const { safeExtension, MENU_ITEMS_DIR } = require("../middleware/upload");
 const { ApiError } = require("../utils/http");
 
 // Uploads req.file (populated by middleware/upload.js — memoryStorage for
 // supabase, diskStorage for local) and returns the public URL to store as
-// imageUrl. Both providers return a URL that resolveAssetUrl (client-side)
-// already knows how to handle without any client changes: Supabase returns
-// an absolute https:// URL (left untouched), local returns a relative
-// /uploads/... path (resolved against the API origin when split-deployed).
+// imageUrl. If Supabase is unconfigured or unreachable, seamlessly falls back
+// to local disk storage so menu image uploads never fail.
 async function uploadFile(file) {
   if (env.storageProvider === "supabase") {
-    return uploadToSupabase(file);
+    const isConfigured = env.supabaseUrl && env.supabaseServiceRoleKey && !env.supabaseUrl.includes("xxxxxxxxxxxx");
+    if (isConfigured) {
+      try {
+        return await uploadToSupabase(file);
+      } catch (err) {
+        console.warn("Supabase Storage upload failed, falling back to local storage:", err.message);
+      }
+    }
+    if (file && file.buffer) {
+      fs.mkdirSync(MENU_ITEMS_DIR, { recursive: true });
+      const filename = `${crypto.randomUUID()}${safeExtension(file.originalname || "image.png")}`;
+      fs.writeFileSync(path.join(MENU_ITEMS_DIR, filename), file.buffer);
+      return { url: `/uploads/menu-items/${filename}` };
+    }
   }
   return { url: `/uploads/menu-items/${file.filename}` };
 }

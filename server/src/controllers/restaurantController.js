@@ -46,6 +46,29 @@ const disableTable = asyncHandler(async (req, res) => {
   ok(res, table);
 });
 
+const deleteTable = asyncHandler(async (req, res) => {
+  const table = await tableService.deleteTable(req.user.restaurantId, req.params.id);
+  ok(res, table);
+});
+
+const batchUpdateTables = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const tables = await tableService.batchUpdateTables(req.user.restaurantId, req.body.tables);
+  ok(res, tables);
+});
+
+const getFloorLayout = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const layout = await tableService.getFloorLayout(req.user.restaurantId, req.query.section || "Indoor");
+  ok(res, layout);
+});
+
+const updateFloorLayout = asyncHandler(async (req, res) => {
+  assertRestaurantPath(req);
+  const layout = await tableService.updateFloorLayout(req.user.restaurantId, req.body);
+  ok(res, layout);
+});
+
 // Single QR for the whole restaurant (not one per table anymore). It
 // encodes the restaurant's public link; the customer chooses a table or
 // takeaway once they land on the page.
@@ -177,7 +200,11 @@ module.exports = {
   listTables,
   createTable,
   updateTable,
+  deleteTable,
   disableTable,
+  batchUpdateTables,
+  getFloorLayout,
+  updateFloorLayout,
   generateRestaurantQr,
   generateTableQr,
   rotateTableToken,

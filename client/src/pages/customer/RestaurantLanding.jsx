@@ -5,6 +5,7 @@ import { useCart } from "../../store/CartContext.jsx";
 import { Spinner } from "../../components/Ui.jsx";
 import { resolveAssetUrl } from "../../utils/assetUrl.js";
 import { getCurrentPosition, distanceMeters } from "../../utils/geo.js";
+import { useTranslation } from "../../i18n.jsx";
 
 // This is the ONE page every customer lands on after scanning the QR code.
 // When an individual table QR is scanned, tableToken in the URL automatically
@@ -15,6 +16,7 @@ export default function RestaurantLanding() {
   const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
   const { setSession } = useCart();
+  const { t } = useTranslation();
   const [context, setContext] = useState(null);
   const [error, setError] = useState(null); // { status, message } | null
   const [mode, setMode] = useState(null); // null | "dine-in"
@@ -132,21 +134,21 @@ export default function RestaurantLanding() {
               : "This QR code appears to be invalid or the restaurant is no longer active. Please ask a staff member for help."}
           </p>
           <button className="btn-secondary" onClick={() => window.location.reload()}>
-            Try again
+            {t("tryAgain")}
           </button>
         </div>
       </div>
     );
   }
 
-  if (!context) return <Spinner label="Loading..." />;
+  if (!context) return <Spinner label={t("loading")} />;
 
   if (context.restaurant.isOpenNow === false) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-3">🌙</p>
-          <p className="font-display text-2xl mb-2">Out of Service</p>
+          <p className="font-display text-2xl mb-2">{t("outOfService")}</p>
           <p className="text-charcoal/60 text-sm">
             {context.restaurant.name} isn't taking orders right now. Please check back during opening hours.
           </p>
@@ -156,7 +158,7 @@ export default function RestaurantLanding() {
   }
 
   if (context.restaurant.geofenceEnabled && geoStatus === "checking") {
-    return <Spinner label="Confirming you're on-site..." />;
+    return <Spinner label={t("locationRequired")} />;
   }
 
   if (context.restaurant.geofenceEnabled && (geoStatus === "outside" || geoStatus === "error")) {
@@ -172,7 +174,7 @@ export default function RestaurantLanding() {
               `Ordering from ${context.restaurant.name} is only available on-site. Please move closer and try again.`}
           </p>
           <button className="btn-secondary" onClick={checkLocation}>
-            Try again
+            {t("tryAgain")}
           </button>
         </div>
       </div>
@@ -203,10 +205,10 @@ export default function RestaurantLanding() {
       {mode !== "dine-in" && (
         <div className="w-full max-w-xs space-y-3">
           <button className="btn-primary w-full" onClick={() => setMode("dine-in")}>
-            Dine In — Select Table
+            {t("dineIn")} — {t("selectTable")}
           </button>
           <button className="btn-secondary w-full" onClick={chooseTakeaway}>
-            Takeaway
+            {t("takeaway")}
           </button>
         </div>
       )}
@@ -217,7 +219,7 @@ export default function RestaurantLanding() {
             <p className="text-sm text-charcoal/50 mb-4">No tables are set up yet — ask staff for help.</p>
           ) : (
             <>
-              <p className="text-sm text-charcoal/50 mb-4">Tap your table number</p>
+              <p className="text-sm text-charcoal/50 mb-4">{t("selectTable")}</p>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {context.tables.map((t) => (
                   <button
@@ -232,7 +234,7 @@ export default function RestaurantLanding() {
             </>
           )}
           <button className="text-sm text-charcoal/50" onClick={() => setMode(null)}>
-            ← Back
+            ← {t("backToMenu")}
           </button>
         </div>
       )}

@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { LanguageSwitcher } from "../i18n.jsx";
 import "./landing.css";
 
-const salesEmail = import.meta.env.VITE_SALES_EMAIL;
-const salesHref = salesEmail ? `mailto:${salesEmail}?subject=${encodeURIComponent("Svaadya demo request")}` : null;
+const salesEmail = import.meta.env.VITE_SALES_EMAIL || "svaadyarestro@gmail.com";
+const salesHref = `mailto:${salesEmail}?subject=${encodeURIComponent("Svaadya demo request")}`;
 const legalUrl = (value) => typeof value === "string" && /^https:\/\//i.test(value) ? value : null;
 const privacyUrl = legalUrl(import.meta.env.VITE_PRIVACY_URL);
 const termsUrl = legalUrl(import.meta.env.VITE_TERMS_URL);
@@ -366,7 +366,7 @@ function Footer() {
   return (
     <footer className="landing-footer">
       <div className="landing-container">
-        <div className="footer-top"><div className="footer-brand"><Link className="landing-wordmark" to="/"><span className="landing-brand-icon">S</span><span>SVAADYA</span></Link><p>The operating system for modern restaurants.</p><span className="footer-platform-note">Restaurant operations, connected.</span></div>
+        <div className="footer-top"><div className="footer-brand"><Link className="landing-wordmark" to="/"><span className="landing-brand-icon">S</span><span>SVAADYA</span></Link><p>The operating system for modern restaurants.</p><span className="footer-platform-note">Support: <a href="mailto:svaadyarestro@gmail.com" className="underline hover:text-white">svaadyarestro@gmail.com</a></span></div>
           <div className="footer-links-group"><b>PRODUCT</b><a href="#product">Product</a><a href="#features">Features</a><a href="#analytics">Analytics</a><a href="#how-it-works">How it works</a></div>
           <div className="footer-links-group"><b>EXPLORE</b><a href="#how-it-works">How it works</a><a href="#resources">Resources &amp; FAQ</a><a href="#security">Security</a><Link to="/about">About Svaadya</Link></div>
           <div className="footer-links-group"><b>ACCOUNT</b><Link to="/admin/login">Restaurant login</Link><Link to="/pricing">Plans</Link><Link to="/super-admin/login">Super Admin login</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div>
@@ -534,6 +534,7 @@ export default function Home() {
       <footer className="nature-footer">
         <Link className="nature-brand" to="/" aria-label="Svaadya home"><span className="nature-brand-mark" aria-hidden="true">S</span><span>Svaadya<small>RESTAURANT OPERATIONS</small></span></Link>
         <p>Thoughtfully made for the people behind good food.</p>
+        <p className="text-xs text-charcoal/60 my-2">Support & Inquiries: <a href="mailto:svaadyarestro@gmail.com" className="underline font-semibold hover:text-charcoal">svaadyarestro@gmail.com</a></p>
         <nav aria-label="Footer navigation"><Link to="/about">About</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link><Link to="/super-admin/login">Platform sign in</Link></nav>
         <small>© {new Date().getFullYear()} Svaadya</small>
       </footer>

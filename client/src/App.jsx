@@ -163,6 +163,7 @@ export default function App() {
         <Route path="/platform/dashboard" element={<PlatformDashboard />} />
         <Route path="/platform/access" element={<PlatformAccess />} />
         <Route path="/super-admin/dashboard" element={<PlatformDashboard />} />
+        <Route path="/super-admin/access" element={<PlatformAccess />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

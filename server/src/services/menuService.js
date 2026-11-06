@@ -17,7 +17,13 @@ async function createCategory(restaurantId, data) {
 async function updateCategory(restaurantId, categoryId, data) {
   const category = await prisma.category.findFirst({ where: { id: categoryId, restaurantId } });
   if (!category) throw new ApiError(404, "Category not found");
-  const updated = await prisma.category.update({ where: { id: categoryId }, data });
+  const updateData = {};
+  if (data.name !== undefined) updateData.name = String(data.name).trim();
+  if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
+  if (data.displayOrder !== undefined) updateData.displayOrder = Number(data.displayOrder);
+  if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
+
+  const updated = await prisma.category.update({ where: { id: categoryId }, data: updateData });
   await invalidateRestaurantMenuCache(restaurantId);
   return updated;
 }
@@ -25,11 +31,28 @@ async function updateCategory(restaurantId, categoryId, data) {
 async function deleteCategory(restaurantId, categoryId) {
   const category = await prisma.category.findFirst({ where: { id: categoryId, restaurantId } });
   if (!category) throw new ApiError(404, "Category not found");
-  // Soft delete: disable rather than hard-delete so historical order_items
-  // (which reference menu items under this category) stay intact.
-  const updated = await prisma.category.update({ where: { id: categoryId }, data: { isActive: false } });
+
+  // Check if any menu items in this category have historical orders
+  const items = await prisma.menuItem.findMany({
+    where: { categoryId, restaurantId },
+    include: { _count: { select: { orderItems: true } } },
+  });
+  const hasOrders = items.some((item) => item._count.orderItems > 0);
+
+  if (!hasOrders) {
+    // Safe to hard-delete category; cascades to items
+    await prisma.category.delete({ where: { id: categoryId } });
+  } else {
+    // Soft delete category and all its menu items
+    await prisma.category.update({ where: { id: categoryId }, data: { isActive: false } });
+    await prisma.menuItem.updateMany({
+      where: { categoryId },
+      data: { isDeleted: true, isAvailable: false },
+    });
+  }
+
   await invalidateRestaurantMenuCache(restaurantId);
-  return updated;
+  return { success: true, id: categoryId };
 }
 
 // --- Menu items --------------------------------------------------------
@@ -47,7 +70,10 @@ async function createMenuItem(restaurantId, data) {
     imageUrl: data.imageUrl || null,
     isVeg: data.isVeg !== undefined ? Boolean(data.isVeg) : true,
     isAvailable: data.isAvailable !== undefined ? Boolean(data.isAvailable) : true,
+    isBestseller: data.isBestseller !== undefined ? Boolean(data.isBestseller) : false,
     displayOrder: Number.isInteger(data.displayOrder) ? data.displayOrder : 0,
+    variants: Array.isArray(data.variants) ? data.variants : null,
+    addons: Array.isArray(data.addons) ? data.addons : null,
   };
 
   const item = await prisma.menuItem.create({ data: sanitizedData });
@@ -70,8 +96,11 @@ async function updateMenuItem(restaurantId, menuItemId, data) {
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
   if (data.isVeg !== undefined) updateData.isVeg = Boolean(data.isVeg);
   if (data.isAvailable !== undefined) updateData.isAvailable = Boolean(data.isAvailable);
+  if (data.isBestseller !== undefined) updateData.isBestseller = Boolean(data.isBestseller);
   if (data.displayOrder !== undefined) updateData.displayOrder = Number(data.displayOrder);
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+  if (data.variants !== undefined) updateData.variants = Array.isArray(data.variants) ? data.variants : null;
+  if (data.addons !== undefined) updateData.addons = Array.isArray(data.addons) ? data.addons : null;
 
   const updated = await prisma.menuItem.update({ where: { id: menuItemId }, data: updateData });
   await invalidateRestaurantMenuCache(restaurantId);
@@ -79,23 +108,35 @@ async function updateMenuItem(restaurantId, menuItemId, data) {
 }
 
 async function deleteMenuItem(restaurantId, menuItemId) {
-  const item = await prisma.menuItem.findFirst({ where: { id: menuItemId, restaurantId } });
+  const item = await prisma.menuItem.findFirst({
+    where: { id: menuItemId, restaurantId },
+    include: { _count: { select: { orderItems: true } } },
+  });
   if (!item) throw new ApiError(404, "Menu item not found");
-  // Soft delete: order_items snapshot name/price already, but hard-deleting
-  // would break the FK from historical order_items.
-  const updated = await prisma.menuItem.update({ where: { id: menuItemId }, data: { isAvailable: false } });
+
+  if (item._count.orderItems === 0) {
+    await prisma.menuItem.delete({ where: { id: menuItemId } });
+  } else {
+    // Preserve FK relationship to orderItems while hiding it from all admin and public views
+    await prisma.menuItem.update({
+      where: { id: menuItemId },
+      data: { isDeleted: true, isAvailable: false },
+    });
+  }
+
   await invalidateRestaurantMenuCache(restaurantId);
-  return updated;
+  return { success: true, id: menuItemId };
 }
 
-// --- Admin read (full, including disabled/unavailable) -------------------
+// --- Admin read (full, active categories and non-deleted items) -------------------
 
 async function getAdminMenu(restaurantId) {
   const categories = await prisma.category.findMany({
-    where: { restaurantId },
+    where: { restaurantId, isActive: true },
     orderBy: { displayOrder: "asc" },
     include: {
       menuItems: {
+        where: { isDeleted: false },
         orderBy: { displayOrder: "asc" },
         include: { recipeComponents: { include: { inventoryItem: { select: { id: true, name: true, baseUnit: true } } } } },
       },
@@ -104,7 +145,7 @@ async function getAdminMenu(restaurantId) {
   return categories;
 }
 
-// --- Public read (only active categories / available items) --------------
+// --- Public read (only active categories / available and non-deleted items) --------------
 
 async function getPublicMenu(restaurantId) {
   const cacheKey = getCacheKey("restaurant:menu", `${restaurantId}:public`);
@@ -116,7 +157,7 @@ async function getPublicMenu(restaurantId) {
     orderBy: { displayOrder: "asc" },
     include: {
       menuItems: {
-        where: { isAvailable: true },
+        where: { isAvailable: true, isDeleted: false },
         orderBy: { displayOrder: "asc" },
       },
     },

@@ -14,9 +14,12 @@ export function PlatformAuthProvider({ children }) {
     setLoading(true);
     setRestoreError(null);
     try {
-      setAdmin(await platformApi.get("/me", { timeout: 25000 }));
+      const data = await platformApi.get("/me", { timeout: 25000 });
+      setAdmin(data);
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
+        sessionStorage.removeItem("svaadya_platform_token");
+        localStorage.removeItem("svaadya_platform_token");
         setAdmin(null);
       } else {
         const category = error.code === "ECONNABORTED" ? "timeout"
@@ -40,8 +43,7 @@ export function PlatformAuthProvider({ children }) {
   }
 
   useEffect(() => {
-    try { localStorage.removeItem("qr_platform_token"); } catch { /* Platform auth now uses an HTTP-only cookie. */ }
-    const isPlatformRoute = location.pathname.startsWith("/platform/") || location.pathname.startsWith("/super-admin/");
+    const isPlatformRoute = location.pathname.startsWith("/platform") || location.pathname.startsWith("/super-admin");
     if (!isPlatformRoute) {
       setAdmin(null);
       setLoading(false);
@@ -56,16 +58,28 @@ export function PlatformAuthProvider({ children }) {
     const result = await platformApi.post("/login", { email, password });
     if (result.admin) {
       setAdmin(result.admin);
+      if (result.token) {
+        sessionStorage.setItem("svaadya_platform_token", result.token);
+      }
     }
     return result;
   }
 
-  function setAdminFromLogin(newAdmin) {
+  function setAdminFromLogin(newAdmin, token) {
     setAdmin(newAdmin);
+    if (token) {
+      sessionStorage.setItem("svaadya_platform_token", token);
+    }
   }
 
   async function logout() {
-    try { await platformApi.post("/logout"); } catch { /* Clear local UI state even if the server is unavailable. */ } finally {
+    try {
+      await platformApi.post("/logout");
+    } catch {
+      /* Clear local UI state even if the server is unavailable. */
+    } finally {
+      sessionStorage.removeItem("svaadya_platform_token");
+      localStorage.removeItem("svaadya_platform_token");
       setAdmin(null);
     }
   }

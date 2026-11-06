@@ -29,8 +29,8 @@
 .platform-login-card input { width: 100%; height: 47px; border: 1px solid #dcd9d1; border-radius: 3px; outline: none; background: #fff; padding: 0 13px; color: #232720; font: inherit; font-size: 14px; }
 .platform-login-card input:focus { border-color: #a9693b; box-shadow: 0 0 0 3px #c5834820; }
 .platform-password-wrap { position: relative; }
-.platform-password-wrap input { padding-right: 62px; }
-.platform-password-toggle { position: absolute; top: 50%; right: 11px; transform: translateY(-50%); border: 0; background: none; padding: 7px; color: #885b3e; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; }
+.platform-password-wrap input { padding-inline-end: 62px; }
+.platform-password-toggle { position: absolute; top: 50%; inset-inline-end: 11px; transform: translateY(-50%); border: 0; background: none; padding: 7px; color: #885b3e; cursor: pointer; font: inherit; font-size: 11px; font-weight: 700; }
 .platform-login-submit { display: flex; height: 48px; align-items: center; justify-content: space-between; margin-top: 15px; border: 0; border-radius: 3px; background: #292d28; padding: 0 16px; color: #fff; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; }
 .platform-login-submit:hover { background: #41453e; }
 .platform-login-submit:disabled { cursor: wait; opacity: .65; }

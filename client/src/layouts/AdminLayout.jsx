@@ -27,18 +27,18 @@ import {
 import api from "../services/api";
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "Overview", icon: OverviewIcon, end: true, permission: ["orders.view", "analytics.view", "tables.view"] },
-  { to: "/admin/orders", label: "Orders", icon: OrdersIcon, badgeKey: "orders", permission: "orders.view" },
-  { to: "/admin/tables", label: "Tables", icon: TablesIcon, permission: "tables.view" },
-  { to: "/admin/menu", label: "Menu", icon: MenuIcon, permission: "menu.view" },
-  { to: "/admin/coupons", label: "Promotions", icon: PromotionsIcon, adminOnly: true, permission: "coupons.view" },
-  { to: "/admin/reports", label: "Analytics", icon: AnalyticsIcon, permission: "analytics.view" },
-  { to: "/admin/customers", label: "Customers", icon: CustomersIcon, permission: "orders.view" },
-  { to: "/admin/staff", label: "Staff", icon: StaffIcon, adminOnly: true, permission: "staff.view" },
-  { to: "/admin/inventory", label: "Inventory", icon: InventoryIcon, permission: "inventory.view" },
-  { to: "/admin/payments", label: "Payments", icon: PaymentsIcon, permission: "analytics.view" },
-  { to: "/admin/reports", label: "Reports", icon: ReportsIcon, permission: "analytics.view" },
-  { to: "/admin/settings", label: "Settings", icon: SettingsIcon, adminOnly: true, permission: "settings.view" },
+  { to: "/admin", label: "Overview", translation: "overview", icon: OverviewIcon, end: true, permission: ["orders.view", "analytics.view", "tables.view"] },
+  { to: "/admin/orders", label: "Orders", translation: "orders", icon: OrdersIcon, badgeKey: "orders", permission: "orders.view" },
+  { to: "/admin/tables", label: "Tables", translation: "tables", icon: TablesIcon, permission: "tables.view" },
+  { to: "/admin/menu", label: "Menu", translation: "menu", icon: MenuIcon, permission: "menu.view" },
+  { to: "/admin/coupons", label: "Promotions", translation: "promotions", icon: PromotionsIcon, adminOnly: true, permission: "coupons.view" },
+  { to: "/admin/reports", label: "Analytics", translation: "analytics", icon: AnalyticsIcon, permission: "analytics.view" },
+  { to: "/admin/customers", label: "Customers", translation: "customers", icon: CustomersIcon, permission: "orders.view" },
+  { to: "/admin/staff", label: "Staff", translation: "team", icon: StaffIcon, adminOnly: true, permission: "staff.view" },
+  { to: "/admin/inventory", label: "Inventory", translation: "inventory", icon: InventoryIcon, permission: "inventory.view" },
+  { to: "/admin/payments", label: "Payments", translation: "payments", icon: PaymentsIcon, permission: "analytics.view" },
+  { to: "/admin/reports", label: "Reports", translation: "reports", icon: ReportsIcon, permission: "analytics.view" },
+  { to: "/admin/settings", label: "Settings", translation: "settings", icon: SettingsIcon, adminOnly: true, permission: "settings.view" },
 ];
 
 function canAccessNav(item, permissions = []) {
@@ -142,13 +142,13 @@ export default function AdminLayout() {
                 key={item.label}
                 to={item.to}
                 end={item.end}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? t(item.translation) : undefined}
                 className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate">{t(item.translation)}</span>}
                 {!collapsed && item.badgeKey === "orders" && (
-                  <span className="ml-auto nav-badge-count">{activeOrderCount}</span>
+                  <span className="ms-auto nav-badge-count">{activeOrderCount}</span>
                 )}
               </NavLink>
             );
@@ -164,7 +164,7 @@ export default function AdminLayout() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-white truncate">{restaurantName}</p>
-                <p className="text-[10px] text-indigo-300">Restaurant</p>
+                <p className="text-[10px] text-indigo-300">{t("workspace")}</p>
               </div>
               <ChevronRightIcon className="w-3.5 h-3.5 text-white/50" />
             </div>
@@ -176,7 +176,7 @@ export default function AdminLayout() {
               onClick={() => navigate("/admin/login")}
               className="text-[11px] text-indigo-200 hover:text-white px-2 py-1 flex items-center justify-between w-full transition"
             >
-              <span>Switch Restaurant</span>
+              <span>{t("switchRestaurant")}</span>
               <span className="text-xs">›</span>
             </button>
           )}
@@ -201,10 +201,10 @@ export default function AdminLayout() {
             className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition ${
               collapsed ? "justify-center" : ""
             }`}
-            title="Logout"
+            title={t("signOut")}
           >
             <LogOutIcon className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span>{t("signOut")}</span>}
           </button>
         </div>
       </aside>
@@ -235,10 +235,10 @@ export default function AdminLayout() {
                   className={`ml-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1.5 ${
                     isOpen ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                   }`}
-                  title="Click to toggle restaurant status"
+                  title={`${t("open")} / ${t("closed")}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? "bg-emerald-500" : "bg-rose-500"}`} />
-                  {isOpen ? "Open" : "Closed"}
+                  {isOpen ? t("open") : t("closed")}
                 </button>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function AdminLayout() {
             <LanguageSwitcher className="admin-language-switcher hidden sm:block" />
 
             {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+            <div className="flex items-center gap-2.5 ps-2 border-s border-slate-200">
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                 {user?.name?.[0]?.toUpperCase() || "S"}
               </div>

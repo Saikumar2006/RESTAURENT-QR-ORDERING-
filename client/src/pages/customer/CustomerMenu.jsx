@@ -5,12 +5,15 @@ import { useCart } from "../../store/CartContext.jsx";
 import MenuItemCard from "../../components/MenuItemCard.jsx";
 import { resolveAssetUrl } from "../../utils/assetUrl.js";
 import { Spinner, ErrorBanner, EmptyState } from "../../components/Ui.jsx";
+import { formatCurrency, formatNumber } from "../../i18n/resources.js";
+import { useTranslation } from "../../i18n.jsx";
 
 export default function CustomerMenu() {
   const { slug } = useParams();
   const { theme } = useOutletContext() || {};
   const navigate = useNavigate();
   const { itemCount, subtotal, session } = useCart();
+  const { language, t } = useTranslation();
   const [categories, setCategories] = useState(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(null);
@@ -48,7 +51,7 @@ export default function CustomerMenu() {
   }, [categories, search]);
 
   if (error) return <div className="p-6"><ErrorBanner message={error} /></div>;
-  if (!session || !categories) return <Spinner label="Loading menu..." />;
+  if (!session || !categories) return <Spinner label={t("loading")} />;
 
   const searchEnabled = session.restaurant?.searchEnabled !== false;
   const featuredItems = categories.flatMap((category) => category.menuItems).slice(0, 3);
@@ -58,21 +61,21 @@ export default function CustomerMenu() {
     <div className="min-h-screen pb-28">
       <header className="sticky top-0 bg-cream/95 backdrop-blur z-10 border-b border-charcoal/10 px-5 pt-5 pb-3">
         <p className="text-xs uppercase tracking-wide text-charcoal/50 mb-1">
-          {session.orderType === "TAKEAWAY" ? "Takeaway order" : `Table ${session.tableNumber}`}
+          {session.orderType === "TAKEAWAY" ? t("takeaway") : `${t("table")} ${session.tableNumber}`}
         </p>
         <div className="flex items-center justify-between mb-3">
           <h1 className="font-display text-2xl">{session.restaurant?.name}</h1>
           <button className="text-xs text-charcoal/50 underline shrink-0" onClick={() => navigate(`/r/${slug}/orders`)}>
-            Your Orders
+            {t("yourOrders")}
           </button>
         </div>
         {searchEnabled && (
           <input
             className="input"
-            placeholder="Search the menu"
+            placeholder={t("searchMenu")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search menu items"
+            aria-label={t("searchMenu")}
           />
         )}
         {!(searchEnabled && search) && (
@@ -98,25 +101,25 @@ export default function CustomerMenu() {
 
       {featuredSections.includes("featured") && featuredItems.length > 0 && (
         <section className="px-5 pt-5" aria-labelledby="featured-menu-heading">
-          <h2 id="featured-menu-heading" className="mb-3 font-display text-xl">Featured dishes</h2>
+          <h2 id="featured-menu-heading" className="mb-3 font-display text-xl">{t("featuredDishes")}</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{featuredItems.map((item) => <MenuItemCard key={`featured-${item.id}`} item={item} />)}</div>
         </section>
       )}
       {featuredSections.includes("about") && (
         <section className="mx-5 mt-5 rounded-lg border border-charcoal/10 bg-white/60 p-4" aria-labelledby="restaurant-about-heading">
-          <h2 id="restaurant-about-heading" className="font-display text-lg">About {session.restaurant?.name}</h2>
+          <h2 id="restaurant-about-heading" className="font-display text-lg">{t("aboutRestaurant")} · {session.restaurant?.name}</h2>
           <p className="mt-1 text-sm text-charcoal/60">{session.restaurant?.cuisineType || "Explore the menu and order directly from the restaurant."}</p>
         </section>
       )}
       {featuredSections.includes("hours") && session.restaurant?.businessHours && (
         <section className="mx-5 mt-5 rounded-lg border border-charcoal/10 bg-white/60 p-4" aria-labelledby="restaurant-hours-heading">
-          <h2 id="restaurant-hours-heading" className="font-display text-lg">Business hours</h2>
+          <h2 id="restaurant-hours-heading" className="font-display text-lg">{t("businessHours")}</h2>
           <p className="mt-1 text-sm text-charcoal/60">{session.restaurant.businessHours.openTime} – {session.restaurant.businessHours.closeTime} <span className="text-xs">({session.restaurant.businessHours.timezone})</span></p>
         </section>
       )}
 
       <main className="px-5 py-4 space-y-8">
-        {filtered.length === 0 && <EmptyState title="No items found" subtitle="Try a different search." />}
+        {filtered.length === 0 && <EmptyState title={t("noItemsFound")} subtitle={t("tryDifferentSearch")} />}
         {filtered.map((cat) => (
           <section key={cat.id} id={`cat-${cat.id}`}>
             <div className="flex items-center gap-3 mb-3">
@@ -140,8 +143,8 @@ export default function CustomerMenu() {
             className="btn-primary w-full max-w-md mx-auto flex items-center justify-between shadow-lg"
             onClick={() => navigate(`/r/${slug}/cart`)}
           >
-            <span>{itemCount} item{itemCount > 1 ? "s" : ""} · View Cart</span>
-            <span>₹{subtotal.toFixed(0)}</span>
+            <span>{t("itemCount", { count: formatNumber(itemCount, language) })} · {t("viewCart")}</span>
+            <span>{formatCurrency(subtotal, session.restaurant?.currency || "INR", language)}</span>
           </button>
         </div>
       )}

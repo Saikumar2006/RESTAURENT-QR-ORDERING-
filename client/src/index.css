@@ -31,6 +31,44 @@ body,
   height: 100%;
 }
 
+html[lang="ar"] body {
+  font-family: "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+}
+
+.language-switcher-dock {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-end: 1rem;
+}
+
+[dir="rtl"] .admin-sidebar {
+  left: auto;
+  right: 0;
+  border-right: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[dir="rtl"] .admin-topbar {
+  direction: rtl;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: start;
+}
+
+@media (max-width: 1023px) {
+  [dir="rtl"] .admin-sidebar {
+    left: auto;
+    right: 0;
+  }
+
+  [dir="rtl"] .admin-sidebar.-translate-x-full {
+    transform: translateX(100%);
+  }
+}
+
 body {
   @apply bg-brand-bg text-brand-dark font-sans antialiased;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";

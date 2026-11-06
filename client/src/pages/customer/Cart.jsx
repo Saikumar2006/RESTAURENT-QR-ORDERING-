@@ -4,11 +4,15 @@ import { useCart } from "../../store/CartContext.jsx";
 import { EmptyState, ErrorBanner } from "../../components/Ui.jsx";
 import api from "../../services/api";
 import { saveOrderToHistory } from "../../utils/orderHistory.js";
+import { formatCurrency, formatNumber } from "../../i18n/resources.js";
+import { useTranslation } from "../../i18n.jsx";
 
 export default function Cart() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { items, updateQuantity, setInstructions, removeItem, subtotal, clearCart, session } = useCart();
+  const { language, t } = useTranslation();
+  const currency = session?.restaurant?.currency || "INR";
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -164,9 +168,9 @@ export default function Cart() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6">
-        <EmptyState title="Your cart is empty" subtitle="Add something delicious from the menu." />
+        <EmptyState title={t("emptyCart")} subtitle={t("addSomething")} />
         <button className="btn-secondary mt-4" onClick={() => navigate(`/r/${slug}/menu`)}>
-          Back to Menu
+          {t("backToMenu")}
         </button>
       </div>
     );
@@ -176,11 +180,11 @@ export default function Cart() {
     <div className="min-h-screen pb-40">
       <header className="px-5 pt-6 pb-2">
         <button className="text-sm text-charcoal/50 mb-3" onClick={() => navigate(`/r/${slug}/menu`)}>
-          ← Back to menu
+          ← {t("backToMenu")}
         </button>
-        <h1 className="font-display text-2xl">Your Order</h1>
+        <h1 className="font-display text-2xl">{t("yourOrder")}</h1>
         <p className="text-xs text-charcoal/50">
-          {session?.orderType === "TAKEAWAY" ? "Takeaway" : `Table ${session?.tableNumber}`}
+          {session?.orderType === "TAKEAWAY" ? t("takeaway") : `${t("table")} ${formatNumber(session?.tableNumber, language)}`}
         </p>
       </header>
 
@@ -191,10 +195,10 @@ export default function Cart() {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-semibold">{item.name}</h3>
-                <p className="text-sm text-charcoal/50">₹{item.price.toFixed(0)} each</p>
+                <p className="text-sm text-charcoal/50">{formatCurrency(item.price, currency, language)}</p>
               </div>
               <button className="text-xs text-charcoal/40" onClick={() => removeItem(item.menuItemId)}>
-                Remove
+                {t("remove")}
               </button>
             </div>
             <div className="flex items-center justify-between mt-3">
@@ -205,7 +209,7 @@ export default function Cart() {
                 >
                   −
                 </button>
-                <span className="w-5 text-center text-sm font-semibold">{item.quantity}</span>
+                <span className="w-5 text-center text-sm font-semibold">{formatNumber(item.quantity, language)}</span>
                 <button
                   className="w-7 h-7 rounded-full bg-clove text-cream flex items-center justify-center"
                   onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
@@ -213,7 +217,7 @@ export default function Cart() {
                   +
                 </button>
               </div>
-              <span className="font-semibold text-sm">₹{(item.price * item.quantity).toFixed(0)}</span>
+              <span className="font-semibold text-sm">{formatCurrency(item.price * item.quantity, currency, language)}</span>
             </div>
             <input
               className="input mt-3 text-xs"
@@ -305,7 +309,7 @@ export default function Cart() {
         <div className="max-w-md mx-auto">
           <div className="flex justify-between text-sm text-charcoal/60 mb-1">
             <span>Subtotal (est.)</span>
-            <span>₹{subtotal.toFixed(0)}</span>
+            <span>{formatCurrency(subtotal, currency, language)}</span>
           </div>
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-emerald-600 font-medium mb-1">

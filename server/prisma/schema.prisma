@@ -81,6 +81,8 @@ model Restaurant {
   pendingOnboardings PendingOnboarding[]
   platformInvites PlatformRestaurantInvite[]
   staffAccessLinks RestaurantStaffAccessLink[]
+  supportTickets PlatformSupportTicket[]
+  floorLayouts   FloorLayout[]
 
   @@index([slug])
 }
@@ -190,6 +192,17 @@ model Table {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   tableNumber  String
   tableToken   String   @unique @default(uuid())
+  capacity     Int      @default(4)
+  section      String   @default("Indoor")
+  shape        String   @default("round") // "round" | "square" | "rectangle" | "custom"
+  posX         Float    @default(120)
+  posY         Float    @default(120)
+  width        Float    @default(90)
+  height       Float    @default(90)
+  rotation     Float    @default(0)
+  chairCount   Int      @default(4)
+  chairPositions Json?
+  status       String   @default("AVAILABLE") // "AVAILABLE" | "OCCUPIED" | "RESERVED" | "CLEANING" | "DISABLED"
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -198,6 +211,7 @@ model Table {
 
   @@unique([restaurantId, tableNumber])
   @@index([restaurantId])
+  @@index([restaurantId, section])
 }
 
 model Category {
@@ -228,6 +242,10 @@ model MenuItem {
   imageUrl     String?
   isVeg        Boolean  @default(true)
   isAvailable  Boolean  @default(true)
+  isBestseller Boolean  @default(false)
+  isDeleted    Boolean  @default(false)
+  variants     Json?
+  addons       Json?
   displayOrder Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -237,6 +255,7 @@ model MenuItem {
 
   @@index([restaurantId])
   @@index([categoryId])
+  @@index([restaurantId, isDeleted])
 }
 
 model Order {
@@ -352,17 +371,22 @@ model Payment {
 // login + separate JWT type keeps the blast radius of a bug in one system
 // from leaking into the other. See server/src/services/platformAuthService.js.
 model PlatformAdmin {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  platformRole String   @default("READ_ONLY_AUDITOR")
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String
+  email               String   @unique
+  passwordHash        String
+  platformRole        String   @default("READ_ONLY_AUDITOR")
+  isActive            Boolean  @default(true)
+  failedLoginAttempts Int      @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  auditEvents PlatformAdminAuditLog[] @relation("PlatformAuditActor")
+  auditEvents       PlatformAdminAuditLog[] @relation("PlatformAuditActor")
   restaurantInvites PlatformRestaurantInvite[] @relation("PlatformRestaurantInviteCreator")
+  assignedTickets   PlatformSupportTicket[] @relation("AssignedTickets")
 }
 
 model PlatformAdminAuditLog {
@@ -394,6 +418,41 @@ model PlatformRestaurantInvite {
 
   @@index([userId, consumedAt, expiresAt])
   @@index([restaurantId, createdAt])
+}
+
+model PlatformSupportTicket {
+  id              String         @id @default(uuid())
+  ticketNumber    Int            @default(autoincrement())
+  restaurantId    String?
+  restaurant      Restaurant?    @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  title           String
+  description     String
+  status          String         @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  priority        String         @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  category        String         @default("GENERAL") // BILLING | TECHNICAL | ONBOARDING | GENERAL
+  contactEmail    String?
+  contactPhone    String?
+  assignedAdminId String?
+  assignedAdmin   PlatformAdmin? @relation("AssignedTickets", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  internalNotes   String         @default("")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, priority])
+  @@index([restaurantId])
+}
+
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  category    String   @default("GENERAL") // GENERAL | BRANDING | SECURITY | NOTIFICATIONS
+  description String   @default("")
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
 }
 
 model RestaurantStaffAccessLink {
@@ -727,4 +786,24 @@ model RecipeComponent {
 
   @@unique([restaurantId, menuItemId, inventoryItemId])
   @@index([restaurantId, menuItemId])
+}
+
+model FloorLayout {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  section      String   @default("Indoor")
+  objects      Json?    // Array of floor objects: walls, doors, windows, counters, reception, restrooms, labels
+  gridSnap     Boolean  @default(true)
+  gridSize     Int      @default(20)
+  canvasWidth  Float    @default(1600)
+  canvasHeight Float    @default(1000)
+  zoom         Float    @default(1.0)
+  panX         Float    @default(0)
+  panY         Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([restaurantId, section])
+  @@index([restaurantId])
 }

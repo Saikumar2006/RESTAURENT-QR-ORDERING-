@@ -116,7 +116,7 @@ export function OnboardingPage() {
 export function OnboardingResultPage() {
   const { state } = useLocation();
   return <PublicFrame eyebrow="Setup status" title={state?.trial ? "Your trial workspace is ready." : state?.paid ? "Payment verified. Your workspace is ready." : "Onboarding status is unavailable."}>
-    {state?.restaurant ? <div className="max-w-2xl rounded-2xl border border-[#b8dfd1] bg-white p-6"><p className="text-sm text-[#64716b]">Restaurant</p><p className="mt-1 text-xl font-semibold">{state.restaurant.name}</p>{state.trial && <p className="mt-3 text-sm">Your configured trial runs for {state.days} days.</p>}<Link className="mt-5 inline-flex rounded-lg bg-[#087f70] px-4 py-3 text-sm font-semibold text-white" to="/admin/login">Sign in to your workspace</Link></div> : <p className="max-w-xl text-sm leading-6 text-[#64716b]">If a payment completed, contact support with the payment provider receipt so the account can be reconciled. No restaurant account is created until the server verifies payment.</p>}
+    {state?.restaurant ? <div className="max-w-2xl rounded-2xl border border-[#b8dfd1] bg-white p-6"><p className="text-sm text-[#64716b]">Restaurant</p><p className="mt-1 text-xl font-semibold">{state.restaurant.name}</p>{state.trial && <p className="mt-3 text-sm">Your configured trial runs for {state.days} days.</p>}<Link className="mt-5 inline-flex rounded-lg bg-[#087f70] px-4 py-3 text-sm font-semibold text-white" to="/admin/login">Sign in to your workspace</Link></div> : <p className="max-w-xl text-sm leading-6 text-[#64716b]">If a payment completed, contact support at <a className="text-[#087f70] underline font-semibold" href="mailto:svaadyarestro@gmail.com">svaadyarestro@gmail.com</a> with the payment provider receipt so the account can be reconciled. No restaurant account is created until the server verifies payment.</p>}
   </PublicFrame>;
 }
 
@@ -127,7 +127,25 @@ export function AboutPage() {
 export function ContactPage() {
   const [details, setDetails] = useState(null);
   useEffect(() => { api.get("/subscriptions/plans").then(setDetails).catch(() => setDetails({ configuration: {} })); }, []);
-  return <PublicFrame eyebrow="Contact" title="Get in touch with the Svaadya team."><div className="max-w-2xl rounded-2xl border border-[#dfe5df] bg-white p-6"><p className="text-sm leading-6 text-[#64716b]">{details?.configuration?.legalDetailsConfigured ? "Use the published service contact for account questions." : "Support contact details have not been configured by the service owner yet."}</p>{details?.configuration?.legalDetailsConfigured && <p className="mt-3 text-sm">For account questions, email <a className="text-[#087f70] underline" href={`mailto:${details.companySupportEmail}`}>{details.companySupportEmail}</a>.</p>}</div></PublicFrame>;
+  const supportEmail = details?.companySupportEmail || "svaadyarestro@gmail.com";
+  return (
+    <PublicFrame eyebrow="Contact" title="Get in touch with the Svaadya team.">
+      <div className="max-w-2xl rounded-2xl border border-[#dfe5df] bg-white p-6 space-y-4">
+        <p className="text-sm leading-6 text-[#64716b]">
+          Have questions about your restaurant setup, online ordering, or SaaS subscription? Reach out to our dedicated support team directly.
+        </p>
+        <div className="p-4 rounded-xl bg-[#f4f7f3] border border-[#dfe5df] flex items-center gap-3">
+          <span className="text-2xl" aria-hidden="true">✉️</span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#087f70]">Official Support & Contact Email</p>
+            <a className="text-base font-semibold text-[#087f70] underline" href={`mailto:${supportEmail}`}>
+              {supportEmail}
+            </a>
+          </div>
+        </div>
+      </div>
+    </PublicFrame>
+  );
 }
 
 export function LegalPage({ kind }) {
@@ -135,5 +153,5 @@ export function LegalPage({ kind }) {
   useEffect(() => { api.get("/subscriptions/plans").then(setDetails).catch(() => setDetails({ configuration: {} })); }, []);
   const title = kind === "privacy" ? "Privacy information" : "Terms of service";
   const configured = details?.configuration?.legalDetailsConfigured;
-  return <PublicFrame eyebrow="Legal" title={title}><div className="max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6"><p className="font-semibold text-amber-950">{configured ? "Legal text requires owner review before publication." : "Legal details are not configured."}</p><p className="mt-3 text-sm leading-6 text-amber-950/80">The service owner must provide applicable jurisdictions, data retention terms and approved policy wording. This page does not invent company details or present draft language as approved legal terms.</p>{configured && <dl className="mt-5 grid gap-3 text-sm text-amber-950/80"><div><dt className="font-semibold">Legal entity</dt><dd>{details.companyLegalName}</dd></div><div><dt className="font-semibold">Registered address</dt><dd>{details.companyAddress}</dd></div><div><dt className="font-semibold">Registration number</dt><dd>{details.companyRegistrationNumber}</dd></div><div><dt className="font-semibold">Support</dt><dd>{details.companySupportEmail}</dd></div></dl>}</div></PublicFrame>;
+  return <PublicFrame eyebrow="Legal" title={title}><div className="max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6"><p className="font-semibold text-amber-950">{configured ? "Legal text requires owner review before publication." : "Legal details are not configured."}</p><p className="mt-3 text-sm leading-6 text-amber-950/80">The service owner must provide applicable jurisdictions, data retention terms and approved policy wording. This page does not invent company details or present draft language as approved legal terms.</p>{configured && <dl className="mt-5 grid gap-3 text-sm text-amber-950/80"><div><dt className="font-semibold">Legal entity</dt><dd>{details.companyLegalName}</dd></div><div><dt className="font-semibold">Registered address</dt><dd>{details.companyAddress}</dd></div><div><dt className="font-semibold">Registration number</dt><dd>{details.companyRegistrationNumber}</dd></div><div><dt className="font-semibold">Support</dt><dd>{details?.companySupportEmail || "svaadyarestro@gmail.com"}</dd></div></dl>}</div></PublicFrame>;
 }

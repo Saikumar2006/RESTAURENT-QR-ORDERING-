@@ -12,6 +12,6 @@ router.post("/:id/rotate-token", requireAuth, requirePermission("tables.qr.manag
 router.get("/:id/active-order", requireAuth, requirePermission("orders.view"), orderController.getActiveOrderForTable);
 router.post("/:id/active-order/items", requireAuth, requirePermission("orders.update"), validateBody(addOrderItemsSchema), orderController.addItemsToActiveOrder);
 router.put("/:id", requireAuth, requirePermission("tables.manage"), validateBody(tableUpdateSchema), restaurantController.updateTable);
-router.delete("/:id", requireAuth, requirePermission("tables.manage"), restaurantController.disableTable);
+router.delete("/:id", requireAuth, requirePermission("tables.manage"), restaurantController.deleteTable);
 
 module.exports = router;

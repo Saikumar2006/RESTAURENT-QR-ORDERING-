@@ -1,9 +1,12 @@
 import React from "react";
 import { useCart } from "../store/CartContext.jsx";
 import { resolveAssetUrl } from "../utils/assetUrl.js";
+import { formatCurrency } from "../i18n/resources.js";
+import { useTranslation } from "../i18n.jsx";
 
 export default function MenuItemCard({ item }) {
-  const { items, addItem, updateQuantity } = useCart();
+  const { items, addItem, updateQuantity, session } = useCart();
+  const { language, t } = useTranslation();
   const inCart = items.find((i) => i.menuItemId === item.id);
 
   return (
@@ -29,9 +32,9 @@ export default function MenuItemCard({ item }) {
         </div>
         {item.description && <p className="text-xs text-charcoal/50 mt-0.5 line-clamp-2">{item.description}</p>}
         <div className="flex items-center justify-between mt-2">
-          <span className="font-semibold text-sm">₹{Number(item.price).toFixed(0)}</span>
+          <span className="font-semibold text-sm">{formatCurrency(Number(item.price), session?.restaurant?.currency || "INR", language)}</span>
           {!item.isAvailable ? (
-            <span className="text-xs text-charcoal/40 font-medium">Unavailable</span>
+            <span className="text-xs text-charcoal/40 font-medium">{t("unavailable")}</span>
           ) : inCart ? (
             <div className="flex items-center gap-2">
               <button
@@ -52,7 +55,7 @@ export default function MenuItemCard({ item }) {
             </div>
           ) : (
             <button className="text-xs font-semibold text-clove border border-clove rounded-full px-3 py-1.5" onClick={() => addItem(item)}>
-              Add
+              {t("add")}
             </button>
           )}
         </div>

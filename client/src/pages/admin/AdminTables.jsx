@@ -8,6 +8,8 @@ import {
   Spinner,
   ErrorBanner,
   EmptyState,
+  AppleButton,
+  AppleCard,
 } from "../../components/Ui.jsx";
 import {
   TablesIcon,
@@ -690,27 +692,28 @@ export default function AdminTables() {
         actions={
           <div className="flex items-center gap-2.5">
             {hasUnsavedChanges && (
-              <span className="hidden sm:inline text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+              <span className="hidden sm:inline text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-1 rounded-md border border-amber-200/60 dark:border-amber-800/40">
                 ● Unsaved Changes
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleSaveFloorPlan}
+            <AppleButton
+              variant="primary"
+              size="sm"
+              loading={savingFloorPlan}
               disabled={savingFloorPlan}
-              className="btn-primary text-xs flex items-center gap-1.5 shadow-xs"
+              onClick={handleSaveFloorPlan}
             >
-              {savingFloorPlan ? <Spinner className="w-3.5 h-3.5 text-white" /> : <span>💾</span>}
+              <span>💾</span>
               <span>{savingFloorPlan ? "Saving..." : "Save Floor Plan"}</span>
-            </button>
-            <button
-              type="button"
+            </AppleButton>
+            <AppleButton
+              variant="neutral"
+              size="sm"
+              icon={PlusIcon}
               onClick={() => setAddModalOpen(true)}
-              className="btn-outline text-xs flex items-center gap-1.5"
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>Add Table</span>
-            </button>
+              Add Table
+            </AppleButton>
           </div>
         }
       />
@@ -718,12 +721,12 @@ export default function AdminTables() {
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs">
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
-            <CheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-700">
+          <button type="button" onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300">
             ✕
           </button>
         </div>
@@ -733,17 +736,17 @@ export default function AdminTables() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={TablesIcon}
-          iconBg="bg-indigo-50"
-          iconColor="text-indigo-600"
+          iconBg="bg-blue-50 dark:bg-blue-950/40"
+          iconColor="text-[#007AFF] dark:text-[#3898FF]"
           label="Total Tables"
           value={stats.total}
           badgeText="All sections"
-          badgeType="purple"
+          badgeType="info"
         />
         <KpiCard
           icon={CheckIcon}
-          iconBg="bg-emerald-50"
-          iconColor="text-emerald-600"
+          iconBg="bg-emerald-50 dark:bg-emerald-950/40"
+          iconColor="text-emerald-600 dark:text-emerald-400"
           label="Available Tables"
           value={stats.available}
           badgeText="Ready to seat"
@@ -751,8 +754,8 @@ export default function AdminTables() {
         />
         <KpiCard
           icon={TablesIcon}
-          iconBg="bg-rose-50"
-          iconColor="text-rose-600"
+          iconBg="bg-rose-50 dark:bg-rose-950/40"
+          iconColor="text-rose-600 dark:text-rose-400"
           label="Occupied Tables"
           value={stats.occupied}
           badgeText="Dining in progress"
@@ -760,8 +763,8 @@ export default function AdminTables() {
         />
         <KpiCard
           icon={TablesIcon}
-          iconBg="bg-slate-100"
-          iconColor="text-slate-500"
+          iconBg="bg-slate-100 dark:bg-white/[0.06]"
+          iconColor="text-slate-500 dark:text-slate-400"
           label="Cleaning / Maintenance"
           value={stats.maintenance}
           badgeText="Unavailable"
@@ -770,18 +773,18 @@ export default function AdminTables() {
       </div>
 
       {/* View Switcher Tabs */}
-      <div className="card px-5 pt-3.5 shadow-xs">
+      <AppleCard className="px-5 pt-3.5">
         <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-      </div>
+      </AppleCard>
 
       {/* TAB 1: 2D FLOOR PLAN BUILDER */}
       {activeTab === "floor" && (
         <div className="space-y-4">
           {/* Section Selector & Canvas Control Bar */}
-          <div className="card p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs bg-white">
+          <AppleCard className="p-3.5 flex flex-wrap items-center justify-between gap-3">
             {/* Sections Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-              <span className="text-xs font-bold text-slate-700 mr-1 shrink-0">Sections:</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mr-1 shrink-0">Sections:</span>
               {sections.map((sec) => (
                 <button
                   key={sec}
@@ -789,8 +792,8 @@ export default function AdminTables() {
                   onClick={() => setActiveSection(sec)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 ${
                     activeSection === sec
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-[#007AFF] text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/[0.1]"
                   }`}
                 >
                   {sec}
@@ -799,7 +802,7 @@ export default function AdminTables() {
               <button
                 type="button"
                 onClick={() => setNewSectionModalOpen(true)}
-                className="px-2.5 py-1.5 rounded-lg border border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 text-xs font-bold transition shrink-0"
+                className="px-2.5 py-1.5 rounded-lg border border-dashed border-[#007AFF]/50 text-[#007AFF] dark:text-[#3898FF] hover:bg-[#007AFF]/10 text-xs font-bold transition shrink-0"
               >
                 + New Section
               </button>
@@ -942,7 +945,7 @@ export default function AdminTables() {
                 </div>
               </div>
             </div>
-          </div>
+          </AppleCard>
 
           {/* Interactive Workspace: Canvas (8-9 cols) + Table Inspector (3-4 cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

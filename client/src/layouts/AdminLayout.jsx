@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/AuthContext.jsx";
+import { useTheme, AppleThemeToggle } from "../store/ThemeContext.jsx";
 import { joinRestaurantRoom, getSocket } from "../sockets/socket";
 import { GlobalLanguageSelector, LanguageSwitcher, useTranslation } from "../i18n.jsx";
 import AiAssistantPanel from "../components/ai/AiAssistantPanel.jsx";
@@ -122,7 +123,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F8F7] text-[#172B2A] flex">
+    <div className="min-h-screen bg-[#F5F5F7] dark:bg-[#000000] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -135,18 +136,18 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* Left Sidebar matching exact reference screenshot */}
+      {/* Left Sidebar matching Apple Pro design language */}
       <aside
         className={`admin-sidebar fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${
           mobileOpen ? "translate-x-0 w-[260px]" : "-translate-x-full lg:translate-x-0"
         } ${collapsed ? "lg:w-[78px]" : "lg:w-[240px]"}`}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center px-4 gap-2 border-b border-white/10 shrink-0">
+        <div className="flex h-16 items-center px-4 gap-2 border-b border-slate-200/80 dark:border-white/[0.08] shrink-0">
           <SvaadyaLogo variant="sidebar" size={collapsed ? "compact" : "default"} />
           <button
             type="button"
-            className="ml-auto text-white/60 hover:text-white lg:hidden"
+            className="ml-auto text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white lg:hidden"
             onClick={() => setMobileOpen(false)}
           >
             ✕
@@ -168,7 +169,7 @@ export default function AdminLayout() {
                 <Icon className="w-4 h-4 shrink-0" />
                 {!collapsed && <span className="truncate">{t(item.translation)}</span>}
                 {!collapsed && item.badgeKey === "orders" && activeOrderCount > 0 && (
-                  <span className="ms-auto nav-badge-count">{activeOrderCount}</span>
+                  <span className="ms-auto nav-badge-count tabular-nums">{activeOrderCount}</span>
                 )}
               </NavLink>
             );
@@ -176,17 +177,17 @@ export default function AdminLayout() {
         </div>
 
         {/* Bottom Section with Restaurant info & User profile */}
-        <div className="p-3 border-t border-white/10 shrink-0 space-y-2">
+        <div className="p-3 border-t border-slate-200/80 dark:border-white/[0.08] shrink-0 space-y-2">
           {!collapsed && (
-            <div className="p-2.5 rounded-xl bg-white/[0.06] border border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 text-xs font-bold">
+            <div className="p-2.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.06] border border-slate-200/60 dark:border-white/[0.08] flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#007AFF]/15 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] flex items-center justify-center shrink-0 text-xs font-bold">
                 🍽️
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-white truncate">{restaurantName}</p>
-                <p className="text-[10px] text-indigo-300">{t("workspace")}</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">{restaurantName}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">{t("workspace")}</p>
               </div>
-              <ChevronRightIcon className="w-3.5 h-3.5 text-white/50" />
+              <ChevronRightIcon className="w-3.5 h-3.5 text-slate-400 dark:text-white/40" />
             </div>
           )}
 
@@ -194,7 +195,7 @@ export default function AdminLayout() {
             <button
               type="button"
               onClick={() => navigate("/admin/login")}
-              className="text-[11px] text-indigo-200 hover:text-white px-2 py-1 flex items-center justify-between w-full transition"
+              className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-[#007AFF] dark:hover:text-[#3898FF] px-2 py-1 flex items-center justify-between w-full transition"
             >
               <span>{t("switchRestaurant")}</span>
               <span className="text-xs">›</span>
@@ -202,14 +203,14 @@ export default function AdminLayout() {
           )}
 
           {/* User Profile Row */}
-          <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0 border border-white/20 shadow-xs">
+          <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#007AFF] to-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
               {user?.name?.[0]?.toUpperCase() || "S"}
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-white truncate">{user?.name || "Admin User"}</p>
-                <p className="text-[10px] text-indigo-200 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
+                <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">{user?.name || "Admin User"}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
               </div>
             )}
           </div>
@@ -218,7 +219,7 @@ export default function AdminLayout() {
           <button
             type="button"
             onClick={handleLogout}
-            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition ${
+            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 transition ${
               collapsed ? "justify-center" : ""
             }`}
             title={t("signOut")}
@@ -237,7 +238,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
-              className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center lg:hidden text-slate-800"
+              className="w-8 h-8 rounded-lg border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center lg:hidden text-slate-800 dark:text-slate-200 bg-white dark:bg-[#1C1C1E]"
               onClick={() => setMobileOpen(true)}
               aria-label="Open sidebar"
             >
@@ -246,14 +247,16 @@ export default function AdminLayout() {
 
             {/* Restaurant Selector & Status Pill */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-2xs">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] text-xs font-semibold text-slate-800 dark:text-white shadow-2xs">
                 <span className="text-sm">🍃</span>
                 <span className="truncate max-w-[160px] sm:max-w-[220px]">{restaurantName}</span>
                 <button
                   type="button"
                   onClick={toggleOpenStatus}
                   className={`ml-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition flex items-center gap-1.5 ${
-                    isOpen ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                    isOpen
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40"
+                      : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40"
                   }`}
                   title={`${t("open")} / ${t("closed")}`}
                 >
@@ -264,19 +267,19 @@ export default function AdminLayout() {
             </div>
           </div>
 
-          {/* Right Controls: Date Range, Notifications, Language, Profile */}
+          {/* Right Controls: Date Range, Notifications, AppleThemeToggle, Language, Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Date Range Selector Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-2xs">
-              <CalendarIcon className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Oct 16, 2026 - Oct 22, 2026</span>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] text-xs font-medium text-slate-600 dark:text-slate-300 shadow-2xs">
+              <CalendarIcon className="w-3.5 h-3.5 text-[#007AFF] dark:text-[#3898FF]" />
+              <span className="tabular-nums">Oct 16, 2026 - Oct 22, 2026</span>
             </div>
 
             {/* Notification Bell */}
             <button
               type="button"
               aria-label="Notifications"
-              className="relative w-8 h-8 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:border-indigo-200 transition"
+              className="relative w-8 h-8 rounded-full border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-[#007AFF] hover:border-[#007AFF]/30 transition"
             >
               <BellIcon className="w-4 h-4" />
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center shadow-xs">
@@ -284,24 +287,27 @@ export default function AdminLayout() {
               </span>
             </button>
 
+            {/* Apple Theme Toggle (Light / Dark / System) */}
+            <AppleThemeToggle />
+
             {/* Global Language Selector */}
             <GlobalLanguageSelector className="admin-language-switcher" />
 
             {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2.5 ps-2 border-s border-slate-200">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+            <div className="flex items-center gap-2.5 ps-2 border-s border-slate-200/80 dark:border-white/[0.1]">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#007AFF] to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                 {user?.name?.[0]?.toUpperCase() || "S"}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-slate-900 leading-tight truncate max-w-[100px]">{user?.name || "Admin"}</p>
-                <p className="text-[10px] text-slate-500 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{user?.name || "Admin"}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">{user?.roleName || (user?.role === "ADMIN" ? "Owner" : "Staff")}</p>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content Outlet */}
-        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-7">
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
           <Outlet />
         </main>
       </div>

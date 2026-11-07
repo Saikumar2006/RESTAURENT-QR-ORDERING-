@@ -10,6 +10,9 @@ import {
   Spinner,
   ErrorBanner,
   EmptyState,
+  AppleButton,
+  AppleCard,
+  Modal,
 } from "../../components/Ui.jsx";
 import {
   InventoryIcon,
@@ -20,12 +23,12 @@ import {
 } from "../../components/UiIcons.jsx";
 
 const CATEGORY_COLORS = {
-  Vegetables: "bg-[#EAF7EE] text-[#269B67] border border-[#269B67]/20",
-  "Meat & Poultry": "bg-[#FDECEC] text-[#D95359] border border-[#D95359]/20",
-  Grains: "bg-[#FFF8E7] text-[#E7A13A] border border-[#E7A13A]/20",
-  Dairy: "bg-[#EBF3FB] text-[#4285C5] border border-[#4285C5]/20",
-  "Oils & Spices": "bg-[#FFF4E5] text-[#D96724] border border-[#D96724]/20",
-  General: "bg-[#F0F4F2] text-[#788582]",
+  Vegetables: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40",
+  "Meat & Poultry": "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40",
+  Grains: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40",
+  Dairy: "bg-blue-50 dark:bg-blue-950/40 text-[#007AFF] dark:text-[#3898FF] border border-blue-200/60 dark:border-blue-800/40",
+  "Oils & Spices": "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/40",
+  General: "bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08]",
 };
 
 export default function AdminInventory() {
@@ -267,34 +270,34 @@ export default function AdminInventory() {
         title="Inventory Management"
         description="Track your ingredients, supplies and stock levels to ensure smooth restaurant operations."
         actions={
-          <button
-            type="button"
+          <AppleButton
+            variant="primary"
+            size="sm"
+            icon={PlusIcon}
             onClick={startAddItem}
-            className="btn-primary flex items-center gap-2 text-xs"
           >
-            <PlusIcon className="w-4 h-4" />
-            <span>Add Item</span>
-          </button>
+            Add Item
+          </AppleButton>
         }
       />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-      {/* 4 KPI Cards matching Screenshot 3 */}
+      {/* 4 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={InventoryIcon}
-          iconBg="bg-indigo-50"
-          iconColor="text-indigo-600"
+          iconBg="bg-blue-50 dark:bg-blue-950/40"
+          iconColor="text-[#007AFF] dark:text-[#3898FF]"
           label="Total Items"
           value={stats.total}
           badgeText="+5 this month"
-          badgeType="purple"
+          badgeType="info"
         />
         <KpiCard
           icon={InventoryIcon}
-          iconBg="bg-[#EBF3FB]"
-          iconColor="text-[#4285C5]"
+          iconBg="bg-amber-50 dark:bg-amber-950/40"
+          iconColor="text-amber-600 dark:text-amber-400"
           label="Low Stock Items"
           value={stats.lowStock}
           badgeText="Needs attention"
@@ -302,17 +305,17 @@ export default function AdminInventory() {
         />
         <KpiCard
           icon={InventoryIcon}
-          iconBg="bg-[#FFF8E7]"
-          iconColor="text-[#E7A13A]"
+          iconBg="bg-rose-50 dark:bg-rose-950/40"
+          iconColor="text-rose-600 dark:text-rose-400"
           label="Out of Stock"
           value={stats.outOfStock}
           badgeText="Reorder soon"
           badgeType="danger"
         />
         <KpiCard
-          icon={() => <span className="font-bold text-sm text-[#9333EA]">🛒</span>}
-          iconBg="bg-[#F3EBF9]"
-          iconColor="text-[#9333EA]"
+          icon={() => <span className="font-bold text-sm text-[#007AFF] dark:text-[#3898FF]">🛒</span>}
+          iconBg="bg-blue-50 dark:bg-blue-950/40"
+          iconColor="text-[#007AFF] dark:text-[#3898FF]"
           label="Total Stock Value"
           value={`₹ ${Number(stats.totalValue).toLocaleString("en-IN")}`}
           badgeText="+12% vs last month"
@@ -324,14 +327,14 @@ export default function AdminInventory() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Table & Filters */}
         <div className="lg:col-span-8">
-          <div className="card overflow-hidden">
+          <AppleCard className="overflow-hidden">
             {/* Tabs */}
-            <div className="px-4 pt-3 bg-white">
+            <div className="px-4 pt-3 bg-white dark:bg-[#1C1C1E]">
               <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
             </div>
 
             {/* Filter Bar */}
-            <div className="p-4 border-b border-[#E5ECE9] flex flex-wrap items-center justify-between gap-3 bg-white">
+            <div className="p-4 border-b border-slate-200/80 dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#1C1C1E]">
               <div className="flex flex-wrap items-center gap-3 flex-1">
                 <SearchBar
                   value={search}
@@ -343,7 +346,7 @@ export default function AdminInventory() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
+                  className="px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
                 >
                   <option value="ALL">All Categories</option>
                   <option value="Vegetables">Vegetables</option>
@@ -355,7 +358,7 @@ export default function AdminInventory() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
+                  className="px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
                 >
                   <option value="ALL">All Status</option>
                   <option value="IN_STOCK">In Stock</option>
@@ -364,14 +367,14 @@ export default function AdminInventory() {
                 </select>
               </div>
 
-              <button
-                type="button"
+              <AppleButton
+                variant="neutral"
+                size="sm"
+                icon={DownloadIcon}
                 onClick={exportInventoryCsv}
-                className="btn-secondary text-xs flex items-center gap-1.5"
               >
-                <DownloadIcon className="w-3.5 h-3.5" />
-                <span>Export</span>
-              </button>
+                Export
+              </AppleButton>
             </div>
 
             {/* Table */}
@@ -524,58 +527,58 @@ export default function AdminInventory() {
               pageSize={pageSize}
               onPageChange={setCurrentPage}
             />
-          </div>
+          </AppleCard>
         </div>
 
-        {/* Right Column: Donut Chart & Activity Timeline matching Screenshot 3 */}
+        {/* Right Column: Donut Chart & Activity Timeline */}
         <div className="lg:col-span-4 space-y-6">
           {/* Donut Chart: Inventory Value by Category */}
-          <div className="card p-5">
-            <h3 className="text-sm font-bold text-[#172B2A] mb-4">Inventory Value by Category</h3>
+          <AppleCard className="p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Inventory Value by Category</h3>
             
             <div className="flex flex-col items-center justify-center py-2 relative">
               {/* SVG Donut Ring */}
               <div className="relative w-36 h-36 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#E5ECE9" strokeWidth="14" />
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#269B67" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="76" />
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#D95359" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="180" />
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#E7A13A" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="210" />
-                  <circle cx="50" cy="50" r="38" fill="none" stroke="#4285C5" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="225" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" className="text-slate-100 dark:text-white/10" strokeWidth="14" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#34C759" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="76" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#FF3B30" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="180" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#FF9500" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="210" />
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#007AFF" strokeWidth="14" strokeDasharray="238.7" strokeDashoffset="225" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-sm font-bold text-[#172B2A]">₹ 24,580</span>
-                  <span className="text-[10px] text-[#788582]">Total Value</span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white tabular-nums">₹ 24,580</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Total Value</span>
                 </div>
               </div>
 
               {/* Legend List */}
               <div className="w-full mt-4 space-y-2 text-xs">
                 {[
-                  { name: "Vegetables", pct: "32%", color: "bg-[#269B67]" },
-                  { name: "Meat & Poultry", pct: "24%", color: "bg-[#D95359]" },
-                  { name: "Grains", pct: "18%", color: "bg-[#E7A13A]" },
-                  { name: "Dairy", pct: "12%", color: "bg-[#4285C5]" },
-                  { name: "Oils & Spices", pct: "10%", color: "bg-[#D96724]" },
-                  { name: "Others", pct: "4%", color: "bg-[#788582]" },
+                  { name: "Vegetables", pct: "32%", color: "bg-[#34C759]" },
+                  { name: "Meat & Poultry", pct: "24%", color: "bg-[#FF3B30]" },
+                  { name: "Grains", pct: "18%", color: "bg-[#FF9500]" },
+                  { name: "Dairy", pct: "12%", color: "bg-[#007AFF]" },
+                  { name: "Oils & Spices", pct: "10%", color: "bg-[#FF9500]" },
+                  { name: "Others", pct: "4%", color: "bg-slate-400" },
                 ].map((cat) => (
                   <div key={cat.name} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${cat.color}`} />
-                      <span className="text-[#172B2A]">{cat.name}</span>
+                      <span className="text-slate-800 dark:text-slate-200">{cat.name}</span>
                     </div>
-                    <span className="font-semibold text-[#788582]">{cat.pct}</span>
+                    <span className="font-semibold text-slate-500 dark:text-slate-400 tabular-nums">{cat.pct}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </AppleCard>
 
           {/* Recent Stock Activity Timeline */}
-          <div className="card p-5">
+          <AppleCard className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-[#172B2A]">Recent Stock Activity</h3>
-              <button type="button" className="text-xs text-indigo-600 font-semibold hover:underline">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Stock Activity</h3>
+              <button type="button" className="text-xs text-[#007AFF] dark:text-[#3898FF] font-semibold hover:underline">
                 View All →
               </button>
             </div>
@@ -587,231 +590,217 @@ export default function AdminInventory() {
                 { name: "Cooking Oil", change: "+5 ltr added", isAdd: true, time: "1 day ago", user: "Priya" },
                 { name: "Onion", change: "-3 kg used", isAdd: false, time: "1 day ago", user: "Ravi" },
               ].map((act, i) => (
-                <div key={i} className="flex items-start justify-between text-xs pb-2 border-b border-[#E5ECE9] last:border-b-0 last:pb-0">
+                <div key={i} className="flex items-start justify-between text-xs pb-2 border-b border-slate-100 dark:border-white/[0.06] last:border-b-0 last:pb-0">
                   <div className="flex items-start gap-2.5">
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                      act.isAdd ? "bg-[#EAF7EE] text-[#269B67]" : "bg-[#FDECEC] text-[#D95359]"
+                      act.isAdd ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300" : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300"
                     }`}>
                       {act.isAdd ? "↑" : "↓"}
                     </span>
                     <div>
-                      <p className="font-semibold text-[#172B2A]">{act.name}</p>
-                      <p className={`text-[11px] font-medium ${act.isAdd ? "text-[#269B67]" : "text-[#D95359]"}`}>
+                      <p className="font-semibold text-slate-900 dark:text-white">{act.name}</p>
+                      <p className={`text-[11px] font-medium tabular-nums ${act.isAdd ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>
                         {act.change}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] text-[#9CA8A5]">{act.time}</p>
-                    <p className="text-[10px] text-[#788582]">by {act.user}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{act.time}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">by {act.user}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </AppleCard>
         </div>
       </div>
 
       {/* Add / Edit Item Modal */}
-      {itemModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E5ECE9] max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5ECE9] mb-4">
-              <h3 className="text-base font-bold text-[#172B2A]">
-                {editingItem ? "Edit Inventory Item" : "Add Inventory Item"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setItemModalOpen(false)}
-                className="w-7 h-7 rounded-lg border border-[#E5ECE9] flex items-center justify-center text-[#788582]"
+      <Modal
+        isOpen={itemModalOpen}
+        onClose={() => setItemModalOpen(false)}
+        title={editingItem ? "Edit Inventory Item" : "Add Inventory Item"}
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleSaveItem} className="space-y-3.5 text-xs mt-3">
+          <div>
+            <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              Item Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Basmati Rice, Tomato"
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">Category</label>
+              <select
+                value={draft.category}
+                onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
               >
-                ✕
-              </button>
+                <option value="Vegetables">Vegetables</option>
+                <option value="Meat & Poultry">Meat & Poultry</option>
+                <option value="Grains">Grains</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Oils & Spices">Oils & Spices</option>
+                <option value="General">General</option>
+              </select>
             </div>
 
-            <form onSubmit={handleSaveItem} className="space-y-3.5 text-xs">
-              <div>
-                <label className="block font-semibold text-[#172B2A] mb-1">
-                  Item Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Basmati Rice, Tomato"
-                  value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#172B2A] mb-1">Category</label>
-                  <select
-                    value={draft.category}
-                    onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                    className="input"
-                  >
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Meat & Poultry">Meat & Poultry</option>
-                    <option value="Grains">Grains</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Oils & Spices">Oils & Spices</option>
-                    <option value="General">General</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#172B2A] mb-1">Base Unit</label>
-                  <select
-                    value={draft.baseUnit}
-                    onChange={(e) => setDraft({ ...draft, baseUnit: e.target.value })}
-                    className="input"
-                  >
-                    <option value="kg">kg (Kilograms)</option>
-                    <option value="g">g (Grams)</option>
-                    <option value="ltr">ltr (Liters)</option>
-                    <option value="ml">ml (Milliliters)</option>
-                    <option value="pcs">pcs (Pieces)</option>
-                  </select>
-                </div>
-              </div>
-
-              {!editingItem && (
-                <div>
-                  <label className="block font-semibold text-[#172B2A] mb-1">Initial Quantity</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={draft.initialQuantity}
-                    onChange={(e) => setDraft({ ...draft, initialQuantity: e.target.value })}
-                    className="input"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block font-semibold text-[#172B2A] mb-1">
-                  Low Stock Threshold Alert
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="10"
-                  value={draft.lowStockThreshold}
-                  onChange={(e) => setDraft({ ...draft, lowStockThreshold: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setItemModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs">
-                  {saving ? "Saving..." : editingItem ? "Save Changes" : "Add Item"}
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">Base Unit</label>
+              <select
+                value={draft.baseUnit}
+                onChange={(e) => setDraft({ ...draft, baseUnit: e.target.value })}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+              >
+                <option value="kg">kg (Kilograms)</option>
+                <option value="g">g (Grams)</option>
+                <option value="ltr">ltr (Liters)</option>
+                <option value="ml">ml (Milliliters)</option>
+                <option value="pcs">pcs (Pieces)</option>
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+
+          {!editingItem && (
+            <div>
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">Initial Quantity</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={draft.initialQuantity}
+                onChange={(e) => setDraft({ ...draft, initialQuantity: e.target.value })}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white tabular-nums focus:outline-none focus:border-[#007AFF]"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              Low Stock Threshold Alert
+            </label>
+            <input
+              type="number"
+              min="0"
+              placeholder="10"
+              value={draft.lowStockThreshold}
+              onChange={(e) => setDraft({ ...draft, lowStockThreshold: e.target.value })}
+              className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white tabular-nums focus:outline-none focus:border-[#007AFF]"
+            />
+          </div>
+
+          <div className="pt-3 flex items-center justify-end gap-2.5">
+            <AppleButton
+              variant="neutral"
+              size="sm"
+              onClick={() => setItemModalOpen(false)}
+            >
+              Cancel
+            </AppleButton>
+            <AppleButton
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={saving}
+              loading={saving}
+            >
+              {editingItem ? "Save Changes" : "Add Item"}
+            </AppleButton>
+          </div>
+        </form>
+      </Modal>
 
       {/* Quick Stock Movement Modal */}
-      {movementModalOpen && selectedItemForMove && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E5ECE9] max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5ECE9] mb-4">
-              <div>
-                <h3 className="text-base font-bold text-[#172B2A]">
-                  Adjust Stock: {selectedItemForMove.name}
-                </h3>
-                <p className="text-[11px] text-[#788582]">
-                  Current balance: {selectedItemForMove.currentQuantity} {selectedItemForMove.baseUnit}
-                </p>
-              </div>
+      {selectedItemForMove && (
+        <Modal
+          isOpen={movementModalOpen}
+          onClose={() => setMovementModalOpen(false)}
+          title={`Adjust Stock: ${selectedItemForMove.name}`}
+          description={`Current balance: ${selectedItemForMove.currentQuantity} ${selectedItemForMove.baseUnit}`}
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleSaveMovement} className="space-y-3.5 text-xs mt-3">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setMovementModalOpen(false)}
-                className="w-7 h-7 rounded-lg border border-[#E5ECE9] flex items-center justify-center text-[#788582]"
+                onClick={() => setMovementDraft({ ...movementDraft, direction: "IN" })}
+                className={`py-2 px-3 rounded-xl font-bold border transition ${
+                  movementDraft.direction === "IN"
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-2xs"
+                    : "bg-slate-100/70 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/[0.08]"
+                }`}
               >
-                ✕
+                + Add Stock (IN)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMovementDraft({ ...movementDraft, direction: "OUT" })}
+                className={`py-2 px-3 rounded-xl font-bold border transition ${
+                  movementDraft.direction === "OUT"
+                    ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 shadow-2xs"
+                    : "bg-slate-100/70 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-white/[0.08]"
+                }`}
+              >
+                - Remove Stock (OUT)
               </button>
             </div>
 
-            <form onSubmit={handleSaveMovement} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMovementDraft({ ...movementDraft, direction: "IN" })}
-                  className={`py-2 px-3 rounded-lg font-bold border transition ${
-                    movementDraft.direction === "IN"
-                      ? "bg-[#EAF7EE] text-[#269B67] border-[#269B67]"
-                      : "bg-white text-[#788582] border-[#E5ECE9]"
-                  }`}
-                >
-                  + Add Stock (IN)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMovementDraft({ ...movementDraft, direction: "OUT" })}
-                  className={`py-2 px-3 rounded-lg font-bold border transition ${
-                    movementDraft.direction === "OUT"
-                      ? "bg-[#FDECEC] text-[#D95359] border-[#D95359]"
-                      : "bg-white text-[#788582] border-[#E5ECE9]"
-                  }`}
-                >
-                  - Remove Stock (OUT)
-                </button>
-              </div>
+            <div>
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                Quantity ({selectedItemForMove.baseUnit}) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min="0.1"
+                step="any"
+                placeholder="e.g. 5"
+                value={movementDraft.quantity}
+                onChange={(e) => setMovementDraft({ ...movementDraft, quantity: e.target.value })}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white font-bold tabular-nums focus:outline-none focus:border-[#007AFF]"
+              />
+            </div>
 
-              <div>
-                <label className="block font-semibold text-[#172B2A] mb-1">
-                  Quantity ({selectedItemForMove.baseUnit}) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0.1"
-                  step="any"
-                  placeholder="e.g. 5"
-                  value={movementDraft.quantity}
-                  onChange={(e) => setMovementDraft({ ...movementDraft, quantity: e.target.value })}
-                  className="input font-bold"
-                />
-              </div>
+            <div>
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">Reason / Note</label>
+              <input
+                type="text"
+                placeholder="e.g. Supplier delivery, wastage, inventory audit"
+                value={movementDraft.reason}
+                onChange={(e) => setMovementDraft({ ...movementDraft, reason: e.target.value })}
+                className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+              />
+            </div>
 
-              <div>
-                <label className="block font-semibold text-[#172B2A] mb-1">Reason / Note</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Supplier delivery, wastage, inventory audit"
-                  value={movementDraft.reason}
-                  onChange={(e) => setMovementDraft({ ...movementDraft, reason: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMovementModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs">
-                  {saving ? "Recording..." : "Confirm Adjustment"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="pt-3 flex items-center justify-end gap-2.5">
+              <AppleButton
+                variant="neutral"
+                size="sm"
+                onClick={() => setMovementModalOpen(false)}
+              >
+                Cancel
+              </AppleButton>
+              <AppleButton
+                variant="primary"
+                size="sm"
+                type="submit"
+                disabled={saving}
+                loading={saving}
+              >
+                Confirm Adjustment
+              </AppleButton>
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

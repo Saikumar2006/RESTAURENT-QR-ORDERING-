@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePlatformAuth } from "../../store/PlatformAuthContext.jsx";
 import { GlobalLanguageSelector, LanguageSwitcher } from "../../i18n.jsx";
+import { AppleThemeToggle } from "../../store/ThemeContext.jsx";
 import AiAssistantPanel from "../../components/ai/AiAssistantPanel.jsx";
 import "./platform-shell.css";
 
@@ -149,10 +150,11 @@ export default function PlatformShell() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <AppleThemeToggle />
             <GlobalLanguageSelector className="platform-shell-language" />
             <a
               href="mailto:svaadyarestro@gmail.com"
-              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-teal-800 bg-teal-50 hover:bg-teal-100 rounded-md border border-teal-200 transition"
+              className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/40 rounded-md border border-teal-200 dark:border-teal-800/40 transition"
               title="Official Platform Support"
             >
               <span className="font-semibold">Support:</span>

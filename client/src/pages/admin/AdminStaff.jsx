@@ -10,6 +10,9 @@ import {
   Spinner,
   ErrorBanner,
   EmptyState,
+  AppleButton,
+  AppleCard,
+  Modal,
 } from "../../components/Ui.jsx";
 import {
   StaffIcon,
@@ -23,14 +26,14 @@ import {
 } from "../../components/UiIcons.jsx";
 
 const ROLE_COLORS = {
-  OWNER: "bg-indigo-700 text-white shadow-xs",
-  ADMIN: "bg-purple-700 text-white shadow-xs",
-  MANAGER: "bg-indigo-50 text-indigo-700 border border-indigo-200/60",
-  CHEF: "bg-[#FFF4E5] text-[#D96724] border border-[#D96724]/20",
-  SOUS_CHEF: "bg-sky-50 text-sky-700 border border-sky-200/60",
-  WAITER: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
-  CASHIER: "bg-amber-50 text-amber-700 border border-amber-200/60",
-  STAFF: "bg-slate-100 text-slate-700",
+  OWNER: "bg-[#007AFF] text-white shadow-xs",
+  ADMIN: "bg-[#5856D6] text-white shadow-xs",
+  MANAGER: "bg-blue-50 dark:bg-blue-950/40 text-[#007AFF] dark:text-[#3898FF] border border-blue-200/60 dark:border-blue-800/40",
+  CHEF: "bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/40",
+  SOUS_CHEF: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/40",
+  WAITER: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40",
+  CASHIER: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40",
+  STAFF: "bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08]",
 };
 
 export default function AdminStaff() {
@@ -234,60 +237,60 @@ export default function AdminStaff() {
         description="Manage your restaurant staff, roles, schedules and permissions."
         actions={
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <AppleButton
+              variant="neutral"
+              size="sm"
               onClick={() => setViewingRoles(!viewingRoles)}
-              className="btn-secondary text-xs flex items-center gap-1.5"
             >
-              <span>{viewingRoles ? "View Staff Table" : "Manage Roles & Permissions"}</span>
-            </button>
-            <button
-              type="button"
+              {viewingRoles ? "View Staff Table" : "Manage Roles & Permissions"}
+            </AppleButton>
+            <AppleButton
+              variant="primary"
+              size="sm"
+              icon={PlusIcon}
               onClick={startAddStaff}
-              className="btn-primary flex items-center gap-2 text-xs"
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>Add Staff Member</span>
-            </button>
+              Add Staff Member
+            </AppleButton>
           </div>
         }
       />
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-      {/* 4 KPI Cards matching reference screenshot */}
+      {/* 4 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={StaffIcon}
-          iconBg="bg-indigo-50"
-          iconColor="text-indigo-600"
+          iconBg="bg-blue-50 dark:bg-blue-950/40"
+          iconColor="text-[#007AFF] dark:text-[#3898FF]"
           label="Total Staff"
           value={stats.total}
           badgeText="+2 this month"
-          badgeType="purple"
+          badgeType="info"
         />
         <KpiCard
           icon={ChefHatIcon}
-          iconBg="bg-[#EBF3FB]"
-          iconColor="text-[#4285C5]"
+          iconBg="bg-emerald-50 dark:bg-emerald-950/40"
+          iconColor="text-emerald-600 dark:text-emerald-400"
           label="Active Staff"
           value={stats.active}
           badgeText={`${Math.round((stats.active / Math.max(1, stats.total)) * 100)}% of total`}
-          badgeType="neutral"
+          badgeType="success"
         />
         <KpiCard
           icon={ClockIcon}
-          iconBg="bg-[#FFF8E7]"
-          iconColor="text-[#E7A13A]"
+          iconBg="bg-amber-50 dark:bg-amber-950/40"
+          iconColor="text-amber-600 dark:text-amber-400"
           label="On Shift Now"
           value={stats.onShift}
           badgeText={`${Math.round((stats.onShift / Math.max(1, stats.total)) * 100)}% of total`}
-          badgeType="neutral"
+          badgeType="warning"
         />
         <KpiCard
           icon={UsersIcon}
-          iconBg="bg-[#FDECEC]"
-          iconColor="text-[#D95359]"
+          iconBg="bg-rose-50 dark:bg-rose-950/40"
+          iconColor="text-rose-600 dark:text-rose-400"
           label="Inactive Staff"
           value={stats.inactive}
           badgeText={`${Math.round((stats.inactive / Math.max(1, stats.total)) * 100)}% of total`}
@@ -297,39 +300,39 @@ export default function AdminStaff() {
 
       {viewingRoles ? (
         /* Role Management & Permissions Matrix */
-        <div className="card p-6 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-[#E5ECE9]">
+        <AppleCard className="p-6 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-white/[0.08]">
             <div>
-              <h2 className="text-base font-bold text-[#172B2A]">Role & Permission Matrix</h2>
-              <p className="text-xs text-[#788582]">Custom roles and module access privileges.</p>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Role & Permission Matrix</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Custom roles and module access privileges.</p>
             </div>
-            <button
-              type="button"
+            <AppleButton
+              variant="neutral"
+              size="sm"
               onClick={() => setViewingRoles(false)}
-              className="btn-secondary text-xs"
             >
               Back to Staff
-            </button>
+            </AppleButton>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {roles.map((role) => (
-              <div key={role.id} className="p-4 rounded-xl border border-[#E5ECE9] bg-[#F8FAF9] space-y-2">
+              <div key={role.id} className="p-4 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.04] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-[#172B2A]">{role.name}</span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-indigo-700 border border-indigo-200">
+                  <span className="font-bold text-xs text-slate-900 dark:text-white">{role.name}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-[#2C2C2E] text-[#007AFF] dark:text-[#3898FF] border border-[#007AFF]/20 dark:border-[#007AFF]/30">
                     {role.permissions?.length || 0} permissions
                   </span>
                 </div>
-                <p className="text-[11px] text-[#788582]">{role.description || "System configured role"}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">{role.description || "System configured role"}</p>
                 <div className="pt-2 flex flex-wrap gap-1">
                   {(role.permissions || []).slice(0, 4).map((p) => (
-                    <span key={p} className="text-[9px] px-1.5 py-0.5 rounded bg-white text-[#788582]">
+                    <span key={p} className="text-[9px] px-1.5 py-0.5 rounded bg-white dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-white/[0.06]">
                       {p}
                     </span>
                   ))}
                   {(role.permissions || []).length > 4 && (
-                    <span className="text-[9px] text-[#9CA8A5] self-center">
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 self-center">
                       +{role.permissions.length - 4} more
                     </span>
                   )}
@@ -337,20 +340,20 @@ export default function AdminStaff() {
               </div>
             ))}
           </div>
-        </div>
+        </AppleCard>
       ) : (
         /* Main Staff Workspace */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Staff Table Column */}
           <div className={`transition-all duration-200 ${panelOpen ? "lg:col-span-8" : "lg:col-span-12"}`}>
-            <div className="card overflow-hidden">
+            <AppleCard className="overflow-hidden">
               {/* Tabs */}
-              <div className="px-4 pt-3 bg-white">
+              <div className="px-4 pt-3 bg-white dark:bg-[#1C1C1E]">
                 <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
               </div>
 
               {/* Filter Bar */}
-              <div className="p-4 border-b border-[#E5ECE9] flex flex-wrap items-center justify-between gap-3 bg-white">
+              <div className="p-4 border-b border-slate-200/80 dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#1C1C1E]">
                 <div className="flex flex-wrap items-center gap-3 flex-1">
                   <SearchBar
                     value={search}
@@ -362,7 +365,7 @@ export default function AdminStaff() {
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
-                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
+                    className="px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
                   >
                     <option value="ALL">All Roles</option>
                     {roles.map((r) => (
@@ -374,7 +377,7 @@ export default function AdminStaff() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 rounded-lg border border-[#E5ECE9] text-xs font-medium text-[#172B2A] bg-white focus:outline-none focus:border-indigo-500"
+                    className="px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
                   >
                     <option value="ALL">All Status</option>
                     <option value="ACTIVE">Active</option>
@@ -498,7 +501,7 @@ export default function AdminStaff() {
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
               />
-            </div>
+            </AppleCard>
           </div>
 
           {/* Right Side Panel: "Add New Staff Member" matching screenshot 2 */}

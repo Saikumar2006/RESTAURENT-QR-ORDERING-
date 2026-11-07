@@ -8,6 +8,23 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 10C24 10 18 15 17 21C13 22 10 26 10 31C10 36.5 14 41 19.5 41.8L21 48H43L44.5 41.8C50 41 54 36.5 54 31C54 26 51 22 47 21C46 15 40 10 32 10Z' stroke='%234F46E5' stroke-width='4' fill='%23fff' /><path d='M48 18C48 18 55 16 57 11C59 18 54 24 49 25C47 25 48 20 48 18Z' fill='%2310B981' /></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script>
+      (function() {
+        try {
+          var mode = localStorage.getItem('svaadya_theme');
+          var isDark = mode === 'dark' || ((!mode || mode === 'system') && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root">

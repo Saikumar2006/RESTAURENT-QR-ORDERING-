@@ -7,6 +7,7 @@ import { AuthProvider } from "./store/AuthContext.jsx";
 import { PlatformAuthProvider } from "./store/PlatformAuthContext.jsx";
 import AppErrorBoundary from "./components/AppErrorBoundary.jsx";
 import { LanguageProvider } from "./i18n.jsx";
+import { ThemeProvider } from "./store/ThemeContext.jsx";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -16,15 +17,17 @@ if (rootElement) {
     <React.StrictMode>
       <AppErrorBoundary>
         <BrowserRouter>
-          <AuthProvider>
-            <LanguageProvider>
-              <PlatformAuthProvider>
-                <CartProvider>
-                  <App />
-                </CartProvider>
-              </PlatformAuthProvider>
-            </LanguageProvider>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <LanguageProvider>
+                <PlatformAuthProvider>
+                  <CartProvider>
+                    <App />
+                  </CartProvider>
+                </PlatformAuthProvider>
+              </LanguageProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </BrowserRouter>
       </AppErrorBoundary>
     </React.StrictMode>

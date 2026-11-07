@@ -9,6 +9,9 @@ import {
   Spinner,
   ErrorBanner,
   EmptyState,
+  AppleButton,
+  AppleCard,
+  Modal,
 } from "../../components/Ui.jsx";
 import {
   MenuIcon,
@@ -441,22 +444,22 @@ export default function AdminMenu() {
         description="Create and manage your dishes, categories, portions, variants, add-ons and live availability."
         actions={
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
+            <AppleButton
+              variant="neutral"
+              size="sm"
+              icon={PlusIcon}
               onClick={startAddNewItem}
-              className="btn-outline text-xs flex items-center gap-1.5"
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>New Dish</span>
-            </button>
-            <button
-              type="button"
+              New Dish
+            </AppleButton>
+            <AppleButton
+              variant="primary"
+              size="sm"
+              icon={PlusIcon}
               onClick={() => setCategoryModalOpen(true)}
-              className="btn-primary text-xs flex items-center gap-1.5"
             >
-              <PlusIcon className="w-4 h-4" />
-              <span>Add Category</span>
-            </button>
+              Add Category
+            </AppleButton>
           </div>
         }
       />
@@ -464,15 +467,15 @@ export default function AdminMenu() {
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
       {successMessage && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs">
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-semibold flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
-            <CheckIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>{successMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setSuccessMessage(null)}
-            className="text-emerald-500 hover:text-emerald-700 text-sm leading-none"
+            className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm leading-none"
           >
             ✕
           </button>
@@ -522,13 +525,13 @@ export default function AdminMenu() {
       {/* 3-Column Main Menu Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* COLUMN 1: Categories Sidebar (3 Cols) */}
-        <div className="lg:col-span-3 card p-4 space-y-3 border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <h2 className="text-sm font-bold text-slate-900">Categories</h2>
+        <AppleCard className="lg:col-span-3 p-4 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-white/[0.08]">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Categories</h2>
             <button
               type="button"
               onClick={() => setCategoryModalOpen(true)}
-              className="text-xs font-semibold text-indigo-600 hover:underline"
+              className="text-xs font-semibold text-[#007AFF] dark:text-[#3898FF] hover:underline"
             >
               + Add
             </button>
@@ -541,15 +544,15 @@ export default function AdminMenu() {
               onClick={() => setSelectedCategory("ALL")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
                 selectedCategory === "ALL"
-                  ? "bg-indigo-50 text-indigo-700 shadow-2xs"
-                  : "text-slate-800 hover:bg-slate-50"
+                  ? "bg-[#007AFF]/15 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] shadow-2xs"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
               }`}
             >
               <div className="flex items-center gap-2">
                 <span>🍽️</span>
                 <span>All Items</span>
               </div>
-              <span className="text-[11px] font-bold text-slate-500">{allItemCount} ›</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">{allItemCount} ›</span>
             </button>
 
             {/* Individual Categories */}
@@ -562,8 +565,8 @@ export default function AdminMenu() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
                     isSelected
-                      ? "bg-indigo-50 text-indigo-700 shadow-2xs"
-                      : "text-slate-800 hover:bg-slate-50"
+                      ? "bg-[#007AFF]/15 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] shadow-2xs"
+                      : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate flex-1 min-w-0">
@@ -572,12 +575,12 @@ export default function AdminMenu() {
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[11px] font-bold text-slate-500 mr-1">{count}</span>
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1 tabular-nums">{count}</span>
                     <button
                       type="button"
                       onClick={(e) => openEditCategory(cat, e)}
                       title="Rename Category"
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-indigo-600 text-slate-400 rounded transition"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-[#007AFF] text-slate-400 dark:text-slate-500 rounded transition"
                     >
                       <EditIcon className="w-3.5 h-3.5" />
                     </button>
@@ -585,7 +588,7 @@ export default function AdminMenu() {
                       type="button"
                       onClick={(e) => handleDeleteCategory(cat, e)}
                       title="Delete Category"
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-600 text-slate-400 rounded transition"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-rose-600 text-slate-400 dark:text-slate-500 rounded transition"
                     >
                       <TrashIcon className="w-3.5 h-3.5" />
                     </button>
@@ -595,20 +598,21 @@ export default function AdminMenu() {
             })}
           </div>
 
-          <button
-            type="button"
+          <AppleButton
+            variant="neutral"
+            size="sm"
+            icon={PlusIcon}
             onClick={startAddNewItem}
-            className="btn-outline w-full text-xs mt-3 flex items-center justify-center gap-1.5"
+            className="w-full mt-3"
           >
-            <PlusIcon className="w-3.5 h-3.5" />
-            <span>Create New Dish</span>
-          </button>
-        </div>
+            Create New Dish
+          </AppleButton>
+        </AppleCard>
 
         {/* COLUMN 2: Menu Items List (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           {/* Filters Bar */}
-          <div className="card p-3 flex flex-wrap items-center justify-between gap-2 shadow-xs">
+          <AppleCard className="p-3 flex flex-wrap items-center justify-between gap-2">
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -619,7 +623,7 @@ export default function AdminMenu() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 bg-white"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -628,14 +632,14 @@ export default function AdminMenu() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 bg-white"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] text-xs font-medium text-slate-800 dark:text-white bg-slate-100/70 dark:bg-white/[0.06] focus:outline-none focus:border-[#007AFF]"
             >
               <option value="DEFAULT">Sort by</option>
               <option value="PRICE_LOW">Price: Low to High</option>
               <option value="PRICE_HIGH">Price: High to Low</option>
               <option value="NAME">Name</option>
             </select>
-          </div>
+          </AppleCard>
 
           {/* List of Menu Items Cards */}
           {filteredItems.length === 0 ? (
@@ -644,9 +648,9 @@ export default function AdminMenu() {
               title="No dishes found"
               subtitle="Add a new dish to this category to populate the menu."
               action={
-                <button type="button" onClick={startAddNewItem} className="btn-primary text-xs">
+                <AppleButton variant="primary" size="sm" onClick={startAddNewItem}>
                   + Add First Dish
-                </button>
+                </AppleButton>
               }
             />
           ) : (
@@ -654,15 +658,18 @@ export default function AdminMenu() {
               {filteredItems.map((item) => {
                 const isSelected = selectedItem?.id === item.id;
                 return (
-                  <div
+                  <AppleCard
                     key={item.id}
                     onClick={() => selectForEdit(item)}
-                    className={`card p-3.5 cursor-pointer transition flex items-center justify-between gap-3 shadow-xs ${
-                      isSelected ? "ring-2 ring-indigo-600 border-indigo-600 shadow-glow" : "hover:border-indigo-300"
+                    interactive
+                    className={`p-3.5 cursor-pointer transition flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "ring-2 ring-[#007AFF] border-[#007AFF] dark:ring-[#007AFF] dark:border-[#007AFF]"
+                        : "hover:border-[#007AFF]/40"
                     }`}
                   >
                     {/* Item Thumbnail */}
-                    <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 relative">
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-white/[0.06] overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/[0.08] relative">
                       <img
                         src={item.imageUrl ? resolveAssetUrl(item.imageUrl) : getDishImage(item.name)}
                         alt={item.name}
@@ -674,37 +681,37 @@ export default function AdminMenu() {
                     {/* Item Title & Tags */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                        <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                           {item.name}
                         </span>
                         {item.isVeg ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200/60">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
                             <VegBadge className="w-2.5 h-2.5" /> Veg
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-200/60">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/40">
                             <NonVegBadge className="w-2.5 h-2.5" /> Non Veg
                           </span>
                         )}
                         {item.isBestseller && (
-                          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60">
+                          <span className="text-[10px] font-bold text-[#007AFF] dark:text-[#3898FF] bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-800/40">
                             Bestseller
                           </span>
                         )}
                         {Array.isArray(item.variants) && item.variants.length > 0 && (
-                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200/60">
+                          <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800/40">
                             {item.variants.length} Variants
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5 max-w-[260px]">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 max-w-[260px]">
                         {item.description || "Freshly prepared to order."}
                       </p>
                     </div>
 
                     {/* Price */}
                     <div className="text-right shrink-0">
-                      <span className="font-bold text-sm text-slate-900">₹ {item.price}</span>
+                      <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums">₹ {item.price}</span>
                     </div>
 
                     {/* Toggle Availability Switch */}
@@ -724,7 +731,7 @@ export default function AdminMenu() {
                       <button
                         type="button"
                         onClick={() => selectForEdit(item)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition"
+                        className="w-7 h-7 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#2C2C2E] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#007AFF] hover:border-[#007AFF]/30 transition"
                         title="Edit Dish"
                       >
                         <EditIcon className="w-3.5 h-3.5" />
@@ -732,13 +739,13 @@ export default function AdminMenu() {
                       <button
                         type="button"
                         onClick={() => handleDeleteItem(item)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-rose-600 hover:border-rose-200 transition"
+                        className="w-7 h-7 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#2C2C2E] flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:border-rose-200 transition"
                         title="Delete Dish"
                       >
                         <TrashIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  </div>
+                  </AppleCard>
                 );
               })}
             </div>
@@ -746,15 +753,15 @@ export default function AdminMenu() {
         </div>
 
         {/* COLUMN 3: Item Details Editor Panel (4 Cols) */}
-        <div className="lg:col-span-4 card p-5 sticky top-20 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
-            <h2 className="text-sm font-bold text-slate-900">
+        <AppleCard className="lg:col-span-4 p-5 sticky top-20">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-white/[0.08] mb-4">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
               {itemDraft?.id ? "Edit Dish" : "Create New Dish"}
             </h2>
             <Link
               to={`/r/${user?.restaurantSlug || "demo"}/menu`}
               target="_blank"
-              className="text-xs font-semibold text-emerald-700 flex items-center gap-1 hover:underline"
+              className="text-xs font-semibold text-[#007AFF] dark:text-[#3898FF] flex items-center gap-1 hover:underline"
             >
               <span>View Live Menu</span>
               <ExternalLinkIcon className="w-3.5 h-3.5" />
@@ -764,8 +771,8 @@ export default function AdminMenu() {
           {itemDraft ? (
             <form onSubmit={handleSaveItem} className="space-y-3.5 text-xs">
               {/* Item Preview Card */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-white overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-white dark:bg-[#2C2C2E] overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center">
                   {itemDraft.imageUrl ? (
                     <img
                       src={resolveAssetUrl(itemDraft.imageUrl)}
@@ -783,15 +790,15 @@ export default function AdminMenu() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900 truncate">
+                  <p className="font-bold text-slate-900 dark:text-white truncate">
                     {itemDraft.name || "Dish Preview"}
                   </p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[10px] font-semibold text-slate-500">
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                       {itemDraft.isVeg ? "Veg" : "Non Veg"}
                     </span>
                     {itemDraft.isBestseller && (
-                      <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 rounded border border-indigo-200/50">
+                      <span className="text-[9px] font-bold text-[#007AFF] dark:text-[#3898FF] bg-blue-50 dark:bg-blue-950/40 px-1 rounded border border-blue-200/50 dark:border-blue-800/50">
                         Bestseller
                       </span>
                     )}
@@ -800,7 +807,7 @@ export default function AdminMenu() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-800 mb-1">
+                <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
                   Item Name <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -809,19 +816,19 @@ export default function AdminMenu() {
                   placeholder="e.g. Paneer Butter Masala"
                   value={itemDraft.name}
                   onChange={(e) => setItemDraft({ ...itemDraft, name: e.target.value })}
-                  className="input"
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
+                  <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
                     Category <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={itemDraft.categoryId}
                     onChange={(e) => setItemDraft({ ...itemDraft, categoryId: e.target.value })}
-                    className="input"
+                    className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -832,7 +839,7 @@ export default function AdminMenu() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-800 mb-1">
+                  <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
                     Base Price (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -842,15 +849,15 @@ export default function AdminMenu() {
                     placeholder="250"
                     value={itemDraft.price}
                     onChange={(e) => setItemDraft({ ...itemDraft, price: e.target.value })}
-                    className="input font-bold"
+                    className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white font-bold tabular-nums focus:outline-none focus:border-[#007AFF]"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="font-semibold text-slate-800">Description</label>
-                  <span className="text-[10px] text-slate-400">
+                  <label className="font-semibold text-slate-800 dark:text-slate-200">Description</label>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums">
                     {itemDraft.description?.length || 0}/200
                   </span>
                 </div>
@@ -860,31 +867,31 @@ export default function AdminMenu() {
                   placeholder="Cottage cheese cubes cooked in a rich, buttery tomato gravy."
                   value={itemDraft.description}
                   onChange={(e) => setItemDraft({ ...itemDraft, description: e.target.value })}
-                  className="input resize-none"
+                  className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white resize-none focus:outline-none focus:border-[#007AFF]"
                 />
               </div>
 
-              <details className="rounded-lg border border-slate-200 p-3">
-                <summary className="cursor-pointer font-semibold text-slate-700">
+              <details className="rounded-xl border border-slate-200/80 dark:border-white/[0.08] p-3 bg-slate-50/50 dark:bg-white/[0.02]">
+                <summary className="cursor-pointer font-semibold text-slate-700 dark:text-slate-300">
                   Menu translations
                   {itemDraft.id && selectedItem?.missingTranslationLanguages?.length > 0 && (
-                    <span className="ms-2 text-amber-700 font-normal">
+                    <span className="ms-2 text-amber-700 dark:text-amber-300 font-normal">
                       Missing: {selectedItem.missingTranslationLanguages.join(", ")}
                     </span>
                   )}
                 </summary>
-                <p className="my-2 text-[11px] text-slate-500">
+                <p className="my-2 text-[11px] text-slate-500 dark:text-slate-400">
                   Original item content stays unchanged. Empty translations fall back to the original.
                 </p>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => {
                     const translation = itemDraft.translations?.[code] || {};
                     return (
-                      <details key={code} className="rounded border border-slate-100 p-2">
-                        <summary className="cursor-pointer font-medium">{languageName}</summary>
+                      <details key={code} className="rounded-lg border border-slate-200/60 dark:border-white/[0.06] p-2 bg-white dark:bg-[#1C1C1E]">
+                        <summary className="cursor-pointer font-medium text-slate-800 dark:text-slate-200">{languageName}</summary>
                         <div className="mt-2 space-y-2">
                           <input
-                            className="input"
+                            className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
                             aria-label={`${languageName} item name`}
                             placeholder={`Item name (${languageName})`}
                             value={translation.name || ""}
@@ -894,7 +901,7 @@ export default function AdminMenu() {
                             }))}
                           />
                           <textarea
-                            className="input resize-none"
+                            className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white resize-none"
                             rows={2}
                             aria-label={`${languageName} item description`}
                             placeholder={`Description (${languageName})`}
@@ -907,7 +914,7 @@ export default function AdminMenu() {
                           {(itemDraft.variants || []).map((variant, index) => (
                             <input
                               key={`variant-${variant.id || index}`}
-                              className="input"
+                              className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
                               aria-label={`${languageName} variant ${index + 1}`}
                               placeholder={`${variant.name || `Variant ${index + 1}`} (${languageName})`}
                               value={translation.variants?.[index] || ""}
@@ -924,7 +931,7 @@ export default function AdminMenu() {
                           {(itemDraft.addons || []).map((addon, index) => (
                             <input
                               key={`addon-${addon.id || index}`}
-                              className="input"
+                              className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
                               aria-label={`${languageName} add-on ${index + 1}`}
                               placeholder={`${addon.name || `Add-on ${index + 1}`} (${languageName})`}
                               value={translation.addons?.[index] || ""}
@@ -947,9 +954,9 @@ export default function AdminMenu() {
 
               {/* Item Image Upload */}
               <div>
-                <label className="block font-semibold text-slate-800 mb-1">Dish Image</label>
+                <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">Dish Image</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center relative">
+                  <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-white/[0.06] overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center relative">
                     {itemDraft.imageUrl ? (
                       <>
                         <img
@@ -971,11 +978,11 @@ export default function AdminMenu() {
                     )}
                   </div>
                   <label className="flex-1 cursor-pointer">
-                    <div className="py-2 px-3 border border-dashed border-indigo-300 rounded-xl text-center hover:bg-indigo-50/50 transition">
-                      <span className="text-[11px] font-semibold text-indigo-600">
+                    <div className="py-2 px-3 border border-dashed border-[#007AFF]/40 dark:border-[#007AFF]/50 rounded-xl text-center hover:bg-[#007AFF]/5 transition">
+                      <span className="text-[11px] font-semibold text-[#007AFF] dark:text-[#3898FF]">
                         {uploadingImage ? "Uploading..." : "+ Upload Photo"}
                       </span>
-                      <p className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 5MB)</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500">JPG, PNG, WEBP (Max 5MB)</p>
                     </div>
                     <input
                       type="file"
@@ -989,13 +996,13 @@ export default function AdminMenu() {
               </div>
 
               {/* Variants Section (Portions / Sizes) */}
-              <div className="pt-2 border-t border-slate-200">
+              <div className="pt-2 border-t border-slate-200/80 dark:border-white/[0.08]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-800 text-xs">Portions & Variants</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Portions & Variants</span>
                   <button
                     type="button"
                     onClick={addVariantRow}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                    className="text-xs font-semibold text-[#007AFF] dark:text-[#3898FF] hover:underline flex items-center gap-1"
                   >
                     <PlusIcon className="w-3.5 h-3.5" />
                     <span>Add Size</span>
@@ -1003,7 +1010,7 @@ export default function AdminMenu() {
                 </div>
 
                 {(itemDraft.variants || []).length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic">No variants (standard base price applies).</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">No variants (standard base price applies).</p>
                 ) : (
                   <div className="space-y-2">
                     {(itemDraft.variants || []).map((v, idx) => (
@@ -1013,7 +1020,7 @@ export default function AdminMenu() {
                           placeholder="Size (e.g. Regular, Large)"
                           value={v.name}
                           onChange={(e) => updateVariantRow(idx, "name", e.target.value)}
-                          className="input flex-1 py-1 text-xs"
+                          className="flex-1 py-1 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
                         />
                         <div className="flex items-center gap-1 w-24">
                           <span className="text-slate-500 text-xs">₹</span>
@@ -1023,7 +1030,7 @@ export default function AdminMenu() {
                             placeholder="Price"
                             value={v.price}
                             onChange={(e) => updateVariantRow(idx, "price", e.target.value)}
-                            className="input py-1 text-xs font-bold"
+                            className="w-full py-1 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs font-bold tabular-nums text-slate-800 dark:text-white"
                           />
                         </div>
                         <button
@@ -1041,13 +1048,13 @@ export default function AdminMenu() {
               </div>
 
               {/* Add-ons Section (Toppings / Extras) */}
-              <div className="pt-2 border-t border-slate-200">
+              <div className="pt-2 border-t border-slate-200/80 dark:border-white/[0.08]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-slate-800 text-xs">Extras & Add-ons</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">Extras & Add-ons</span>
                   <button
                     type="button"
                     onClick={addAddonRow}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                    className="text-xs font-semibold text-[#007AFF] dark:text-[#3898FF] hover:underline flex items-center gap-1"
                   >
                     <PlusIcon className="w-3.5 h-3.5" />
                     <span>Add Extra</span>
@@ -1055,7 +1062,7 @@ export default function AdminMenu() {
                 </div>
 
                 {(itemDraft.addons || []).length === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic">No optional add-ons configured.</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">No optional add-ons configured.</p>
                 ) : (
                   <div className="space-y-2">
                     {(itemDraft.addons || []).map((a, idx) => (
@@ -1065,7 +1072,7 @@ export default function AdminMenu() {
                           placeholder="Add-on (e.g. Extra Cheese)"
                           value={a.name}
                           onChange={(e) => updateAddonRow(idx, "name", e.target.value)}
-                          className="input flex-1 py-1 text-xs"
+                          className="flex-1 py-1 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
                         />
                         <div className="flex items-center gap-1 w-24">
                           <span className="text-slate-500 text-xs">₹</span>
@@ -1075,7 +1082,7 @@ export default function AdminMenu() {
                             placeholder="Price"
                             value={a.price}
                             onChange={(e) => updateAddonRow(idx, "price", e.target.value)}
-                            className="input py-1 text-xs font-bold"
+                            className="w-full py-1 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs font-bold tabular-nums text-slate-800 dark:text-white"
                           />
                         </div>
                         <button
@@ -1093,9 +1100,9 @@ export default function AdminMenu() {
               </div>
 
               {/* Toggles & Checkboxes */}
-              <div className="space-y-2 pt-2 border-t border-slate-200">
+              <div className="space-y-2 pt-2 border-t border-slate-200/80 dark:border-white/[0.08]">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Available to Order</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Available to Order</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
@@ -1107,7 +1114,7 @@ export default function AdminMenu() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Vegetarian Dish</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Vegetarian Dish</span>
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
@@ -1123,218 +1130,173 @@ export default function AdminMenu() {
                     type="checkbox"
                     checked={itemDraft.isBestseller}
                     onChange={(e) => setItemDraft({ ...itemDraft, isBestseller: e.target.checked })}
-                    className="rounded text-indigo-600 focus:ring-indigo-500"
+                    className="rounded text-[#007AFF] focus:ring-[#007AFF]"
                   />
-                  <span className="font-semibold text-slate-800">Feature as Bestseller</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Feature as Bestseller</span>
                 </label>
               </div>
-
-              {/* Multilingual Dish Translations */}
-              <details className="text-xs border border-slate-200 rounded-xl p-3 bg-slate-50/70">
-                <summary className="font-bold text-slate-800 cursor-pointer flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <span>🌐</span>
-                    <span>Dish Translations</span>
-                  </span>
-                  {selectedItem?.missingTranslationLanguages?.length > 0 && (
-                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-medium">
-                      Missing: {selectedItem.missingTranslationLanguages.length}
-                    </span>
-                  )}
-                </summary>
-                <div className="mt-3 space-y-3 max-h-80 overflow-y-auto pt-2 border-t border-slate-200">
-                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, langName]) => {
-                    const translation = itemDraft.translations?.[code] || {};
-                    return (
-                      <div key={code} className="p-2.5 rounded-lg bg-white border border-slate-200/80 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-900 text-xs">{langName}</span>
-                          <span className="text-[10px] text-slate-400 font-mono uppercase">{code}</span>
-                        </div>
-                        <input
-                          className="input py-1 text-xs"
-                          placeholder={`${langName} dish name`}
-                          value={translation.name || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setItemDraft((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                [code]: { ...prev.translations?.[code], name: val },
-                              },
-                            }));
-                          }}
-                        />
-                        <textarea
-                          rows={2}
-                          className="input py-1 text-xs"
-                          placeholder={`${langName} description`}
-                          value={translation.description || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setItemDraft((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                [code]: { ...prev.translations?.[code], description: val },
-                              },
-                            }));
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </details>
 
               {/* Actions: Delete & Save Changes */}
               <div className="pt-3 flex items-center gap-2">
                 {itemDraft.id && (
-                  <button
-                    type="button"
+                  <AppleButton
+                    variant="destructive"
+                    size="sm"
                     onClick={() => handleDeleteItem(itemDraft)}
-                    className="py-2 px-3 rounded-lg border border-rose-200 text-rose-600 font-semibold hover:bg-rose-50 transition"
                   >
                     Delete
-                  </button>
+                  </AppleButton>
                 )}
-                <button
+                <AppleButton
+                  variant="primary"
+                  size="sm"
                   type="submit"
                   disabled={savingItem}
-                  className="btn-primary flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
+                  loading={savingItem}
+                  className="flex-1"
                 >
-                  {savingItem ? <Spinner className="w-4 h-4 text-white" /> : null}
-                  <span>{savingItem ? "Saving..." : itemDraft.id ? "Save Dish" : "Create Dish"}</span>
-                </button>
+                  {itemDraft.id ? "Save Dish" : "Create Dish"}
+                </AppleButton>
               </div>
             </form>
           ) : (
-            <div className="py-12 text-center text-xs text-slate-400">
+            <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
               Select a dish from the list to edit details or click "+ New Dish".
             </div>
           )}
-        </div>
+        </AppleCard>
       </div>
 
       {/* Add Category Modal */}
-      {categoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-xl">
-            <h3 className="text-base font-bold text-slate-900 mb-3">Add Menu Category</h3>
-            <form onSubmit={handleAddCategory} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Category Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Starters, Main Course, Mocktails"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="input"
-                  autoFocus
-                />
-              </div>
-              <details className="rounded-lg border border-slate-200 p-3">
-                <summary className="cursor-pointer font-semibold text-slate-700">Category translations</summary>
-                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
-                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
-                    <input
-                      key={code}
-                      className="input"
-                      aria-label={`${languageName} category name`}
-                      placeholder={`${languageName} category name`}
-                      value={newCategoryTranslations?.[code]?.name || ""}
-                      onChange={(event) => setNewCategoryTranslations((current) => ({
-                        ...current,
-                        [code]: { ...current[code], name: event.target.value },
-                      }))}
-                    />
-                  ))}
-                </div>
-              </details>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCategoryModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={savingCategory} className="btn-primary text-xs">
-                  {savingCategory ? "Adding..." : "Add Category"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        title="Add Menu Category"
+        maxWidth="max-w-sm"
+      >
+        <form onSubmit={handleAddCategory} className="space-y-4 text-xs mt-3">
+          <div>
+            <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              Category Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Starters, Main Course, Mocktails"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+              autoFocus
+            />
           </div>
-        </div>
-      )}
+          <details className="rounded-xl border border-slate-200/80 dark:border-white/[0.08] p-3 bg-slate-50/50 dark:bg-white/[0.02]">
+            <summary className="cursor-pointer font-semibold text-slate-700 dark:text-slate-300">Category translations</summary>
+            <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+              {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
+                <input
+                  key={code}
+                  className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
+                  aria-label={`${languageName} category name`}
+                  placeholder={`${languageName} category name`}
+                  value={newCategoryTranslations?.[code]?.name || ""}
+                  onChange={(event) => setNewCategoryTranslations((current) => ({
+                    ...current,
+                    [code]: { ...current[code], name: event.target.value },
+                  }))}
+                />
+              ))}
+            </div>
+          </details>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <AppleButton
+              variant="neutral"
+              size="sm"
+              onClick={() => setCategoryModalOpen(false)}
+            >
+              Cancel
+            </AppleButton>
+            <AppleButton
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={savingCategory}
+              loading={savingCategory}
+            >
+              Add Category
+            </AppleButton>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit Category Modal */}
-      {categoryEditModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-xl">
-            <h3 className="text-base font-bold text-slate-900 mb-3">Rename Category</h3>
-            <form onSubmit={handleEditCategory} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-800 mb-1">
-                  Category Name <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Category Name"
-                  value={editCategoryName}
-                  onChange={(e) => setEditCategoryName(e.target.value)}
-                  className="input"
-                  autoFocus
-                />
-              </div>
-              <details className="rounded-lg border border-slate-200 p-3">
-                <summary className="cursor-pointer font-semibold text-slate-700">
-                  Category translations
-                  {editingCategory?.missingTranslationLanguages?.length > 0 && (
-                    <span className="ms-2 text-amber-700 font-normal">
-                      Missing: {editingCategory.missingTranslationLanguages.join(", ")}
-                    </span>
-                  )}
-                </summary>
-                <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
-                  {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
-                    <input
-                      key={code}
-                      className="input"
-                      aria-label={`${languageName} category name`}
-                      placeholder={`${languageName} category name`}
-                      value={editCategoryTranslations?.[code]?.name || ""}
-                      onChange={(event) => setEditCategoryTranslations((current) => ({
-                        ...current,
-                        [code]: { ...current[code], name: event.target.value },
-                      }))}
-                    />
-                  ))}
-                </div>
-              </details>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCategoryEditModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button type="submit" disabled={savingCategoryEdit} className="btn-primary text-xs">
-                  {savingCategoryEdit ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={categoryEditModalOpen}
+        onClose={() => setCategoryEditModalOpen(false)}
+        title="Rename Category"
+        maxWidth="max-w-sm"
+      >
+        <form onSubmit={handleEditCategory} className="space-y-4 text-xs mt-3">
+          <div>
+            <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+              Category Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Category Name"
+              value={editCategoryName}
+              onChange={(e) => setEditCategoryName(e.target.value)}
+              className="w-full py-2 px-3 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+              autoFocus
+            />
           </div>
-        </div>
-      )}
+          <details className="rounded-xl border border-slate-200/80 dark:border-white/[0.08] p-3 bg-slate-50/50 dark:bg-white/[0.02]">
+            <summary className="cursor-pointer font-semibold text-slate-700 dark:text-slate-300">
+              Category translations
+              {editingCategory?.missingTranslationLanguages?.length > 0 && (
+                <span className="ms-2 text-amber-700 dark:text-amber-300 font-normal">
+                  Missing: {editingCategory.missingTranslationLanguages.join(", ")}
+                </span>
+              )}
+            </summary>
+            <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
+              {LANGUAGES.filter(([code]) => code !== "en").map(([code, languageName]) => (
+                <input
+                  key={code}
+                  className="w-full py-1.5 px-2.5 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white"
+                  aria-label={`${languageName} category name`}
+                  placeholder={`${languageName} category name`}
+                  value={editCategoryTranslations?.[code]?.name || ""}
+                  onChange={(event) => setEditCategoryTranslations((current) => ({
+                    ...current,
+                    [code]: { ...current[code], name: event.target.value },
+                  }))}
+                />
+              ))}
+            </div>
+          </details>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <AppleButton
+              variant="neutral"
+              size="sm"
+              onClick={() => setCategoryEditModalOpen(false)}
+            >
+              Cancel
+            </AppleButton>
+            <AppleButton
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={savingCategoryEdit}
+              loading={savingCategoryEdit}
+            >
+              Save Changes
+            </AppleButton>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

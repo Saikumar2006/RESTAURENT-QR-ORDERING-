@@ -64,7 +64,7 @@ async function getProposalById(proposalId, { restaurantId = null, platformAdminI
     throw new AiApprovalError("Proposal not found", 404);
   }
 
-  if (restaurantId && proposal.restaurantId && proposal.restaurantId !== restaurantId) {
+  if (restaurantId && proposal.restaurantId !== restaurantId) {
     throw new AiApprovalError("Access denied to proposal", 403);
   }
 

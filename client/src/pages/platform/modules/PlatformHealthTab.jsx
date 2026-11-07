@@ -50,7 +50,7 @@ export default function PlatformHealthTab() {
             disabled={refreshing}
             className="px-3.5 py-1.5 text-xs font-semibold text-white bg-teal-700 hover:bg-teal-800 rounded-lg transition disabled:opacity-50"
           >
-            {refreshing ? "Pinging Services…" : "⚡ Refresh Health Status"}
+            {refreshing ? "Pinging Services…" : "Refresh Health Status"}
           </button>
         </div>
       </div>

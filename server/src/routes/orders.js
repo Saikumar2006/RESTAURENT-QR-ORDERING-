@@ -23,5 +23,6 @@ router.get("/:id/receipt", requireAuth, requirePermission("orders.view"), orderC
 router.post("/:id/feedback", validateBody(feedbackCreateSchema), orderController.submitFeedback);
 
 router.put("/:id/status", requireAuth, validateBody(orderStatusSchema), orderController.updateOrderStatus);
+router.patch("/:id/status", requireAuth, validateBody(orderStatusSchema), orderController.updateOrderStatus);
 
 module.exports = router;

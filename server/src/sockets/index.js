@@ -78,20 +78,24 @@ function getIo() {
 // sockets are a delivery mechanism, not a source of truth.
 
 function emitNewOrder(restaurantId, orderSummary) {
-  getIo().to(`restaurant:${restaurantId}`).emit("order:new", orderSummary);
+  if (!ioInstance) return;
+  ioInstance.to(`restaurant:${restaurantId}`).emit("order:new", orderSummary);
 }
 
 function emitOrderUpdated(restaurantId, orderSummary) {
-  getIo().to(`restaurant:${restaurantId}`).emit("order:updated", orderSummary);
+  if (!ioInstance) return;
+  ioInstance.to(`restaurant:${restaurantId}`).emit("order:updated", orderSummary);
 }
 
 function emitOrderStatus(orderSessionToken, statusPayload) {
-  getIo().to(`order:${orderSessionToken}`).emit("order:status", statusPayload);
+  if (!ioInstance) return;
+  ioInstance.to(`order:${orderSessionToken}`).emit("order:status", statusPayload);
 }
 
 function emitPaymentUpdated(orderSessionToken, restaurantId, paymentPayload) {
-  getIo().to(`order:${orderSessionToken}`).emit("payment:updated", paymentPayload);
-  getIo().to(`restaurant:${restaurantId}`).emit("payment:updated", paymentPayload);
+  if (!ioInstance) return;
+  ioInstance.to(`order:${orderSessionToken}`).emit("payment:updated", paymentPayload);
+  ioInstance.to(`restaurant:${restaurantId}`).emit("payment:updated", paymentPayload);
 }
 
 module.exports = {

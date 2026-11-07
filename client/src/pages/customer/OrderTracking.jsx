@@ -172,7 +172,7 @@ export default function OrderTracking() {
                 <li key={step} className="flex items-center gap-3">
                   <span
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
-                      done ? "bg-clove text-cream" : "bg-charcoal/10 text-charcoal/30"
+                      done ? "bg-[#0F4C45] text-white" : "bg-slate-100 text-slate-400"
                     }`}
                   >
                     {done ? "✓" : idx + 1}

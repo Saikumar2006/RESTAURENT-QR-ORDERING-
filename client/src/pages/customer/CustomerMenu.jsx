@@ -93,8 +93,8 @@ export default function CustomerMenu() {
                   setActiveCategory(c.id);
                   document.getElementById(`cat-${c.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-3.5 py-1.5 rounded-full text-sm font-medium border ${
-                  activeCategory === c.id ? "bg-clove text-cream border-clove" : "border-charcoal/15 text-charcoal/70"
+                className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+                  activeCategory === c.id ? "bg-[#0F4C45] text-white border-[#0F4C45]" : "border-slate-200 text-slate-700 bg-white hover:bg-slate-50"
                 }`}
               >
                 {c.imageUrl && <img src={resolveAssetUrl(c.imageUrl)} alt="" className="w-6 h-6 rounded-full object-cover" />}

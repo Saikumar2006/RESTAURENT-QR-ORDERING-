@@ -135,7 +135,10 @@ export function ContactPage() {
           Have questions about your restaurant setup, online ordering, or SaaS subscription? Reach out to our dedicated support team directly.
         </p>
         <div className="p-4 rounded-xl bg-[#f4f7f3] border border-[#dfe5df] flex items-center gap-3">
-          <span className="text-2xl" aria-hidden="true">✉️</span>
+          <svg className="w-6 h-6 text-[#087f70] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#087f70]">Official Support & Contact Email</p>
             <a className="text-base font-semibold text-[#087f70] underline" href={`mailto:${supportEmail}`}>

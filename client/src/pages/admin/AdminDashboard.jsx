@@ -115,21 +115,21 @@ export default function AdminDashboard() {
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-      {/* 4 Core Apple Pro KPI Cards */}
+      {/* 4 Core Apple Pro / Obsidian Royale KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          icon={() => <span className="font-bold text-lg text-[#007AFF] dark:text-[#3898FF]">₹</span>}
-          iconBg="bg-blue-50 dark:bg-blue-950/40"
-          iconColor="text-[#007AFF] dark:text-[#3898FF]"
+          icon={() => <span className="font-bold text-base text-[#0F4C45] dark:text-[#2DD4BF]">₹</span>}
+          iconBg="bg-teal-50 dark:bg-teal-950/40"
+          iconColor="text-[#0F4C45] dark:text-[#2DD4BF]"
           label="Total Revenue"
           value={`₹ ${totalRev.toLocaleString("en-IN")}`}
           badgeText="+18.4% vs last week"
-          badgeType="info"
+          badgeType="success"
         />
         <KpiCard
           icon={OrdersIcon}
           iconBg="bg-emerald-50 dark:bg-emerald-950/40"
-          iconColor="text-emerald-600 dark:text-emerald-400"
+          iconColor="text-emerald-700 dark:text-emerald-400"
           label="Total Orders"
           value={totalOrders}
           badgeText="+12% growth"
@@ -137,8 +137,8 @@ export default function AdminDashboard() {
         />
         <KpiCard
           icon={UsersIcon}
-          iconBg="bg-purple-50 dark:bg-purple-950/40"
-          iconColor="text-purple-600 dark:text-purple-400"
+          iconBg="bg-slate-100 dark:bg-slate-800"
+          iconColor="text-slate-700 dark:text-slate-300"
           label="Total Customers"
           value={Math.round(totalOrders * 1.8) || 84}
           badgeText="Active dining"
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
         <KpiCard
           icon={AnalyticsIcon}
           iconBg="bg-amber-50 dark:bg-amber-950/40"
-          iconColor="text-amber-600 dark:text-amber-400"
+          iconColor="text-amber-700 dark:text-amber-400"
           label="Average Order Value"
           value={`₹ ${aov}`}
           badgeText="+5% higher"
@@ -159,46 +159,46 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Revenue Overview Dual Chart (8 Cols) */}
         <AppleCard className="lg:col-span-8 p-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-white/[0.08] mb-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--border)] mb-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Revenue & Order Trends</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Daily paid sales vs volume over the last 7 days</p>
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Revenue & Order Trends</h2>
+              <p className="text-xs text-[var(--text-secondary)]">Daily paid sales vs volume over the last 7 days</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5 text-[#007AFF] dark:text-[#3898FF] font-semibold">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#007AFF] shadow-2xs" /> Revenue
+              <span className="flex items-center gap-1.5 text-[#0F4C45] dark:text-[#2DD4BF] font-medium">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#0F4C45] dark:bg-[#2DD4BF]" /> Revenue
               </span>
-              <span className="flex items-center gap-1.5 text-[#34C759] dark:text-[#30D158] font-semibold">
-                <span className="w-2.5 h-2.5 rounded-sm bg-[#34C759] shadow-2xs" /> Orders
+              <span className="flex items-center gap-1.5 text-[#4A7C75] dark:text-[#67B5AA] font-medium">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#4A7C75] dark:bg-[#67B5AA]" /> Orders
               </span>
             </div>
           </div>
 
           {/* Bar Chart Bars */}
           <div className="pt-4">
-            <div className="flex items-end justify-between gap-3 h-48 border-b border-slate-200/80 dark:border-white/[0.08] pb-2 px-2">
+            <div className="flex items-end justify-between gap-3 h-48 border-b border-[var(--border)] pb-2 px-2">
               {analytics.daily.map((day) => {
                 const revHeight = Math.max(10, Math.round((day.revenue / maxDailyRevenue) * 100));
                 const orderHeight = Math.max(10, Math.round((day.orders / maxDailyOrders) * 100));
 
                 return (
                   <div key={day.date} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                    <div className="text-[10px] font-bold text-slate-800 dark:text-white opacity-0 group-hover:opacity-100 transition tabular-nums">
+                    <div className="text-[10px] font-semibold text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition tabular-nums font-mono">
                       ₹{Math.round(day.revenue)}
                     </div>
                     <div className="flex items-end justify-center gap-1.5 w-full h-32">
                       <div
-                        className="w-4 rounded-t-md bg-gradient-to-t from-[#007AFF] to-[#5856D6] transition-all hover:brightness-110 shadow-xs"
+                        className="w-4 rounded-t bg-[#0F4C45] dark:bg-[#2DD4BF] transition-all hover:opacity-90"
                         style={{ height: `${revHeight}%` }}
                         title={`Revenue: ₹${day.revenue.toFixed(2)}`}
                       />
                       <div
-                        className="w-4 rounded-t-md bg-gradient-to-t from-[#34C759] to-[#30D158] transition-all hover:brightness-110 shadow-xs"
+                        className="w-4 rounded-t bg-[#4A7C75] dark:bg-[#67B5AA] transition-all hover:opacity-90"
                         style={{ height: `${orderHeight}%` }}
                         title={`Orders: ${day.orders}`}
                       />
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)]">
                       {new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, {
                         weekday: "short",
                         timeZone: "UTC",
@@ -208,11 +208,11 @@ export default function AdminDashboard() {
                 );
               })}
             </div>
-            <div className="pt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="pt-3 flex items-center justify-between text-xs text-[var(--text-secondary)]">
               <span>7 Days Active Operations</span>
               <span className="tabular-nums">
                 Paid Revenue:{" "}
-                <strong className="text-slate-900 dark:text-white">
+                <strong className="text-[var(--text-primary)] font-semibold">
                   ₹ {totalRev.toLocaleString("en-IN")}
                 </strong>
               </span>
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => navigate("/admin/tables")}
-                className="text-xs text-[#007AFF] dark:text-[#3898FF] font-semibold hover:underline"
+                className="text-xs text-[#C6A15B] dark:text-[#E2C384] font-semibold hover:underline"
               >
                 View Floor →
               </button>
@@ -298,7 +298,7 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => navigate("/admin/menu")}
-              className="text-xs text-[#007AFF] dark:text-[#3898FF] font-semibold hover:underline"
+              className="text-xs text-[#C6A15B] dark:text-[#E2C384] font-semibold hover:underline"
             >
               Menu →
             </button>
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
               {(analytics.topItems || []).slice(0, 5).map((item, idx) => (
                 <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-6 h-6 rounded-md bg-[#007AFF]/10 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] font-bold flex items-center justify-center text-[11px] shrink-0 border border-[#007AFF]/20 dark:border-[#007AFF]/30">
+                    <span className="w-6 h-6 rounded-md bg-[#C6A15B]/10 text-[#C6A15B] dark:bg-[#C6A15B]/25 dark:text-[#E2C384] font-bold flex items-center justify-center text-[11px] shrink-0 border border-[#C6A15B]/20 dark:border-[#C6A15B]/30">
                       #{idx + 1}
                     </span>
                     <img
@@ -339,17 +339,17 @@ export default function AdminDashboard() {
 
         {/* Recent Orders Feed (7 Cols) */}
         <AppleCard className="lg:col-span-7 overflow-hidden">
-          <div className="p-4 border-b border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between bg-white dark:bg-[#1C1C1E]">
+          <div className="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Orders Today</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Recent Orders Today</h3>
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Live streaming customer and takeaway orders
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate("/admin/orders")}
-              className="text-xs text-[#007AFF] dark:text-[#3898FF] font-semibold hover:underline"
+              className="text-xs text-[#0F4C45] dark:text-[#2DD4BF] font-semibold hover:underline"
             >
               View All Orders →
             </button>
@@ -362,25 +362,25 @@ export default function AdminDashboard() {
               subtitle="Orders from table QR codes and manual kitchen tickets will appear here."
             />
           ) : (
-            <div className="divide-y divide-slate-200/80 dark:divide-white/[0.08] text-xs">
+            <div className="divide-y divide-[var(--border)] text-xs">
               {orders.slice(0, 6).map((order) => (
                 <div
                   key={order.id}
                   onClick={() => navigate(`/admin/orders?orderId=${order.id}`)}
-                  className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition cursor-pointer"
+                  className="p-3.5 flex items-center justify-between gap-3 hover:bg-[var(--surface-muted)] transition cursor-pointer"
                 >
                   <div className="min-w-0 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[#007AFF] dark:text-[#3898FF] flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200/60 dark:border-blue-800/40">
-                      📋
+                    <div className="w-8 h-8 rounded-md bg-teal-50 dark:bg-teal-950/40 text-[#0F4C45] dark:text-[#2DD4BF] flex items-center justify-center text-xs shrink-0 border border-teal-200/60 dark:border-teal-800/40">
+                      <OrdersIcon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-900 dark:text-white truncate">
+                      <p className="font-semibold text-[var(--text-primary)] truncate">
                         {order.orderNumber} ·{" "}
                         {order.orderType === "TAKEAWAY"
                           ? "Takeaway"
                           : `Table ${order.table?.tableNumber || "—"}`}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                      <p className="text-[11px] text-[var(--text-secondary)] tabular-nums">
                         {order.items?.length || 0} items · ₹ {Number(order.totalAmount).toFixed(0)}
                       </p>
                     </div>

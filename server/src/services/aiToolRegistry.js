@@ -390,18 +390,18 @@ async function executeTool(toolName, args = {}, context = {}) {
     case "get_top_selling_products": {
       const limit = Math.max(1, Math.min(20, Number(args.limit) || 5));
       const orderItems = await prisma.orderItem.groupBy({
-        by: ["name"],
+        by: ["itemName"],
         where: { order: { restaurantId, paymentStatus: "PAID" } },
-        _sum: { quantity: true, price: true },
+        _sum: { quantity: true, lineTotal: true },
         orderBy: { _sum: { quantity: "desc" } },
         take: limit,
       });
 
       return {
         topProducts: orderItems.map((item) => ({
-          name: item.name,
+          name: item.itemName,
           quantitySold: item._sum.quantity || 0,
-          revenue: item._sum.price || 0,
+          revenue: item._sum.lineTotal || 0,
         })),
       };
     }
@@ -437,27 +437,39 @@ async function executeTool(toolName, args = {}, context = {}) {
 
     case "get_inventory_summary": {
       const items = await prisma.inventoryItem.findMany({
-        where: { restaurantId, isDeleted: false },
-        select: { id: true, name: true, currentStock: true, minStockLevel: true, unit: true, costPerUnit: true },
+        where: { restaurantId, isActive: true },
+        select: { id: true, name: true, quantity: true, lowStockThreshold: true, baseUnit: true },
       });
 
-      const lowStockCount = items.filter((i) => i.currentStock <= i.minStockLevel).length;
-      const totalValuation = items.reduce((sum, i) => sum + (Number(i.currentStock) * (Number(i.costPerUnit) || 0)), 0);
+      const lowStockCount = items.filter((i) => i.quantity <= i.lowStockThreshold).length;
 
       return {
         totalItems: items.length,
         lowStockAlertCount: lowStockCount,
-        totalValuationEstimate: Math.round(totalValuation),
+        items: items.map((i) => ({
+          name: i.name,
+          currentStock: i.quantity,
+          minStockLevel: i.lowStockThreshold,
+          unit: i.baseUnit,
+        })),
       };
     }
 
     case "get_low_stock_items": {
       const items = await prisma.inventoryItem.findMany({
-        where: { restaurantId, isDeleted: false },
-        select: { id: true, name: true, currentStock: true, minStockLevel: true, unit: true, category: true },
+        where: { restaurantId, isActive: true },
+        select: { id: true, name: true, quantity: true, lowStockThreshold: true, baseUnit: true },
       });
 
-      const low = items.filter((i) => i.currentStock <= i.minStockLevel);
+      const low = items
+        .filter((i) => i.quantity <= i.lowStockThreshold)
+        .map((i) => ({
+          id: i.id,
+          name: i.name,
+          currentStock: i.quantity,
+          minStockLevel: i.lowStockThreshold,
+          unit: i.baseUnit,
+        }));
       return { lowStockItems: low };
     }
 
@@ -530,8 +542,8 @@ async function executeTool(toolName, args = {}, context = {}) {
 
     case "get_supplier_summary": {
       const suppliers = await prisma.inventorySupplier.findMany({
-        where: { restaurantId },
-        select: { id: true, name: true, contactPerson: true, phone: true, leadTimeDays: true },
+        where: { restaurantId, isActive: true },
+        select: { id: true, name: true, contactName: true, phone: true, email: true },
       });
       return { suppliers };
     }
@@ -581,10 +593,10 @@ async function executeTool(toolName, args = {}, context = {}) {
 
     case "get_payment_failure_summary": {
       const failedWebhooks = await prisma.billingWebhookEvent.count({
-        where: { status: "FAILED" },
+        where: { processingStatus: "FAILED" },
       });
       const pendingOnboardings = await prisma.pendingOnboarding.count({
-        where: { status: "PENDING" },
+        where: { status: "PENDING_PAYMENT" },
       });
 
       return {

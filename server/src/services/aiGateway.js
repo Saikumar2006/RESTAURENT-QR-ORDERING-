@@ -196,7 +196,9 @@ async function processChatMessage({
           scope,
           restaurantId,
           userId: user?.id,
+          user,
           platformAdminId: platformAdmin?.id,
+          platformAdmin,
           currentModule,
           language,
           context,
@@ -279,6 +281,7 @@ async function processChatMessage({
   return {
     conversationId: conversation.id,
     message: storedMessage,
+    reply: finalContent,
     actionProposal: savedProposalRecord,
     usage: totalUsage,
     title: conversation.title,

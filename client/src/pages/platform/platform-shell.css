@@ -1,14 +1,17 @@
 .platform-shell {
-  --platform-sidebar: #0c3835;
-  --platform-sidebar-muted: #a9c2bd;
-  --platform-teal: #147c70;
+  --platform-sidebar: #0D3E38;
+  --platform-sidebar-muted: #C2D6D3;
+  --platform-brand: #0F4C45;
+  --platform-brand-light: #EBF5F3;
+  --platform-border: #E2E8F0;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 252px minmax(0, 1fr);
-  background: #f3f6f4;
-  color: #202c29;
-  font-family: "DM Sans", sans-serif;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--app-bg);
+  color: var(--text-primary);
+  font-family: inherit;
 }
+
 .platform-shell-sidebar {
   position: sticky;
   top: 0;
@@ -17,192 +20,323 @@
   height: 100vh;
   flex-direction: column;
   background: var(--platform-sidebar);
-  color: #f6fbf8;
+  color: #FFFFFF;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 .platform-shell-brand {
   display: flex;
-  min-height: 76px;
+  min-height: 60px;
   align-items: center;
-  gap: 11px;
-  border-bottom: 1px solid #ffffff14;
-  padding: 0 20px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 16px;
   color: inherit;
   text-decoration: none;
 }
+
 .platform-shell-brand-mark {
-  display: grid;
-  width: 35px;
-  height: 35px;
-  place-items: center;
-  border-radius: 10px 10px 10px 3px;
-  background: #b6e0d1;
-  color: #0b3934;
-  font-family: "Fraunces", Georgia, serif;
-  font-size: 21px;
-}
-.platform-shell-brand strong,
-.platform-shell-brand small { display: block; }
-.platform-shell-brand strong { font-size: 12px; letter-spacing: .14em; }
-.platform-shell-brand small { margin-top: 3px; color: var(--platform-sidebar-muted); font-size: 8px; letter-spacing: .16em; }
-.platform-shell-nav { flex: 1; overflow-y: auto; padding: 18px 12px; }
-.platform-shell-group { margin: 0 0 21px; }
-.platform-shell-group h2 {
-  margin: 0 10px 8px;
-  color: #8eaaa4;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-}
-.platform-shell-link {
-  display: flex;
-  min-height: 39px;
-  align-items: center;
-  gap: 10px;
-  margin: 2px 0;
-  border-radius: 5px;
-  padding: 0 10px;
-  color: #d3e2dd;
-  font-size: 12px;
-  text-decoration: none;
-  transition: background-color .15s ease, color .15s ease;
-}
-.platform-shell-link:hover { background: #ffffff10; color: #fff; }
-.platform-shell-link.is-active { background: #ffffff18; color: #fff; font-weight: 600; }
-.platform-shell-link-icon { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; width: 18px; }
-.platform-shell-link-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.platform-shell-link-indicator { width: 5px; height: 5px; border-radius: 50%; background: #6f9c91; }
-.platform-shell-link.is-active .platform-shell-link-indicator { background: #a9e3cb; box-shadow: 0 0 0 3px #a9e3cb20; }
-.platform-shell-profile {
-  display: flex;
-  min-height: 74px;
-  align-items: center;
-  gap: 10px;
-  border-top: 1px solid #ffffff14;
-  padding: 12px 14px;
-}
-.platform-shell-avatar {
   display: grid;
   width: 32px;
   height: 32px;
-  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 6px;
+  background: #0F4C45;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.platform-shell-brand strong,
+.platform-shell-brand small {
+  display: block;
+}
+
+.platform-shell-brand strong {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #FFFFFF;
+}
+
+.platform-shell-brand small {
+  margin-top: 1px;
+  color: #8FD8CD;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.platform-shell-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 10px;
+}
+
+.platform-shell-group {
+  margin: 0 0 16px;
+}
+
+.platform-shell-group h2 {
+  margin: 0 8px 6px;
+  color: #7AAFA6;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.platform-shell-link {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #C2D6D3;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.12s ease;
+  border: 1px solid transparent;
+}
+
+.platform-shell-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.platform-shell-link.is-active {
+  background: #EBF5F3;
+  color: #0D3E38;
+  font-weight: 600;
+  border-color: #C4E5E1;
+}
+
+.platform-shell-link.is-active .platform-shell-link-icon {
+  color: #0D3E38;
+}
+
+.platform-shell-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  shrink-0: 0;
+}
+
+.platform-shell-link-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.platform-shell-profile {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+}
+
+.platform-shell-avatar {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
   place-items: center;
   border-radius: 50%;
-  background: #d8eee4;
-  color: #10423c;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
-.platform-shell-profile-details { min-width: 0; flex: 1; }
+
+.platform-shell-profile-details {
+  min-width: 0;
+  flex: 1;
+}
+
 .platform-shell-profile-details strong,
-.platform-shell-profile-details span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.platform-shell-profile-details strong { font-size: 11px; }
-.platform-shell-profile-details span { margin-top: 3px; color: var(--platform-sidebar-muted); font-size: 9px; }
+.platform-shell-profile-details span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-shell-profile-details strong {
+  font-size: 11.5px;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.platform-shell-profile-details span {
+  margin-top: 1px;
+  color: #8FD8CD;
+  font-size: 9.5px;
+}
+
 .platform-shell-profile > button {
   border: 0;
   background: transparent;
-  padding: 7px;
-  color: #d3e2dd;
+  padding: 6px;
+  color: #C2D6D3;
   cursor: pointer;
-  font-size: 17px;
+  border-radius: 4px;
+  transition: all 0.12s ease;
 }
-.platform-shell-workspace { min-width: 0; }
+
+.platform-shell-profile > button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.platform-shell-workspace {
+  min-width: 0;
+}
+
 .platform-shell-topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
-  min-height: 70px;
+  min-height: 56px;
   align-items: center;
-  gap: 13px;
-  border-bottom: 1px solid #e1e9e5;
-  background: #fff;
-  padding: 0 28px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 20px;
 }
-.platform-shell-topbar p { margin: 0; color: #253630; font-size: 12px; font-weight: 700; }
-.platform-shell-topbar > div:first-of-type > span { display: block; margin-top: 3px; color: #77857f; font-size: 10px; text-transform: capitalize; }
-.platform-shell-topbar-user { display: flex; align-items: center; gap: 9px; margin-inline-start: auto; color: #44524c; font-size: 11px; }
-.platform-shell-menu-button { display: none; border: 0; background: transparent; padding: 8px; color: #174e47; cursor: pointer; font-size: 20px; }
-.platform-shell-page { min-width: 0; }
+
+.platform-shell-topbar p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.platform-shell-topbar > div:first-of-type > span {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.platform-shell-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.platform-shell-topbar-user .platform-shell-avatar {
+  background: #0F4C45;
+  color: #FFFFFF;
+  border: none;
+}
+
+.platform-shell-menu-button {
+  display: none;
+  border: 0;
+  background: transparent;
+  padding: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.platform-shell-page {
+  min-width: 0;
+  padding: 24px;
+}
+
 .platform-shell button:focus-visible,
-.platform-shell a:focus-visible { outline: 3px solid #71bda7; outline-offset: 3px; }
-.platform-shell-backdrop { display: none; }
+.platform-shell a:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.platform-shell-backdrop {
+  display: none;
+}
+
 @media (max-width: 860px) {
-  .platform-shell { display: block; }
-  .platform-shell-sidebar { position: fixed; inset: 0 auto 0 0; width: min(290px, 84vw); transform: translateX(-105%); transition: transform .2s ease; box-shadow: 18px 0 35px #0b241e30; }
-  .platform-shell-sidebar.is-open { transform: translateX(0); }
-  .platform-shell-backdrop { position: fixed; inset: 0; z-index: 15; display: block; border: 0; background: #10251f75; }
-  .platform-shell-topbar { min-height: 62px; padding: 0 15px; }
-  .platform-shell-menu-button { display: inline-grid; place-items: center; }
-  .platform-shell-topbar-user > span:last-child { display: none; }
-  [dir="rtl"] .platform-shell-sidebar { inset: 0 0 0 auto; transform: translateX(105%); box-shadow: -18px 0 35px #0b241f30; }
-  [dir="rtl"] .platform-shell-sidebar.is-open { transform: translateX(0); }
+  .platform-shell {
+    display: block;
+  }
+  .platform-shell-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(280px, 84vw);
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+  .platform-shell-sidebar.is-open {
+    transform: translateX(0);
+  }
+  .platform-shell-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    display: block;
+    border: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .platform-shell-topbar {
+    min-height: 52px;
+    padding: 0 12px;
+  }
+  .platform-shell-menu-button {
+    display: inline-grid;
+    place-items: center;
+  }
+  [dir="rtl"] .platform-shell-sidebar {
+    inset: 0 0 0 auto;
+    transform: translateX(105%);
+  }
+  [dir="rtl"] .platform-shell-sidebar.is-open {
+    transform: translateX(0);
+  }
 }
 
-html[lang="ar"] .platform-shell { font-family: "Noto Sans Arabic", Tahoma, Arial, sans-serif; }
-@media (prefers-reduced-motion: reduce) {
-  .platform-shell *,
-  .platform-shell *::before,
-  .platform-shell *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+html[lang="ar"] .platform-shell {
+  font-family: "Noto Sans Arabic", Tahoma, Arial, sans-serif;
 }
 
-/* Apple Pro Dark Mode Support for Platform Shell */
+/* Dark Mode Overrides for Platform Shell */
 html.dark .platform-shell,
 [data-theme="dark"] .platform-shell {
-  --platform-sidebar: #121214;
-  --platform-sidebar-muted: #86868b;
-  background: #000000;
-  color: #f5f5f7;
+  --platform-sidebar: #0B2522;
+  --platform-sidebar-muted: #94A3B8;
+  background: var(--app-bg);
+  color: var(--text-primary);
 }
 
 html.dark .platform-shell-sidebar,
 [data-theme="dark"] .platform-shell-sidebar {
-  background: #161618;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-html.dark .platform-shell-topbar,
-[data-theme="dark"] .platform-shell-topbar {
-  background: rgba(22, 22, 24, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-html.dark .platform-shell-topbar p,
-[data-theme="dark"] .platform-shell-topbar p {
-  color: #ffffff;
-}
-
-html.dark .platform-shell-topbar > div:first-of-type > span,
-[data-theme="dark"] .platform-shell-topbar > div:first-of-type > span {
-  color: #86868b;
-}
-
-html.dark .platform-shell-topbar-user,
-[data-theme="dark"] .platform-shell-topbar-user {
-  color: #86868b;
-}
-
-html.dark .platform-shell-topbar-user .font-medium,
-[data-theme="dark"] .platform-shell-topbar-user .font-medium {
-  color: #ffffff !important;
-}
-
-html.dark .platform-shell-link:hover,
-[data-theme="dark"] .platform-shell-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background: var(--platform-sidebar);
+  border-right: 1px solid var(--border);
 }
 
 html.dark .platform-shell-link.is-active,
 [data-theme="dark"] .platform-shell-link.is-active {
-  background: rgba(0, 122, 255, 0.2);
-  color: #3898ff;
+  background: #12332F;
+  color: #67B5AA;
+  border-color: #1D4742;
 }
 
-html.dark .platform-shell-link.is-active .platform-shell-link-indicator,
-[data-theme="dark"] .platform-shell-link.is-active .platform-shell-link-indicator {
-  background: #007aff;
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+html.dark .platform-shell-link.is-active .platform-shell-link-icon,
+[data-theme="dark"] .platform-shell-link.is-active .platform-shell-link-icon {
+  color: #67B5AA;
 }

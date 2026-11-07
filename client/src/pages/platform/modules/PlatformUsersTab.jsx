@@ -150,7 +150,7 @@ export default function PlatformUsersTab() {
                     <td className="py-3 px-4">
                       <div className="font-semibold text-slate-900">{u.name}</div>
                       <div className="text-[11px] text-slate-500 font-mono">{u.email}</div>
-                      {u.phone && <div className="text-[10px] text-slate-400">📞 {u.phone}</div>}
+                      {u.phone && <div className="text-[10px] text-slate-400">Tel: {u.phone}</div>}
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-medium text-slate-800">{u.restaurantName || "Unassigned"}</div>

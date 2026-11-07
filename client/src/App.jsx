@@ -103,7 +103,6 @@ export default function App() {
               <AdminModuleView
                 title="Payments & Settlements"
                 description="Live payment logs and financial reconciliations. Detailed daily sales, payment methods, and settlements are tracked via Analytics & Reports."
-                icon="💳"
               />
             </ProtectedRoute>
           }
@@ -115,7 +114,6 @@ export default function App() {
               <AdminModuleView
                 title="Customer Directory & Loyalty"
                 description="Guest order history and customer phone contacts are tracked directly from active table and takeaway order tickets."
-                icon="👥"
               />
             </ProtectedRoute>
           }
@@ -127,7 +125,6 @@ export default function App() {
               <AdminModuleView
                 title="Operational Expenses"
                 description="Supplier bills and inventory purchase costs are managed under Inventory > Purchases."
-                icon="🧾"
               />
             </ProtectedRoute>
           }

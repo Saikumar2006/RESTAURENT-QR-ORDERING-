@@ -235,7 +235,7 @@ export default function AdminOrders() {
               size="sm"
               onClick={() => setSoundEnabled(!soundEnabled)}
             >
-              {soundEnabled ? "🔔 Chime: On" : "🔕 Chime: Off"}
+              {soundEnabled ? "Chime: On" : "Chime: Off"}
             </AppleButton>
             {(user?.permissions?.includes("orders.create") || user?.permissions?.includes("*")) && (
               <AppleButton
@@ -258,7 +258,7 @@ export default function AdminOrders() {
         {/* COLUMN 1: Order Queue List (4 Cols) */}
         <AppleCard className="lg:col-span-4 overflow-hidden flex flex-col min-h-[640px]">
           {/* Filters & Search */}
-          <div className="p-3.5 border-b border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1E] space-y-2.5">
+          <div className="p-3.5 border-b border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#18171F] space-y-2.5">
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -271,7 +271,7 @@ export default function AdminOrders() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full py-1.5 px-2.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+                className="w-full py-1.5 px-2.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#C6A15B]"
               >
                 <option value="">All Statuses</option>
                 {["PENDING", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"].map(
@@ -286,7 +286,7 @@ export default function AdminOrders() {
               <select
                 value={paymentFilter}
                 onChange={(e) => setPaymentFilter(e.target.value)}
-                className="w-full py-1.5 px-2.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#007AFF]"
+                className="w-full py-1.5 px-2.5 rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-slate-100/70 dark:bg-white/[0.06] text-xs text-slate-800 dark:text-white focus:outline-none focus:border-[#C6A15B]"
               >
                 <option value="">All Payments</option>
                 {["PENDING", "PAID", "FAILED", "REFUNDED"].map((s) => (
@@ -317,7 +317,7 @@ export default function AdminOrders() {
                     }}
                     className={`w-full p-3.5 text-left transition border-l-4 ${
                       isSelected
-                        ? "border-[#007AFF] bg-[#007AFF]/10 dark:bg-[#007AFF]/20 shadow-2xs"
+                        ? "border-[#0F4C45] bg-[#EBF5F3] dark:bg-[#12332F] dark:border-[#2DD4BF]"
                         : "border-transparent hover:bg-slate-50 dark:hover:bg-white/[0.04]"
                     }`}
                   >
@@ -370,17 +370,17 @@ export default function AdminOrders() {
           ) : (
             <div className="space-y-4">
               {/* Order Header */}
-              <div className="flex items-start justify-between pb-3 border-b border-slate-200/80 dark:border-white/[0.08]">
+              <div className="flex items-start justify-between pb-3 border-b border-[var(--border)]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl font-bold text-[var(--text-primary)]">
                       {selected.orderNumber}
                     </h2>
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)]">
                       {selected.orderType}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                     {selected.orderType === "TAKEAWAY"
                       ? "Takeaway Order"
                       : `Table ${selected.table?.tableNumber || "—"}`}
@@ -391,20 +391,20 @@ export default function AdminOrders() {
               </div>
 
               {/* Status Stepper Progression */}
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+              <div className="p-3 rounded-md bg-[var(--surface-muted)] border border-[var(--border)]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                   Kitchen Progress State
                 </p>
-                <div className="flex items-center justify-between gap-1 text-[11px] font-bold">
+                <div className="flex items-center justify-between gap-1 text-[11px] font-medium">
                   {["PENDING", "ACCEPTED", "PREPARING", "READY", "COMPLETED"].map((st) => {
                     const isDone = selected.status === st;
                     return (
                       <span
                         key={st}
-                        className={`px-2 py-1 rounded-lg transition select-none ${
+                        className={`px-2 py-1 rounded transition select-none ${
                           isDone
-                            ? "bg-[#007AFF] text-white shadow-xs font-semibold"
-                            : "bg-white dark:bg-[#2C2C2E] text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-white/[0.08]"
+                            ? "bg-[#0F4C45] text-white font-medium"
+                            : "bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border)]"
                         }`}
                       >
                         {st}
@@ -430,7 +430,7 @@ export default function AdminOrders() {
                         <span className="tabular-nums">₹{Number(item.lineTotal).toFixed(0)}</span>
                       </div>
                       {item.instructions && (
-                        <p className="text-[11px] text-[#007AFF] dark:text-[#3898FF] italic mt-0.5">
+                        <p className="text-[11px] text-[#C6A15B] dark:text-[#E2C384] italic mt-0.5">
                           Note: "{item.instructions}"
                         </p>
                       )}
@@ -528,7 +528,7 @@ export default function AdminOrders() {
               </h3>
               <Link
                 to="/admin/integrations"
-                className="text-[11px] font-semibold text-[#007AFF] dark:text-[#3898FF] hover:underline"
+                className="text-[11px] font-semibold text-[#C6A15B] dark:text-[#E2C384] hover:underline"
               >
                 Config →
               </Link>

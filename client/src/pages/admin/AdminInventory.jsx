@@ -313,9 +313,9 @@ export default function AdminInventory() {
           badgeType="danger"
         />
         <KpiCard
-          icon={() => <span className="font-bold text-sm text-[#007AFF] dark:text-[#3898FF]">🛒</span>}
-          iconBg="bg-blue-50 dark:bg-blue-950/40"
-          iconColor="text-[#007AFF] dark:text-[#3898FF]"
+          icon={() => <span className="font-bold text-base text-[#0F4C45] dark:text-[#2DD4BF]">₹</span>}
+          iconBg="bg-teal-50 dark:bg-teal-950/40"
+          iconColor="text-[#0F4C45] dark:text-[#2DD4BF]"
           label="Total Stock Value"
           value={`₹ ${Number(stats.totalValue).toLocaleString("en-IN")}`}
           badgeText="+12% vs last month"
@@ -451,8 +451,8 @@ export default function AdminInventory() {
                           {/* Item Thumbnail & Name */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-[#E7F5F1] text-base flex items-center justify-center shrink-0 border border-[#087F73]/20">
-                                🍅
+                              <div className="w-8 h-8 rounded-md bg-teal-50 dark:bg-teal-950/40 text-[#0F4C45] dark:text-[#2DD4BF] text-xs font-semibold flex items-center justify-center shrink-0 border border-teal-200/60 dark:border-teal-800/40 font-mono">
+                                {item.name?.slice(0, 2)?.toUpperCase() || "IN"}
                               </div>
                               <span className="font-semibold text-[#172B2A]">{item.name}</span>
                             </div>

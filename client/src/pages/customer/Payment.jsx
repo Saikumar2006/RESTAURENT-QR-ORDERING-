@@ -84,7 +84,7 @@ export default function Payment() {
           razorpay_signature: response.razorpay_signature,
         }),
       modal: { ondismiss: () => setError("Payment was cancelled. You can try again.") },
-      theme: { color: "#7A2E2E" },
+      theme: { color: "#0F4C45" },
     });
     rzp.open();
   }

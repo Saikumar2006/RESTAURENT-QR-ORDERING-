@@ -6,8 +6,9 @@ const { ApiError } = require("../utils/http");
 // full error server-side for observability.
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
-  if (err instanceof ApiError) {
-    return fail(res, err.status, err.message, err.details);
+  const status = typeof err.status === "number" ? err.status : typeof err.statusCode === "number" ? err.statusCode : null;
+  if (err instanceof ApiError || (status && status >= 400 && status < 600)) {
+    return fail(res, status || 400, err.message, err.details);
   }
 
   if (process.env.NODE_ENV === "production") {

@@ -10,14 +10,14 @@ const prisma = require("../config/db");
  */
 async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId = null } = {}) {
   const horizon = Math.max(1, Math.min(30, Number(horizonDays) || 7));
-  const whereClause = { restaurantId, isDeleted: false };
+  const whereClause = { restaurantId, isActive: true };
   if (itemId) whereClause.id = itemId;
 
   // Retrieve inventory items with suppliers and recipe links
   const items = await prisma.inventoryItem.findMany({
     where: whereClause,
     include: {
-      recipeComponents: {
+      recipes: {
         include: {
           menuItem: { select: { id: true, name: true, price: true } },
         },
@@ -34,12 +34,12 @@ async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId =
   const movements = await prisma.inventoryMovement.findMany({
     where: {
       restaurantId,
-      type: "CONSUMPTION",
+      type: { in: ["ORDER_CONSUMPTION", "WASTE"] },
       createdAt: { gte: lookbackStart },
     },
     select: {
       inventoryItemId: true,
-      change: true,
+      quantityDelta: true,
       createdAt: true,
     },
   });
@@ -47,7 +47,7 @@ async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId =
   // Calculate daily burn rate per item
   const consumptionMap = new Map();
   for (const m of movements) {
-    const qty = Math.abs(Number(m.change) || 0);
+    const qty = Math.abs(Number(m.quantityDelta) || 0);
     const curr = consumptionMap.get(m.inventoryItemId) || 0;
     consumptionMap.set(m.inventoryItemId, curr + qty);
   }
@@ -75,8 +75,8 @@ async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId =
   const forecasts = items.map((item) => {
     const totalConsumedLookback = consumptionMap.get(item.id) || 0;
     const dailyBurnRate = Number((totalConsumedLookback / lookbackDays).toFixed(2));
-    const currentStock = Number(item.currentStock) || 0;
-    const minStock = Number(item.minStockLevel) || 0;
+    const currentStock = Number(item.quantity) || 0;
+    const minStock = Number(item.lowStockThreshold) || 0;
     const incoming = incomingMap.get(item.id) || 0;
 
     // Projected demand for the requested horizon
@@ -115,8 +115,8 @@ async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId =
     return {
       itemId: item.id,
       itemName: item.name,
-      unit: item.unit,
-      category: item.category || "General",
+      unit: item.baseUnit,
+      category: "General",
       currentStock,
       minStockLevel: minStock,
       incomingStock: incoming,
@@ -131,7 +131,7 @@ async function forecastInventoryDemand(restaurantId, { horizonDays = 7, itemId =
       isAtRisk,
       confidence,
       warning,
-      calculationBasis: `Daily consumption (${dailyBurnRate} ${item.unit}/day over ${lookbackDays}d) * ${horizon}d horizon + safety buffer (${safetyStock}) - stock (${currentStock})`,
+      calculationBasis: `Daily consumption (${dailyBurnRate} ${item.baseUnit}/day over ${lookbackDays}d) * ${horizon}d horizon + safety buffer (${safetyStock}) - stock (${currentStock})`,
     };
   });
 

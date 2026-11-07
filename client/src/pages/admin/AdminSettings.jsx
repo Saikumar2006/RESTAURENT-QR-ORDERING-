@@ -10,7 +10,9 @@ import {
 import {
   SettingsIcon,
   CheckIcon,
+  MapPinIcon,
 } from "../../components/UiIcons.jsx";
+
 
 export default function AdminSettings() {
   const { user } = useAuth();
@@ -197,8 +199,9 @@ export default function AdminSettings() {
               form.isOpen ? "bg-[#EAF7EE]/50 border-[#269B67]/30" : "bg-[#FDECEC]/50 border-[#D95359]/30"
             }`}>
               <div>
-                <p className="text-xs font-bold text-[#172B2A]">
-                  {form.isOpen ? "🟢 Restaurant is Open" : "🔴 Restaurant is Closed"}
+                <p className="text-xs font-bold text-[#172B2A] flex items-center gap-2">
+                  <span className={`inline-block w-2 h-2 rounded-full ${form.isOpen ? "bg-emerald-500" : "bg-rose-500"}`} />
+                  <span>{form.isOpen ? "Restaurant is Open" : "Restaurant is Closed"}</span>
                 </p>
                 <p className="text-[11px] text-[#788582] mt-0.5">
                   {form.isOpen
@@ -434,7 +437,7 @@ export default function AdminSettings() {
               disabled={locating}
               className="btn-secondary text-xs flex items-center gap-1.5"
             >
-              <span>📍</span>
+              <MapPinIcon className="w-3.5 h-3.5 text-[#0F4C45]" />
               <span>{locating ? "Acquiring GPS..." : "Set Coordinates to My Current Location"}</span>
             </button>
           </div>

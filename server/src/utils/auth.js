@@ -24,7 +24,7 @@ function signPhoneVerificationToken(phone) {
 }
 
 function verifyToken(token) {
-  return jwt.verify(token, env.jwtSecret);
+  return jwt.verify(token, env.jwtSecret, { algorithms: ["HS256"] });
 }
 
 function hashPassword(plain) {

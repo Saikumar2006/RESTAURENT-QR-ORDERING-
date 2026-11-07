@@ -147,7 +147,11 @@ export default function RestaurantLanding() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <p className="text-4xl mb-3">🌙</p>
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </div>
           <p className="font-display text-2xl mb-2">{t("outOfService")}</p>
           <p className="text-charcoal/60 text-sm">
             {context.restaurant.name} isn't taking orders right now. Please check back during opening hours.
@@ -165,7 +169,12 @@ export default function RestaurantLanding() {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <p className="text-4xl mb-3">📍</p>
+          <div className="w-12 h-12 rounded-full bg-teal-50 text-[#0F4C45] flex items-center justify-center mx-auto mb-3">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+          </div>
           <p className="font-display text-2xl mb-2">
             {geoStatus === "outside" ? "You need to be at the restaurant" : "Couldn't confirm your location"}
           </p>
@@ -197,8 +206,13 @@ export default function RestaurantLanding() {
       </p>
 
       {tokenWarning && (
-        <div className="mb-6 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs text-left max-w-xs shadow-xs">
-          ⚠️ {tokenWarning}
+        <div className="mb-6 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs text-left max-w-xs shadow-xs flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>{tokenWarning}</span>
         </div>
       )}
 

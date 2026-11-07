@@ -3,6 +3,13 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "../../i18n.jsx";
 import api from "../../services/api";
 import platformApi from "../../services/platformApi";
+import {
+  SparklesIcon,
+  PlusIcon,
+  ClockIcon,
+  TrashIcon,
+  CheckIcon,
+} from "../UiIcons.jsx";
 import "./ai-assistant.css";
 
 // 11-Language Native Script Localization Dictionary for AI Interface
@@ -677,23 +684,23 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
 
   return (
     <>
-      {/* Floating Action Button (FAB) */}
+      {/* Floating Trigger Button */}
       <button
         type="button"
-        className="svaadya-ai-fab group"
+        className="svaadya-ai-fab"
         onClick={() => setIsOpen((prev) => !prev)}
         title={`${isPlatform ? strings.platformTitle : strings.title} (${strings.shortcutHint})`}
         aria-label="Open AI Assistant"
       >
-        <span className="text-lg svaadya-sparkle-anim" role="img" aria-label="sparkles">✨</span>
-        <span className="tracking-wide">{isPlatform ? strings.platformTitle : strings.title}</span>
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ms-1" />
+        <SparklesIcon className="w-4 h-4 text-emerald-300 shrink-0" />
+        <span className="font-medium text-xs">{isPlatform ? strings.platformTitle : strings.title}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ms-1 shrink-0" />
       </button>
 
       {/* Drawer Overlay for Mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50 md:hidden"
+          className="fixed inset-0 bg-black/40 z-50 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -701,33 +708,34 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
       {/* Slide-Over Drawer */}
       <div className={`svaadya-ai-drawer ${isOpen ? "open" : "closed"}`}>
         {/* Header */}
-        <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-indigo-50/40 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-sm">
-              <span className="text-base font-bold">✨</span>
+        <div className="p-3.5 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-[#0F4C45] text-white flex items-center justify-center shrink-0">
+              <SparklesIcon className="w-4 h-4 text-emerald-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                <h3 className="text-xs font-semibold text-[var(--text-primary)] leading-tight">
                   {isPlatform ? strings.platformTitle : strings.title}
                 </h3>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700 uppercase tracking-wider">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-[var(--text-secondary)] border border-[var(--border)] uppercase tracking-wider">
                   {currentModule}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">{strings.online}</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{strings.online}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {/* New Chat */}
             <button
               type="button"
               onClick={handleNewChat}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-white transition text-xs font-medium border border-transparent hover:border-slate-200"
+              className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition border border-[var(--border)]"
               title={strings.newChat}
+              aria-label={strings.newChat}
             >
-              ➕
+              <PlusIcon className="w-3.5 h-3.5" />
             </button>
 
             {/* Conversation History Dropdown Toggle */}
@@ -735,19 +743,20 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
               <button
                 type="button"
                 onClick={() => setShowHistoryDropdown((prev) => !prev)}
-                className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-white transition text-xs font-medium border border-transparent hover:border-slate-200"
+                className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition border border-[var(--border)]"
                 title={strings.history}
+                aria-label={strings.history}
               >
-                📜
+                <ClockIcon className="w-3.5 h-3.5" />
               </button>
 
               {showHistoryDropdown && (
-                <div className="absolute end-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-70">
-                  <div className="px-3 py-1 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                <div className="absolute end-0 mt-2 w-64 bg-[var(--surface)] rounded-md shadow-lg border border-[var(--border)] py-1.5 z-70">
+                  <div className="px-3 py-1 text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider border-b border-[var(--border)]">
                     {strings.history}
                   </div>
                   {conversations.length === 0 ? (
-                    <div className="px-3 py-2 text-xs text-slate-400 italic">{strings.noHistory}</div>
+                    <div className="px-3 py-2 text-xs text-[var(--text-muted)] italic">{strings.noHistory}</div>
                   ) : (
                     <div className="max-h-60 overflow-y-auto">
                       {conversations.map((c) => (
@@ -756,11 +765,11 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
                           type="button"
                           onClick={() => selectConversation(c.id)}
                           className={`w-full text-start px-3 py-2 text-xs truncate transition flex items-center justify-between ${
-                            currentConvId === c.id ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-700 hover:bg-slate-50"
+                            currentConvId === c.id ? "bg-[#EBF5F3] dark:bg-[#12332F] text-[#0F4C45] dark:text-[#67B5AA] font-semibold" : "text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
                           }`}
                         >
                           <span className="truncate max-w-[180px]">{c.title}</span>
-                          <span className="text-[10px] text-slate-400 ms-1">{c.messageCount || 0}</span>
+                          <span className="text-[10px] text-[var(--text-muted)] ms-1">{c.messageCount || 0}</span>
                         </button>
                       ))}
                     </div>
@@ -773,49 +782,53 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
             <button
               type="button"
               onClick={handleClearChat}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white transition text-xs border border-transparent hover:border-slate-200"
+              className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition border border-[var(--border)]"
               title={strings.clearChat}
+              aria-label={strings.clearChat}
             >
-              🗑️
+              <TrashIcon className="w-3.5 h-3.5" />
             </button>
 
             {/* Close */}
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white transition text-xs border border-transparent hover:border-slate-200"
+              className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition border border-[var(--border)]"
               aria-label="Close"
             >
-              ✕
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           </div>
         </div>
 
         {/* Error Notification Banner */}
         {errorMessage && (
-          <div className="bg-rose-50 border-b border-rose-200 px-4 py-2 text-xs text-rose-700 flex items-center justify-between">
+          <div className="bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-800 px-4 py-2 text-xs text-rose-700 dark:text-rose-300 flex items-center justify-between">
             <span>{errorMessage}</span>
-            <button type="button" onClick={() => setErrorMessage("")} className="text-rose-500 hover:text-rose-800 text-xs font-bold">✕</button>
+            <button type="button" onClick={() => setErrorMessage("")} className="text-rose-600 hover:text-rose-800 text-xs font-semibold">✕</button>
           </div>
         )}
 
         {/* Message Thread Body */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/50">
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[var(--app-bg)]">
           {messages.length === 0 ? (
             <div className="py-6 text-center space-y-4">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-xs">
-                ✨
+              <div className="w-10 h-10 mx-auto rounded-lg bg-[#EBF5F3] dark:bg-[#12332F] text-[#0F4C45] dark:text-[#67B5AA] flex items-center justify-center border border-[#C4E5E1] dark:border-[#1D4742]">
+                <SparklesIcon className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-slate-900">{isPlatform ? strings.platformTitle : strings.title}</h4>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                <h4 className="text-xs font-semibold text-[var(--text-primary)]">{isPlatform ? strings.platformTitle : strings.title}</h4>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-xs mx-auto">
                   {isPlatform ? strings.platformTagline : strings.tagline}
                 </p>
               </div>
 
               {/* Contextual Suggestions Chips */}
               <div className="pt-2 text-start">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
                   {strings.suggestionsTitle}
                 </p>
                 <div className="space-y-1.5">
@@ -824,10 +837,10 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
                       key={idx}
                       type="button"
                       onClick={() => handleSendMessage(prompt)}
-                      className="w-full text-start p-2 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-xs text-slate-700 font-medium transition shadow-2xs flex items-center justify-between group"
+                      className="w-full text-start p-2.5 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:border-[#0F4C45] hover:bg-[#EBF5F3]/30 text-xs text-[var(--text-primary)] font-normal transition flex items-center justify-between group"
                     >
                       <span>{prompt}</span>
-                      <span className="text-indigo-500 opacity-0 group-hover:opacity-100 transition">→</span>
+                      <span className="text-[#0F4C45] opacity-0 group-hover:opacity-100 transition text-xs">→</span>
                     </button>
                   ))}
                 </div>
@@ -842,10 +855,10 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
                   className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`max-w-[88%] rounded-2xl p-3 text-xs shadow-2xs ${
+                    className={`max-w-[88%] rounded-md p-3 text-xs ${
                       isUser
-                        ? "bg-indigo-600 text-white rounded-ee-xs"
-                        : "bg-white border border-slate-200 text-slate-800 rounded-es-xs svaadya-ai-markdown"
+                        ? "bg-[#0F4C45] text-white"
+                        : "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] svaadya-ai-markdown"
                     }`}
                   >
                     {isUser ? (
@@ -856,28 +869,28 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
 
                     {/* Action Proposal Card if attached */}
                     {msg.actionProposal && (
-                      <div className="mt-3 pt-2.5 border-t border-slate-200/80 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <div className="mt-3 pt-2.5 border-t border-[var(--border)] bg-[var(--surface-muted)] p-2.5 rounded border border-[var(--border)]">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1">
-                            <span>⚡</span> {strings.proposedAction}
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                            {strings.proposedAction}
                           </span>
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                               msg.actionProposal.status === "EXECUTED"
-                                ? "bg-emerald-100 text-emerald-800"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200"
                                 : msg.actionProposal.status === "REJECTED"
-                                ? "bg-rose-100 text-rose-800"
-                                : "bg-amber-100 text-amber-800"
+                                ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200"
+                                : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200"
                             }`}
                           >
                             {msg.actionProposal.status}
                           </span>
                         </div>
 
-                        <div className="text-[11px] text-slate-700 font-mono bg-white p-1.5 rounded border border-slate-200 mb-2 overflow-x-auto">
-                          <div className="font-semibold text-slate-900">{msg.actionProposal.actionType}</div>
+                        <div className="text-[11px] text-[var(--text-primary)] font-mono bg-[var(--surface)] p-2 rounded border border-[var(--border)] mb-2 overflow-x-auto">
+                          <div className="font-semibold text-xs">{msg.actionProposal.actionType}</div>
                           {msg.actionProposal.actionPayload && (
-                            <pre className="text-[10px] text-slate-600 mt-1">
+                            <pre className="text-[10px] text-[var(--text-secondary)] mt-1">
                               {JSON.stringify(msg.actionProposal.actionPayload, null, 2)}
                             </pre>
                           )}
@@ -889,14 +902,14 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
                               type="button"
                               disabled={executingProposalId === msg.actionProposal.id}
                               onClick={() => handleExecuteProposal(msg.actionProposal.id)}
-                              className="flex-1 py-1 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] transition shadow-xs disabled:opacity-50"
+                              className="flex-1 py-1.5 px-3 rounded-md bg-[#0F4C45] hover:bg-[#0D3E38] text-white font-medium text-xs transition disabled:opacity-50"
                             >
                               {executingProposalId === msg.actionProposal.id ? strings.executing : strings.approveAndExecute}
                             </button>
                             <button
                               type="button"
                               onClick={() => handleRejectProposal(msg.actionProposal.id)}
-                              className="py-1 px-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-[11px] transition"
+                              className="py-1.5 px-3 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] text-[var(--text-secondary)] font-medium text-xs transition"
                             >
                               {strings.reject}
                             </button>
@@ -904,14 +917,19 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
                         )}
 
                         {msg.actionProposal.status === "EXECUTED" && (
-                          <div className="text-[11px] font-medium text-emerald-700 flex items-center gap-1 mt-1">
-                            <span>✓</span> {strings.executed}
+                          <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mt-1">
+                            <CheckIcon className="w-3.5 h-3.5 shrink-0" />
+                            <span>{strings.executed}</span>
                           </div>
                         )}
 
                         {msg.actionProposal.status === "REJECTED" && (
-                          <div className="text-[11px] font-medium text-rose-600 flex items-center gap-1 mt-1">
-                            <span>✕</span> {strings.rejected}
+                          <div className="text-[11px] font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-1">
+                            <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                            <span>{strings.rejected}</span>
                           </div>
                         )}
                       </div>
@@ -923,8 +941,8 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
           )}
 
           {loading && (
-            <div className="flex items-center gap-2 text-xs text-slate-500 bg-white p-2.5 rounded-xl border border-slate-200 max-w-[180px] shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--surface)] p-2 rounded-md border border-[var(--border)] max-w-[160px]">
+              <span className="w-2 h-2 rounded-full bg-[#0F4C45] animate-ping shrink-0" />
               <span>Analyzing data...</span>
             </div>
           )}
@@ -933,7 +951,7 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
         </div>
 
         {/* Input Composer Footer */}
-        <div className="p-3 bg-white border-t border-slate-200">
+        <div className="p-3 bg-[var(--surface)] border-t border-[var(--border)]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -946,18 +964,18 @@ export default function AiAssistantPanel({ scope = "RESTAURANT" }) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={strings.placeholder}
-              className="flex-1 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl px-3 py-2 text-xs text-slate-900 outline-none transition"
+              className="flex-1 bg-[var(--surface)] border border-[var(--border)] focus:border-[#0F4C45] rounded-md px-3 py-1.5 text-xs text-[var(--text-primary)] outline-none transition"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || loading}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-xs transition shadow-xs disabled:opacity-50"
+              className="px-3 py-1.5 rounded-md bg-[#0F4C45] hover:bg-[#0D3E38] text-white font-medium text-xs transition disabled:opacity-50 shrink-0"
             >
               {strings.send}
             </button>
           </form>
-          <div className="text-[10px] text-slate-400 mt-1.5 text-center">
+          <div className="text-[10px] text-[var(--text-muted)] mt-1.5 text-center">
             {strings.shortcutHint}
           </div>
         </div>

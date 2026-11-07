@@ -274,7 +274,7 @@ async function analyzeEventDemand(restaurantId, { eventName = null, daysAhead = 
       category: { select: { id: true, name: true } },
       recipeComponents: {
         include: {
-          inventoryItem: { select: { id: true, name: true, currentStock: true, unit: true } },
+          inventoryItem: { select: { id: true, name: true, quantity: true, baseUnit: true } },
         },
       },
     },
@@ -309,8 +309,8 @@ async function analyzeEventDemand(restaurantId, { eventName = null, daysAhead = 
         const invId = rc.inventoryItem.id;
         const currentNeeded = ingredientImpactMap.get(invId) || {
           name: rc.inventoryItem.name,
-          currentStock: rc.inventoryItem.currentStock,
-          unit: rc.inventoryItem.unit,
+          currentStock: rc.inventoryItem.quantity,
+          unit: rc.inventoryItem.baseUnit,
           estimatedRequirementIncrease: 0,
         };
         const increasePct = (projectedDemandFactor - 1) * 100;

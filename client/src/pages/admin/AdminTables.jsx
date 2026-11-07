@@ -703,7 +703,6 @@ export default function AdminTables() {
               disabled={savingFloorPlan}
               onClick={handleSaveFloorPlan}
             >
-              <span>💾</span>
               <span>{savingFloorPlan ? "Saving..." : "Save Floor Plan"}</span>
             </AppleButton>
             <AppleButton
@@ -816,13 +815,12 @@ export default function AdminTables() {
                 onClick={() => setSnapToGrid(!snapToGrid)}
                 className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 transition ${
                   snapToGrid
-                    ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                    ? "bg-teal-50 border-teal-300 text-teal-800"
                     : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
                 }`}
                 title="Toggle Snap-to-Grid (20px)"
               >
-                <span>🧲</span>
-                <span className="hidden md:inline">Snap</span>
+                <span>Snap to Grid</span>
               </button>
 
               {/* Zoom Controls */}
@@ -882,7 +880,7 @@ export default function AdminTables() {
                   type="button"
                   className="btn-secondary text-xs flex items-center gap-1.5 py-1.5"
                 >
-                  <span>🏛️ Add Object</span>
+                  <span>Add Object</span>
                   <span className="text-[10px]">▼</span>
                 </button>
                 <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-30 hidden group-hover:block animate-fade-in text-xs">
@@ -891,56 +889,56 @@ export default function AdminTables() {
                     onClick={() => addArchitecturalObject("wall")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🧱</span> <span>Wall / Divider</span>
+                    <span>Wall / Divider</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("door")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🚪</span> <span>Door Swing</span>
+                    <span>Door Swing</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("window")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🪟</span> <span>Window Pane</span>
+                    <span>Window Pane</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("reception")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🛎️</span> <span>Host / Reception</span>
+                    <span>Host / Reception</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("kitchen")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>👨‍🍳</span> <span>Kitchen Pass</span>
+                    <span>Kitchen Pass</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("counter")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🍸</span> <span>Bar / Counter</span>
+                    <span>Bar / Counter</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("restroom")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2"
                   >
-                    <span>🚻</span> <span>Restroom</span>
+                    <span>Restroom</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => addArchitecturalObject("label")}
                     className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 border-t border-slate-100"
                   >
-                    <span>🏷️</span> <span>Text Label</span>
+                    <span>Text Label</span>
                   </button>
                 </div>
               </div>
@@ -1131,9 +1129,9 @@ export default function AdminTables() {
                           {/* RECEPTION / HOST */}
                           {obj.type === "reception" && (
                             <g filter="url(#tableShadow)">
-                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#F8FAFC" stroke={isSelected ? "#4F46E5" : "#64748B"} strokeWidth="2" rx="8" />
+                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#F8FAFC" stroke={isSelected ? "#0F4C45" : "#64748B"} strokeWidth="2" rx="8" />
                               <text x={obj.w / 2} y={obj.h / 2 + 5} textAnchor="middle" fill="#334155" fontSize="12" fontWeight="bold">
-                                🛎️ Reception
+                                Reception
                               </text>
                             </g>
                           )}
@@ -1141,9 +1139,9 @@ export default function AdminTables() {
                           {/* KITCHEN PASS */}
                           {obj.type === "kitchen" && (
                             <g filter="url(#tableShadow)">
-                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#FFF7ED" stroke={isSelected ? "#4F46E5" : "#EA580C"} strokeWidth="2" rx="8" />
+                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#FFF7ED" stroke={isSelected ? "#0F4C45" : "#EA580C"} strokeWidth="2" rx="8" />
                               <text x={obj.w / 2} y={obj.h / 2 + 5} textAnchor="middle" fill="#C2410C" fontSize="12" fontWeight="bold">
-                                👨‍🍳 Kitchen Pass
+                                Kitchen Pass
                               </text>
                             </g>
                           )}
@@ -1151,9 +1149,9 @@ export default function AdminTables() {
                           {/* SERVICE COUNTER / BAR */}
                           {obj.type === "counter" && (
                             <g filter="url(#tableShadow)">
-                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#ECFEFF" stroke={isSelected ? "#4F46E5" : "#0891B2"} strokeWidth="2" rx="8" />
+                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#ECFEFF" stroke={isSelected ? "#0F4C45" : "#0891B2"} strokeWidth="2" rx="8" />
                               <text x={obj.w / 2} y={obj.h / 2 + 5} textAnchor="middle" fill="#0E7490" fontSize="12" fontWeight="bold">
-                                🍸 Service Counter
+                                Service Counter
                               </text>
                             </g>
                           )}
@@ -1161,9 +1159,9 @@ export default function AdminTables() {
                           {/* RESTROOM */}
                           {obj.type === "restroom" && (
                             <g filter="url(#tableShadow)">
-                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#F1F5F9" stroke={isSelected ? "#4F46E5" : "#64748B"} strokeWidth="2" rx="8" />
+                              <rect x="0" y="0" width={obj.w} height={obj.h} fill="#F1F5F9" stroke={isSelected ? "#0F4C45" : "#64748B"} strokeWidth="2" rx="8" />
                               <text x={obj.w / 2} y={obj.h / 2 + 5} textAnchor="middle" fill="#475569" fontSize="12" fontWeight="bold">
-                                🚻 Restroom
+                                Restroom
                               </text>
                             </g>
                           )}
@@ -1395,10 +1393,11 @@ export default function AdminTables() {
                       <button
                         type="button"
                         onClick={() => openTableQr(selectedTable)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-indigo-600 hover:bg-indigo-50 font-semibold"
+                        className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-teal-800 hover:bg-slate-50 font-semibold flex items-center gap-1"
                         title="View Table QR Code"
                       >
-                        📱 QR
+                        <ExternalLinkIcon className="w-3.5 h-3.5" />
+                        <span>QR Code</span>
                       </button>
                       <button
                         type="button"
@@ -1419,11 +1418,11 @@ export default function AdminTables() {
                       onChange={(e) => updateSelectedTableProp("status", e.target.value)}
                       className="input font-semibold"
                     >
-                      <option value="AVAILABLE">🟢 Available for Seating</option>
-                      <option value="OCCUPIED">🔴 Occupied (In Dining)</option>
-                      <option value="RESERVED">🟡 Reserved</option>
-                      <option value="CLEANING">🔵 Cleaning in Progress</option>
-                      <option value="DISABLED">⚪ Disabled / Out of Service</option>
+                      <option value="AVAILABLE">Available for Seating</option>
+                      <option value="OCCUPIED">Occupied (In Dining)</option>
+                      <option value="RESERVED">Reserved</option>
+                      <option value="CLEANING">Cleaning in Progress</option>
+                      <option value="DISABLED">Disabled / Out of Service</option>
                     </select>
                   </div>
 
@@ -1668,7 +1667,7 @@ export default function AdminTables() {
               ) : (
                 /* Nothing Selected State */
                 <div className="py-12 text-center text-xs text-slate-400 space-y-2">
-                  <span className="text-2xl block">📍</span>
+                  <TablesIcon className="w-8 h-8 text-slate-400 mx-auto block" />
                   <p className="font-semibold text-slate-600">No Table Selected</p>
                   <p className="text-[11px] text-slate-400">
                     Click any dining table or architectural object on the floor plan to edit chairs, status and dimensions.
@@ -1771,10 +1770,10 @@ export default function AdminTables() {
                           <button
                             type="button"
                             onClick={() => openTableQr(t)}
-                            className="p-1 rounded-md border border-slate-200 text-indigo-600 hover:bg-indigo-50"
+                            className="p-1 rounded-md border border-slate-200 text-teal-700 hover:bg-slate-50"
                             title="Table QR Code"
                           >
-                            📱
+                            <ExternalLinkIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
@@ -1783,10 +1782,10 @@ export default function AdminTables() {
                               setActiveSection(t.section || "Indoor");
                               setActiveTab("floor");
                             }}
-                            className="p-1 rounded-md border border-slate-200 text-slate-600 hover:text-indigo-600 hover:bg-slate-50"
+                            className="p-1 rounded-md border border-slate-200 text-slate-600 hover:text-teal-700 hover:bg-slate-50"
                             title="View on Floor Plan"
                           >
-                            🗺️
+                            <TablesIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
@@ -1820,7 +1819,7 @@ export default function AdminTables() {
             onClick={openRestaurantQr}
             className="btn-primary text-xs mx-auto flex items-center gap-2"
           >
-            <span>📱 Generate & Print Restaurant QR</span>
+            <span>Generate & Print Restaurant QR</span>
           </button>
         </div>
       )}
@@ -2163,7 +2162,7 @@ export default function AdminTables() {
                     }}
                     className="btn-secondary text-xs"
                   >
-                    🖨️ Print Standee
+                    Print Standee
                   </button>
                   {qrMode === "table" && qrTargetTable && (
                     <button
@@ -2172,7 +2171,7 @@ export default function AdminTables() {
                       className="px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs font-semibold hover:bg-amber-100 transition flex items-center gap-1"
                       title="Invalidates previous QR tokens for this table"
                     >
-                      🔄 Rotate Token
+                      Rotate Token
                     </button>
                   )}
                 </div>

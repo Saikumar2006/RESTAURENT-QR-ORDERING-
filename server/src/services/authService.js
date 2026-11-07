@@ -55,7 +55,7 @@ function getGoogleAuthorizationUrl(state) {
   });
 }
 
-async function login(email, password, requestId = null, restaurantSlug = null) {
+async function login(email, password, requestId = null, restaurantSlug = null, clientIp = null) {
   const startTime = Date.now();
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   if (!normalizedEmail || typeof password !== "string" || !password) {
@@ -134,83 +134,15 @@ async function login(email, password, requestId = null, restaurantSlug = null) {
   }
 
   if (!user) {
-    let admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
-      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
-    }) : null;
-
-    const bootstrapEmail = (process.env.INITIAL_PLATFORM_ADMIN_EMAIL || "").trim().toLowerCase();
-    const bootstrapPassword = process.env.INITIAL_PLATFORM_ADMIN_PASSWORD || "";
-    if (prisma.platformAdmin && bootstrapEmail && bootstrapPassword && normalizedEmail === bootstrapEmail && password === bootstrapPassword) {
-      const newHash = await hashPassword(password);
-      if (!admin) {
-        admin = await prisma.platformAdmin.create({
-          data: {
-            name: process.env.INITIAL_PLATFORM_ADMIN_NAME || "Platform Super Admin",
-            email: normalizedEmail,
-            passwordHash: newHash,
-            platformRole: process.env.INITIAL_PLATFORM_ADMIN_ROLE || "SUPER_ADMIN",
-            isActive: true,
-          },
-        });
-      } else if (!admin.isActive || !(await comparePassword(password, admin.passwordHash))) {
-        admin = await prisma.platformAdmin.update({
-          where: { id: admin.id },
-          data: { passwordHash: newHash, isActive: true, platformRole: "SUPER_ADMIN" },
-        });
+    if (prisma.platformAdmin) {
+      const platformAdminExists = await prisma.platformAdmin.findFirst({
+        where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+      });
+      const bootstrapEmail = (process.env.INITIAL_PLATFORM_ADMIN_EMAIL || "").trim().toLowerCase();
+      if (platformAdminExists || (bootstrapEmail && normalizedEmail === bootstrapEmail)) {
+        const platformAuthService = require("./platformAuthService");
+        return await platformAuthService.login(normalizedEmail, password, requestId, clientIp, prisma);
       }
-    }
-
-    if (admin) {
-      const valid = await comparePassword(password, admin.passwordHash);
-      if (!valid) {
-        console.log(JSON.stringify({
-          event: "auth_diagnostic",
-          requestId,
-          endpoint: "/api/auth/login",
-          emailProvided: true,
-          platformAdminFound: true,
-          platformAdminActive: admin.isActive,
-          passwordValid: false,
-          rejectionReason: "INVALID_PASSWORD",
-          durationMs: Date.now() - startTime,
-        }));
-        throw new ApiError(401, "Invalid email or password");
-      }
-      if (!admin.isActive) {
-        console.log(JSON.stringify({
-          event: "auth_diagnostic",
-          requestId,
-          endpoint: "/api/auth/login",
-          emailProvided: true,
-          platformAdminFound: true,
-          platformAdminActive: false,
-          passwordValid: true,
-          rejectionReason: "ACCOUNT_INACTIVE",
-          durationMs: Date.now() - startTime,
-        }));
-        throw new ApiError(403, "Your platform administrator account is inactive.");
-      }
-      const platformRoleService = require("./platformRoleService");
-      const { signPlatformToken } = require("../utils/auth");
-      const token = signPlatformToken(admin);
-      const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
-      console.log(JSON.stringify({
-        event: "auth_diagnostic",
-        requestId,
-        endpoint: "/api/auth/login",
-        emailProvided: true,
-        platformAdminFound: true,
-        accountType: "platform",
-        passwordValid: true,
-        tokenCreated: true,
-        durationMs: Date.now() - startTime,
-      }));
-      return {
-        accountType: "platform",
-        token,
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
-        redirectTo: "/super-admin/dashboard",
-      };
     }
 
     console.log(JSON.stringify({
@@ -228,21 +160,15 @@ async function login(email, password, requestId = null, restaurantSlug = null) {
 
   const validPassword = await comparePassword(password, user.passwordHash);
   if (!validPassword) {
-    // If tenant password failed, check if this is a platform admin account
-    const admin = prisma.platformAdmin ? await prisma.platformAdmin.findFirst({
-      where: { email: { equals: normalizedEmail, mode: "insensitive" } },
-    }) : null;
-    if (admin && admin.isActive && await comparePassword(password, admin.passwordHash)) {
-      const platformRoleService = require("./platformRoleService");
-      const { signPlatformToken } = require("../utils/auth");
-      const token = signPlatformToken(admin);
-      const access = platformRoleService.resolvePlatformAccess(admin, platformRoleService.normalizeSuperAdminEmails(env.platformSuperAdminEmails));
-      return {
-        accountType: "platform",
-        token,
-        admin: { id: admin.id, name: admin.name, email: admin.email, role: access.platformRole, permissions: access.permissions },
-        redirectTo: "/super-admin/dashboard",
-      };
+    // If tenant password failed, check if this email belongs to a platform admin account
+    if (prisma.platformAdmin) {
+      const platformAdminExists = await prisma.platformAdmin.findFirst({
+        where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+      });
+      if (platformAdminExists) {
+        const platformAuthService = require("./platformAuthService");
+        return await platformAuthService.login(normalizedEmail, password, requestId, clientIp, prisma);
+      }
     }
 
     console.log(JSON.stringify({

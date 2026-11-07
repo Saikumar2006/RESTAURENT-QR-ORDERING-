@@ -542,14 +542,14 @@ export default function AdminMenu() {
             <button
               type="button"
               onClick={() => setSelectedCategory("ALL")}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-xs font-semibold transition ${
                 selectedCategory === "ALL"
-                  ? "bg-[#007AFF]/15 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] shadow-2xs"
+                  ? "bg-[#EBF5F3] text-[#0F4C45] dark:bg-[#12332F] dark:text-[#67B5AA]"
                   : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
               }`}
             >
               <div className="flex items-center gap-2">
-                <span>🍽️</span>
+                <MenuIcon className="w-4 h-4 shrink-0 text-[#0F4C45] dark:text-[#67B5AA]" />
                 <span>All Items</span>
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">{allItemCount} ›</span>
@@ -563,14 +563,14 @@ export default function AdminMenu() {
                 <div
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-md text-xs font-semibold transition cursor-pointer ${
                     isSelected
-                      ? "bg-[#007AFF]/15 text-[#007AFF] dark:bg-[#007AFF]/25 dark:text-[#3898FF] shadow-2xs"
+                      ? "bg-[#EBF5F3] text-[#0F4C45] dark:bg-[#12332F] dark:text-[#67B5AA]"
                       : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06]"
                   }`}
                 >
                   <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-                    <span>🍲</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
                     <span className="truncate">{cat.name}</span>
                   </div>
 
@@ -786,7 +786,7 @@ export default function AdminMenu() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-xl">🍲</span>
+                    <MenuIcon className="w-5 h-5 text-slate-400" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -974,7 +974,7 @@ export default function AdminMenu() {
                         </button>
                       </>
                     ) : (
-                      <span className="text-xl">📷</span>
+                      <MenuIcon className="w-5 h-5 text-slate-400" />
                     )}
                   </div>
                   <label className="flex-1 cursor-pointer">

@@ -211,7 +211,7 @@ export default function Cart() {
                 </button>
                 <span className="w-5 text-center text-sm font-semibold">{formatNumber(item.quantity, language)}</span>
                 <button
-                  className="w-7 h-7 rounded-full bg-clove text-cream flex items-center justify-center"
+                  className="w-7 h-7 rounded-md bg-[#0F4C45] hover:bg-[#0D3E38] text-white flex items-center justify-center transition"
                   onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
                 >
                   +

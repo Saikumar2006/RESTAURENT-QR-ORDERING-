@@ -6,7 +6,7 @@ import { AnalyticsIcon, UsersIcon, OrdersIcon } from "../../components/UiIcons.j
 export default function AdminModuleView({
   title = "Module",
   description = "Module overview and management.",
-  icon = "⚡",
+  icon = null,
   stats = [],
   tabs = [],
   children,
@@ -53,8 +53,8 @@ export default function AdminModuleView({
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-500">{s.label}</span>
-                <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                  {idx === 0 ? "📊" : idx === 1 ? "📈" : idx === 2 ? "⚡" : "✨"}
+                <span className="w-7 h-7 rounded-lg bg-teal-50 text-[#0F4C45] flex items-center justify-center text-xs font-bold">
+                  {idx === 0 ? <AnalyticsIcon className="w-4 h-4" /> : idx === 1 ? <OrdersIcon className="w-4 h-4" /> : <UsersIcon className="w-4 h-4" />}
                 </span>
               </div>
               <p className="text-2xl font-bold text-slate-900 tracking-tight">{s.value}</p>
@@ -88,8 +88,8 @@ export default function AdminModuleView({
         <div className="p-6">
           {children || (
             <div className="text-center py-12 px-4 max-w-lg mx-auto space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-50 to-purple-50 text-indigo-600 flex items-center justify-center text-3xl mx-auto shadow-inner border border-indigo-100/60">
-                {icon}
+              <div className="w-14 h-14 rounded-xl bg-teal-50 text-[#0F4C45] flex items-center justify-center mx-auto border border-teal-100">
+                {icon || <AnalyticsIcon className="w-7 h-7" />}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">

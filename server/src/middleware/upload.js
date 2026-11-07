@@ -51,6 +51,31 @@ const uploadImage = multer({
   limits: { fileSize: MAX_FILE_SIZE_BYTES, files: 1 },
 }).single("image");
 
+function hasValidImageSignature(buffer, mimetype) {
+  if (!Buffer.isBuffer(buffer)) return false;
+  if (mimetype === "image/jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mimetype === "image/png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (mimetype === "image/gif") return buffer.subarray(0, 6).toString("ascii").match(/^GIF8[79]a$/) !== null;
+  if (mimetype === "image/webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  return false;
+}
+
+function validateUploadedFileMagicBytes(file) {
+  if (!file) return false;
+  let buffer = file.buffer;
+  if (!buffer && file.path && fs.existsSync(file.path)) {
+    try {
+      const fd = fs.openSync(file.path, "r");
+      buffer = Buffer.alloc(16);
+      fs.readSync(fd, buffer, 0, 16, 0);
+      fs.closeSync(fd);
+    } catch {
+      return false;
+    }
+  }
+  return hasValidImageSignature(buffer, file.mimetype);
+}
+
 // Wraps multer so its errors go through the same { success:false, error }
 // envelope as the rest of the API instead of leaking a raw multer error.
 function handleImageUpload(req, res, next) {
@@ -63,17 +88,14 @@ function handleImageUpload(req, res, next) {
     }
     if (err) return fail(res, 400, err.message);
     if (!req.file) return fail(res, 400, "No image file was provided (expected field name 'image')");
+    if (!validateUploadedFileMagicBytes(req.file)) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        try { fs.unlinkSync(req.file.path); } catch {}
+      }
+      return fail(res, 400, "The uploaded file content does not match a supported image type.");
+    }
     next();
   });
-}
-
-function hasValidImageSignature(buffer, mimetype) {
-  if (!Buffer.isBuffer(buffer)) return false;
-  if (mimetype === "image/jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
-  if (mimetype === "image/png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-  if (mimetype === "image/gif") return buffer.subarray(0, 6).toString("ascii").match(/^GIF8[79]a$/) !== null;
-  if (mimetype === "image/webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
-  return false;
 }
 
 function handleThemeImageUpload(req, res, next) {
@@ -81,11 +103,8 @@ function handleThemeImageUpload(req, res, next) {
     return fail(res, 503, "Website theme images require configured Supabase object storage.");
   }
   return handleImageUpload(req, res, () => {
-    if (!hasValidImageSignature(req.file?.buffer, req.file?.mimetype)) {
-      return fail(res, 400, "The uploaded file content does not match a supported image type.");
-    }
     next();
   });
 }
 
-module.exports = { handleImageUpload, handleThemeImageUpload, hasValidImageSignature, MENU_ITEMS_DIR, UPLOAD_ROOT, safeExtension };
+module.exports = { handleImageUpload, handleThemeImageUpload, hasValidImageSignature, validateUploadedFileMagicBytes, MENU_ITEMS_DIR, UPLOAD_ROOT, safeExtension };

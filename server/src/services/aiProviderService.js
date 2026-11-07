@@ -113,23 +113,25 @@ async function callMockProvider({ messages, tools, model }) {
     }
   } else {
     // Determine tool to call based on user query keywords
-    if (prompt.includes("revenue") || prompt.includes("sales") || prompt.includes("today") || prompt.includes("earn")) {
-      if (prompt.includes("compare") || prompt.includes("last week") || prompt.includes("yesterday")) {
-        toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "compare_sales_periods", arguments: JSON.stringify({ period: "week" }) } }];
-      } else {
-        toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_sales_summary", arguments: JSON.stringify({ days: 1 }) } }];
-      }
-    } else if (prompt.includes("top") || prompt.includes("bestseller") || prompt.includes("popular") || prompt.includes("dish") || prompt.includes("item")) {
+    if (prompt.includes("yesterday") || (prompt.includes("compare") && (prompt.includes("sales") || prompt.includes("revenue") || prompt.includes("today")))) {
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "compare_sales_periods", arguments: JSON.stringify({ period: prompt.includes("yesterday") || prompt.includes("day") ? "day" : "week" }) } }];
+    } else if (prompt.includes("sales today") || prompt.includes("today's sales") || prompt.includes("sales") || prompt.includes("revenue") || prompt.includes("performance this week") || prompt.includes("this week")) {
+      const days = prompt.includes("week") ? 7 : 1;
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_sales_summary", arguments: JSON.stringify({ days }) } }];
+    } else if (prompt.includes("top") || prompt.includes("best") || prompt.includes("bestseller") || prompt.includes("popular") || prompt.includes("selling items")) {
       toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_top_selling_products", arguments: JSON.stringify({ limit: 5 }) } }];
-    } else if (prompt.includes("slow") || prompt.includes("underperforming") || prompt.includes("dead stock")) {
+    } else if (prompt.includes("slow") || prompt.includes("underperforming") || prompt.includes("dead stock") || prompt.includes("improve my menu") || prompt.includes("improve menu")) {
       toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_slow_moving_products", arguments: JSON.stringify({ days: 30 }) } }];
-    } else if (prompt.includes("stock") || prompt.includes("inventory") || prompt.includes("shortage") || prompt.includes("reorder") || prompt.includes("ingredient")) {
-      if (prompt.includes("forecast") || prompt.includes("predict") || prompt.includes("burn")) {
-        toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "forecast_stock_demand", arguments: JSON.stringify({ horizonDays: 7 }) } }];
-      } else {
-        toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_low_stock_items", arguments: JSON.stringify({}) } }];
-      }
-    } else if (prompt.includes("festival") || prompt.includes("holiday") || prompt.includes("eid") || prompt.includes("diwali") || prompt.includes("navratri") || prompt.includes("event") || prompt.includes("ramadan")) {
+    } else if (prompt.includes("run out") || prompt.includes("deplete") || prompt.includes("next three days") || prompt.includes("three days") || prompt.includes("forecast")) {
+      const horizonDays = (prompt.includes("three") || prompt.includes("3")) ? 3 : 7;
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "forecast_stock_demand", arguments: JSON.stringify({ horizonDays }) } }];
+    } else if (prompt.includes("reorder") || prompt.includes("buy stock") || prompt.includes("purchase order")) {
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "calculate_reorder_quantity", arguments: JSON.stringify({ horizonDays: 7 }) } }];
+    } else if (prompt.includes("inventory health") || prompt.includes("inventory overview") || prompt.includes("explain my inventory")) {
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_inventory_summary", arguments: JSON.stringify({}) } }];
+    } else if (prompt.includes("low") || prompt.includes("shortage") || prompt.includes("stock") || prompt.includes("ingredient")) {
+      toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_low_stock_items", arguments: JSON.stringify({}) } }];
+    } else if (prompt.includes("festival") || prompt.includes("holiday") || prompt.includes("busy period") || prompt.includes("prepare") || prompt.includes("event") || prompt.includes("diwali") || prompt.includes("eid")) {
       toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_upcoming_festivals", arguments: JSON.stringify({ daysAhead: 30 }) } }];
     } else if (prompt.includes("order") || prompt.includes("queue") || prompt.includes("bottleneck") || prompt.includes("delayed")) {
       toolCalls = [{ id: "call_" + Math.random().toString(36).slice(2, 9), type: "function", function: { name: "get_order_status_summary", arguments: JSON.stringify({}) } }];
@@ -182,11 +184,23 @@ function synthesizeToolOutput(data) {
     return `### 📊 Sales & Revenue Summary\n\n- **Paid Revenue:** ₹${Number(s.paidRevenue || 0).toLocaleString()}\n- **Completed Orders:** ${s.completedOrderCount || 0}\n- **Average Order Value (AOV):** ₹${s.averageOrderValue || 0}\n- **Dine-In Orders:** ${s.dineInCount || 0} | **Takeaway Orders:** ${s.takeawayCount || 0}\n\n*All statistics are computed directly from verified database orders.*`;
   }
 
+  if (data.comparison) {
+    const c = data.comparison;
+    return `### 📈 Period Comparison\n\n- **Current Revenue:** ₹${Number(c.currentRevenue || 0).toLocaleString()} (${c.currentOrderCount || 0} orders)\n- **Previous Revenue:** ₹${Number(c.previousRevenue || 0).toLocaleString()} (${c.previousOrderCount || 0} orders)\n- **Revenue Change:** ₹${Number(c.revenueChange || 0).toLocaleString()} (**${c.percentageChange || "0%"}**)\n\n*Direct comparison computed from store transaction history.*`;
+  }
+
   if (data.topProducts) {
     const items = data.topProducts;
     if (items.length === 0) return "No dish sales recorded yet in this period.";
     const table = items.map((i, idx) => `| ${idx + 1} | ${i.name} | ${i.quantitySold} sold | ₹${Number(i.revenue).toLocaleString()} |`).join("\n");
     return `### 🏆 Top Selling Dishes\n\n| Rank | Dish Name | Volume | Total Revenue |\n|---|---|---|---|\n${table}\n\n*Based on completed customer orders.*`;
+  }
+
+  if (data.slowMovingProducts) {
+    const items = data.slowMovingProducts;
+    if (items.length === 0) return "✅ **Menu Performance Healthy:** No underperforming or slow-moving items detected.";
+    const list = items.map((i) => `- **${i.name}** (₹${i.price}): Only **${i.quantitySold} units sold** in the lookback window. Consider running a promotion or updating imagery.`).join("\n");
+    return `### 🐢 Slow-Moving Menu Items\n\n${list}\n\n*Recommendation: Bundle with high-velocity items or refresh descriptions.*`;
   }
 
   if (data.lowStockItems) {
@@ -196,13 +210,25 @@ function synthesizeToolOutput(data) {
     return `### ⚠️ Low Stock Alerts (${items.length} items)\n\n${list}\n\nWould you like me to draft a purchase order proposal for these ingredients?`;
   }
 
-  if (data.forecast) {
-    const f = data.forecast;
-    return `### 🔮 7-Day Stockout Forecast\n\n- **Projected Burn Rate:** ${f.dailyBurnRate || 0} units/day\n- **Stockout Risk Date:** ${f.estimatedStockoutDate || "Safe (>14 days)"}\n- **Suggested Reorder Quantity:** **${f.suggestedReorderQuantity || 0} ${f.unit || "units"}**\n- **Forecast Basis:** Deterministic historical order consumption + minimum safety margin\n- **Confidence:** ${f.confidence || "High"}`;
+  if (data.totalItems !== undefined && data.lowStockAlertCount !== undefined) {
+    return `### 📦 Inventory Health Overview\n\n- **Tracked Ingredients:** ${data.totalItems} items\n- **Low Stock Alerts:** ${data.lowStockAlertCount} items needing attention\n- **Estimated Inventory Valuation:** ₹${Number(data.totalValuationEstimate || 0).toLocaleString()}\n\n*Derived from real-time ingredient ledgers.*`;
+  }
+
+  if (data.reorderList) {
+    const items = data.reorderList;
+    if (items.length === 0) return "✅ **Reorders Not Required:** All ingredient stocks exceed projected safety buffers.";
+    const list = items.map((r) => `- **${r.itemName}**: Current Stock ${r.currentStock} ${r.unit} → **Suggested Reorder: ${r.suggestedReorderQuantity} ${r.unit}** (Projected stockout: ${r.stockoutDate || "Soon"})`).join("\n");
+    return `### 📋 Suggested Reorder List\n\n${list}\n\n${data.message || ""}`;
+  }
+
+  if (data.forecasts || data.forecast) {
+    const fList = data.forecasts || [data.forecast];
+    const lines = fList.slice(0, 5).map((f) => `- **${f.itemName || "Item"}**: Stock **${f.currentStock || 0} ${f.unit || ""}**, Burn Rate: ${f.dailyBurnRate || 0}/day, Stockout Date: **${f.stockoutDate || f.estimatedStockoutDate || "Safe"}**`);
+    return `### 🔮 Stockout Forecast (${data.horizonDays || 7}-Day Horizon)\n\n${lines.join("\n")}\n\n*Deterministic historical order consumption calculation.*`;
   }
 
   if (data.upcomingFestivals) {
-    const list = data.upcomingFestivals.map((ev) => `- **${ev.name}** (${ev.date}): Expected demand shift: **${ev.demandShift}** (Key items: ${ev.keyItems.join(", ")})`).join("\n");
+    const list = data.upcomingFestivals.map((ev) => `- **${ev.name}** (${ev.date}): Expected demand shift: **${ev.demandShift}** (Key items: ${ev.keyItems ? ev.keyItems.join(", ") : "Regional specialties"})`).join("\n");
     return `### 🗓️ Upcoming Festivals & Event Demand Intelligence\n\n${list}\n\n*Preparation Tip: Ensure sufficient ingredient stock and staff scheduling 48 hours in advance.*`;
   }
 

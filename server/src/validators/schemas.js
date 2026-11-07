@@ -96,7 +96,6 @@ const restaurantUpdateSchema = z.object({
   searchEnabled: z.boolean().optional(),
   currency: z.string().optional(),
   logoUrl: imageUrlField.optional().nullable(),
-  status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
 
   // Open / closed
   isOpen: z.boolean().optional(),

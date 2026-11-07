@@ -100,7 +100,11 @@ export default function GlobalLanguageSelector({
         title={`${t("language")}: ${currentDetails.native} (${currentDetails.english})`}
       >
         {/* Globe icon */}
-        <span className="text-sm leading-none shrink-0" aria-hidden="true">🌐</span>
+        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
 
         {/* Selected language name in native script */}
         <span className="truncate max-w-[100px] sm:max-w-[130px] font-medium">

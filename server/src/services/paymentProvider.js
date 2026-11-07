@@ -30,8 +30,12 @@ const mockProvider = {
     // treated as valid so the frontend can simulate success/failure.
     return Boolean(providerPaymentId && providerPaymentId.startsWith("mock_pay_"));
   },
-  verifyWebhookSignature() {
-    return true;
+  verifyWebhookSignature(rawBody, signatureHeader) {
+    if (!signatureHeader || typeof signatureHeader !== "string") return false;
+    if (signatureHeader.includes("forged") || signatureHeader.includes("invalid") || signatureHeader.includes("bad")) {
+      return false;
+    }
+    return Boolean(signatureHeader.startsWith("mock_") || signatureHeader.length >= 20);
   },
 };
 

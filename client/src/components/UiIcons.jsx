@@ -1,6 +1,16 @@
 import React from "react";
 
 // Svaadya Enterprise SVG Icon Library (Zero runtime dependencies)
+export function AlertTriangleIcon({ className = "w-5 h-5", ...props }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
 export function ChefHatIcon({ className = "w-5 h-5", ...props }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -306,6 +316,16 @@ export function SparklesIcon({ className = "w-4 h-4", ...props }) {
     </svg>
   );
 }
+
+export function MapPinIcon({ className = "w-4 h-4", ...props }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
 
 // Food classification marks (Veg: Green square with green circle; Non-Veg: Brown square with red triangle)
 export function VegBadge({ className = "w-4 h-4" }) {

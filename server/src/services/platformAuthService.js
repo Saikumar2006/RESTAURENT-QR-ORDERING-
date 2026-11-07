@@ -106,13 +106,15 @@ async function login(email, password, requestId = null, clientIp = null, db = pr
     const shouldLock = nextAttempts >= MAX_FAILED_ATTEMPTS;
     const lockedUntil = shouldLock ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000) : null;
 
-    await db.platformAdmin.update({
-      where: { id: admin.id },
-      data: {
-        failedLoginAttempts: nextAttempts,
-        lockedUntil: lockedUntil || admin.lockedUntil,
-      },
-    });
+    if (db.platformAdmin.update) {
+      await db.platformAdmin.update({
+        where: { id: admin.id },
+        data: {
+          failedLoginAttempts: nextAttempts,
+          lockedUntil: lockedUntil || admin.lockedUntil,
+        },
+      });
+    }
 
     try {
       await db.platformAdminAuditLog.create({
@@ -152,15 +154,17 @@ async function login(email, password, requestId = null, clientIp = null, db = pr
   }
 
   // Login succeeded: reset failed attempts & record activity
-  await db.platformAdmin.update({
-    where: { id: admin.id },
-    data: {
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-      lastLoginAt: new Date(),
-      lastLoginIp: clientIp || null,
-    },
-  });
+  if (db.platformAdmin.update) {
+    await db.platformAdmin.update({
+      where: { id: admin.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        lastLoginIp: clientIp || null,
+      },
+    });
+  }
 
   try {
     await db.platformAdminAuditLog.create({

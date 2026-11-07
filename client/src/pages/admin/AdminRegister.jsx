@@ -664,7 +664,7 @@ export default function AdminRegister() {
                 <div className="p-3.5 rounded-xl bg-[#EAF7EE] border border-[#269B67]/30 flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold text-[#269B67]">
-                      🎉 {catalog.trial.durationDays}-Day Free Trial Included
+                      {catalog.trial.durationDays}-Day Free Trial Included
                     </p>
                     <p className="text-[11px] text-[#788582]">
                       Zero charges today. Explore all enterprise features without commitment.

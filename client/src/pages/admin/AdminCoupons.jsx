@@ -354,8 +354,8 @@ export default function AdminCoupons() {
                           {/* Code */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                                🎟️
+                              <div className="w-8 h-8 rounded-md bg-teal-50 dark:bg-teal-950/40 text-[#0F4C45] dark:text-[#2DD4BF] flex items-center justify-center shrink-0 border border-teal-200/60 dark:border-teal-800/40">
+                                <PromotionsIcon className="w-4 h-4" />
                               </div>
                               <div>
                                 <span className="font-bold text-[#172B2A]">{coupon.code}</span>

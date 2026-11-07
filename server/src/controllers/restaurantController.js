@@ -18,7 +18,15 @@ function assertRestaurantPath(req) {
 
 const updateRestaurant = asyncHandler(async (req, res) => {
   if (req.params.id !== req.user.restaurantId) throw new ApiError(403, "Forbidden");
-  const restaurant = await prisma.restaurant.update({ where: { id: req.user.restaurantId }, data: req.body });
+
+  const existing = await prisma.restaurant.findUnique({ where: { id: req.user.restaurantId } });
+  if (!existing) throw new ApiError(404, "Restaurant not found");
+  if (existing.status === "SUSPENDED") {
+    throw new ApiError(403, "This restaurant is suspended by platform administration and cannot be modified.");
+  }
+
+  const { status, id, createdAt, updatedAt, ...safeData } = req.body;
+  const restaurant = await prisma.restaurant.update({ where: { id: req.user.restaurantId }, data: safeData });
   ok(res, restaurant);
 });
 
